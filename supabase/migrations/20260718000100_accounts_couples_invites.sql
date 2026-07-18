@@ -18,6 +18,8 @@ revoke all on function public.set_updated_at() from public, anon, authenticated;
 
 create table public.private_accounts (
   id uuid primary key references auth.users(id) on delete cascade,
+  preferred_locale text not null default 'en'
+    check (preferred_locale in ('en', 'fr')),
   private_display_name text null check (
     private_display_name is null
     or char_length(private_display_name) between 1 and 80
@@ -32,6 +34,18 @@ create table public.private_accounts (
       'other'
     )
   ),
+  onboarding_completed boolean not null default false,
+  onboarding_step text null check (
+    onboarding_step is null or char_length(onboarding_step) between 1 and 80
+  ),
+  product_intro_completed boolean not null default false,
+  privacy_intro_completed boolean not null default false,
+  entry_mode text null check (
+    entry_mode is null or entry_mode in ('create', 'join')
+  ),
+  preferred_pace text not null default 'flexible' check (
+    preferred_pace in ('gentle', 'steady', 'flexible')
+  ),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -40,7 +54,17 @@ alter table public.private_accounts enable row level security;
 
 revoke all on table public.private_accounts from public, anon, authenticated;
 grant select on table public.private_accounts to authenticated;
-grant update (private_display_name, relationship_stage)
+grant update (
+  preferred_locale,
+  private_display_name,
+  relationship_stage,
+  onboarding_completed,
+  onboarding_step,
+  product_intro_completed,
+  privacy_intro_completed,
+  entry_mode,
+  preferred_pace
+)
   on table public.private_accounts to authenticated;
 
 create policy "private account owner can read"
@@ -68,14 +92,33 @@ set search_path = public, pg_temp
 as $$
 declare
   v_display_name text;
+  v_preferred_locale text;
+  v_entry_mode text;
 begin
   v_display_name := nullif(
     left(trim(coalesce(new.raw_user_meta_data ->> 'private_display_name', '')), 80),
     ''
   );
 
-  insert into public.private_accounts (id, private_display_name)
-  values (new.id, v_display_name)
+  v_preferred_locale := case
+    when new.raw_user_meta_data ->> 'preferred_locale' in ('en', 'fr')
+      then new.raw_user_meta_data ->> 'preferred_locale'
+    else 'en'
+  end;
+
+  v_entry_mode := case
+    when new.raw_user_meta_data ->> 'entry_mode' in ('create', 'join')
+      then new.raw_user_meta_data ->> 'entry_mode'
+    else null
+  end;
+
+  insert into public.private_accounts (
+    id,
+    preferred_locale,
+    private_display_name,
+    entry_mode
+  )
+  values (new.id, v_preferred_locale, v_display_name, v_entry_mode)
   on conflict (id) do nothing;
 
   return new;
@@ -130,6 +173,104 @@ where ended_at is null;
 
 alter table public.couple_memberships enable row level security;
 revoke all on table public.couple_memberships from public, anon, authenticated;
+
+create or replace function public.current_journey_policy_version()
+returns text
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select '2026-07-18-v1'::text;
+$$;
+
+revoke all on function public.current_journey_policy_version()
+  from public, anon, authenticated;
+grant execute on function public.current_journey_policy_version()
+  to authenticated;
+
+create table public.journey_policy_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  user_id uuid not null references public.private_accounts(id) on delete cascade,
+  policy_version text not null check (
+    char_length(policy_version) between 1 and 80
+  ),
+  accepted_at timestamptz not null default now(),
+  unique (couple_id, user_id, policy_version)
+);
+
+alter table public.journey_policy_acceptances enable row level security;
+revoke all on table public.journey_policy_acceptances
+  from public, anon, authenticated;
+
+create or replace function public.validate_journey_policy_acceptance()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.policy_version <> public.current_journey_policy_version() then
+    raise exception using errcode = 'P0001', message = 'JOURNEY_POLICY_VERSION_INVALID';
+  end if;
+
+  if not exists (
+    select 1
+    from public.couple_memberships membership
+    where membership.couple_id = new.couple_id
+      and membership.user_id = new.user_id
+      and membership.ended_at is null
+  ) then
+    raise exception using errcode = 'P0001', message = 'JOURNEY_POLICY_MEMBER_REQUIRED';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.validate_journey_policy_acceptance()
+  from public, anon, authenticated;
+
+create trigger journey_policy_acceptances_validate
+before insert or update on public.journey_policy_acceptances
+for each row execute function public.validate_journey_policy_acceptance();
+
+create or replace function public.validate_couple_activation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_acceptance_count integer;
+begin
+  if new.status = 'active' and (
+    tg_op = 'INSERT'
+    or old.status is distinct from new.status
+    or old.user_b_id is distinct from new.user_b_id
+  ) then
+    select count(distinct acceptance.user_id)::integer
+    into v_acceptance_count
+    from public.journey_policy_acceptances acceptance
+    where acceptance.couple_id = new.id
+      and acceptance.policy_version = public.current_journey_policy_version()
+      and acceptance.user_id in (new.user_a_id, new.user_b_id);
+
+    if new.user_b_id is null or v_acceptance_count <> 2 then
+      raise exception using errcode = 'P0001', message = 'JOURNEY_POLICY_ACCEPTANCE_REQUIRED';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.validate_couple_activation()
+  from public, anon, authenticated;
+
+create trigger couples_validate_activation
+before insert or update on public.couples
+for each row execute function public.validate_couple_activation();
 
 create or replace function public.is_couple_member_for(
   p_couple_id uuid,
@@ -226,7 +367,7 @@ create index couple_invites_couple_id_idx on public.couple_invites (couple_id);
 alter table public.couple_invites enable row level security;
 revoke all on table public.couple_invites from public, anon, authenticated;
 
-create or replace function public.create_couple_invite()
+create or replace function public.create_couple_invite(p_policy_version text)
 returns table (
   invite_id uuid,
   couple_id uuid,
@@ -248,6 +389,10 @@ declare
 begin
   if v_user_id is null then
     raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
+  end if;
+
+  if p_policy_version is distinct from public.current_journey_policy_version() then
+    raise exception using errcode = 'P0001', message = 'JOURNEY_POLICY_VERSION_INVALID';
   end if;
 
   perform 1
@@ -281,6 +426,21 @@ begin
     values (v_couple_id, v_user_id, 'a');
   end if;
 
+  insert into public.journey_policy_acceptances (
+    couple_id,
+    user_id,
+    policy_version,
+    accepted_at
+  )
+  values (
+    v_couple_id,
+    v_user_id,
+    p_policy_version,
+    now()
+  )
+  on conflict (couple_id, user_id, policy_version)
+  do update set accepted_at = excluded.accepted_at;
+
   update public.couple_invites invitation
   set expires_at = least(invitation.expires_at, now())
   where invitation.couple_id = v_couple_id
@@ -288,9 +448,10 @@ begin
     and invitation.expires_at > now();
 
   loop
-    v_code := lower(
-      translate(encode(extensions.gen_random_bytes(18), 'base64'), '+/=', '-_')
-    );
+    -- Twenty hexadecimal characters provide an 80-bit opaque token that can
+    -- also be grouped into a human-readable invite code without storing a
+    -- second secret.
+    v_code := encode(extensions.gen_random_bytes(10), 'hex');
     v_code_hash := encode(extensions.digest(v_code, 'sha256'), 'hex');
     exit when not exists (
       select 1
@@ -318,11 +479,14 @@ begin
 end;
 $$;
 
-revoke all on function public.create_couple_invite()
+revoke all on function public.create_couple_invite(text)
   from public, anon, authenticated;
-grant execute on function public.create_couple_invite() to authenticated;
+grant execute on function public.create_couple_invite(text) to authenticated;
 
-create or replace function public.redeem_couple_invite(p_invite_code text)
+create or replace function public.redeem_couple_invite(
+  p_invite_code text,
+  p_policy_version text
+)
 returns uuid
 language plpgsql
 security definer
@@ -330,7 +494,12 @@ set search_path = public, extensions, pg_temp
 as $$
 declare
   v_user_id uuid := auth.uid();
-  v_normalized_code text := lower(trim(coalesce(p_invite_code, '')));
+  v_normalized_code text := regexp_replace(
+    lower(trim(coalesce(p_invite_code, ''))),
+    '[^0-9a-f]',
+    '',
+    'g'
+  );
   v_code_hash text;
   v_invite public.couple_invites%rowtype;
   v_couple public.couples%rowtype;
@@ -339,7 +508,11 @@ begin
     raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
   end if;
 
-  if char_length(v_normalized_code) < 20 then
+  if p_policy_version is distinct from public.current_journey_policy_version() then
+    raise exception using errcode = 'P0001', message = 'JOURNEY_POLICY_VERSION_INVALID';
+  end if;
+
+  if char_length(v_normalized_code) <> 20 then
     raise exception using errcode = 'P0001', message = 'INVITE_INVALID';
   end if;
 
@@ -394,6 +567,17 @@ begin
       raise exception using errcode = 'P0001', message = 'ACTIVE_COUPLE_CONFLICT';
   end;
 
+  insert into public.journey_policy_acceptances (
+    couple_id,
+    user_id,
+    policy_version
+  )
+  values (
+    v_couple.id,
+    v_user_id,
+    p_policy_version
+  );
+
   update public.couples
   set user_b_id = v_user_id,
       status = 'active'
@@ -408,6 +592,100 @@ begin
 end;
 $$;
 
-revoke all on function public.redeem_couple_invite(text)
+revoke all on function public.redeem_couple_invite(text, text)
   from public, anon, authenticated;
-grant execute on function public.redeem_couple_invite(text) to authenticated;
+grant execute on function public.redeem_couple_invite(text, text) to authenticated;
+
+create or replace function public.inspect_couple_invite(p_invite_code text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, extensions, pg_temp
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_normalized_code text := regexp_replace(
+    lower(trim(coalesce(p_invite_code, ''))),
+    '[^0-9a-f]',
+    '',
+    'g'
+  );
+  v_invite public.couple_invites%rowtype;
+begin
+  if v_user_id is null then
+    raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
+  end if;
+
+  if char_length(v_normalized_code) <> 20 then
+    return jsonb_build_object('status', 'unavailable');
+  end if;
+
+  select invitation.*
+  into v_invite
+  from public.couple_invites invitation
+  join public.couples couple on couple.id = invitation.couple_id
+  where invitation.code_hash = encode(
+      extensions.digest(v_normalized_code, 'sha256'),
+      'hex'
+    )
+    and invitation.redeemed_at is null
+    and invitation.expires_at > now()
+    and couple.status = 'waiting'
+    and couple.user_b_id is null;
+
+  if not found then
+    return jsonb_build_object('status', 'unavailable');
+  end if;
+
+  if v_invite.created_by = v_user_id then
+    return jsonb_build_object('status', 'self_invite');
+  end if;
+
+  if public.current_couple_id() is not null then
+    return jsonb_build_object('status', 'active_couple_conflict');
+  end if;
+
+  return jsonb_build_object(
+    'status', 'available',
+    'expiresAt', v_invite.expires_at
+  );
+end;
+$$;
+
+revoke all on function public.inspect_couple_invite(text)
+  from public, anon, authenticated;
+grant execute on function public.inspect_couple_invite(text) to authenticated;
+
+create or replace function public.revoke_couple_invite(p_invite_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_user_id uuid := auth.uid();
+begin
+  if v_user_id is null then
+    raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
+  end if;
+
+  update public.couple_invites invitation
+  set expires_at = least(invitation.expires_at, now())
+  from public.couples couple
+  where invitation.id = p_invite_id
+    and couple.id = invitation.couple_id
+    and invitation.created_by = v_user_id
+    and invitation.redeemed_at is null
+    and couple.status = 'waiting'
+    and couple.user_a_id = v_user_id;
+
+  if not found then
+    raise exception using errcode = 'P0001', message = 'INVITE_UNAVAILABLE';
+  end if;
+end;
+$$;
+
+revoke all on function public.revoke_couple_invite(uuid)
+  from public, anon, authenticated;
+grant execute on function public.revoke_couple_invite(uuid) to authenticated;

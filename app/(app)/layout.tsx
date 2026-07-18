@@ -12,7 +12,7 @@ export default async function PrivateAppLayout({
     redirect("/sign-in");
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -7,8 +7,9 @@ is granted explicitly.
 ## Migration sequence
 
 1. `20260718000100_accounts_couples_invites.sql`
-   - Private accounts, couples, internal memberships, invitation hashing,
-     one-current-couple enforcement, transactional creation and redemption
+   - Private accounts and onboarding state, couples, internal memberships,
+     journey-deletion policy acceptance, invitation hashing, one-current-couple
+     enforcement, and transactional creation and redemption
 2. `20260718000200_canonical_content.sql`
    - Topics, questions, stable options, and checklist definitions
 3. `20260718000300_answers_and_progress.sql`
@@ -38,20 +39,41 @@ npm run db:test
 The SQL authorization tests run inside a transaction and roll back all fixture
 users and journey data.
 
-## Hosted development project
+## Isolated cloud development project
 
-If Docker is unavailable, link a non-production Supabase project and apply the
-migrations there:
+Docker is optional for Phase 2. Configure an ignored, untracked `.env.local`
+with an encoded direct or session-pooler connection URL for a separate,
+disposable Supabase cloud development project:
 
-```bash
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase db push --include-seed
-npx supabase db lint --linked --level warning
+```text
+SUPABASE_DB_URL=
+ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS=true
 ```
 
-Do not run unfinished migrations against a production project. Database test
-fixtures must only be executed in an isolated development environment.
+Never place the URL in a command, document, screenshot, commit, report, or chat
+message. Run the complete destructive verification gate with:
+
+```bash
+npm run db:remote:verify
+```
+
+The verifier performs two complete reset, migration, seed, lint, pgTAP,
+concurrent-redemption, and schema-inventory passes. The safety wrapper rejects
+non-Supabase hosts, checks local secret files are ignored and untracked, masks
+connection details in captured output, and fails closed without the explicit
+destructive-development flag.
+
+Individual commands are available for controlled diagnosis:
+
+```bash
+npm run db:remote:push
+npm run db:remote:seed
+npm run db:remote:lint
+npm run db:remote:test
+```
+
+Do not use a production project, a project containing real users, or a shared
+project containing unrelated data.
 
 ## Privacy boundary
 
@@ -66,6 +88,8 @@ fixtures must only be executed in an isolated development environment.
 - Canonical content is readable but has no authenticated write grant.
 - The account-deletion preparation function is executable only by the
   `service_role` and accepts a user ID derived by trusted server code.
+- A journey cannot become active until both participants accept the current
+  journey-deletion policy version.
 
 ## Account-deletion data behavior
 
@@ -78,3 +102,15 @@ user through the Supabase Admin API.
 All answers in the deleted shared journey are removed because answers are
 couple-scoped. This includes the remaining partner's answers for that closed
 journey. The deletion confirmation UI must state this clearly.
+
+Both users must accept this disclosure before invitation creation or redemption:
+
+> If either person permanently deletes their account, this shared journey ends.
+> Answers, comparisons, shared notes, and checklist progress connected to this
+> journey are permanently removed for both people.
+
+The server first removes all active-database journey content, then deletes the
+requesting Auth identity through the Admin API. Active-database deletion does
+not claim immediate erasure from provider-managed infrastructure backups.
+Supabase backup retention and restoration behavior must be documented separately
+before production launch.

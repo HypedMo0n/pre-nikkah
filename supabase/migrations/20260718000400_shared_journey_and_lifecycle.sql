@@ -228,21 +228,17 @@ begin
   where couple.id = v_couple_id
   for update;
 
-  update public.couples
-  set status = 'closed'
-  where id = v_couple_id;
-
-  update public.couple_memberships
-  set ended_at = coalesce(ended_at, now())
-  where couple_id = v_couple_id;
-
-  delete from public.guided_discussions where couple_id = v_couple_id;
-  delete from public.couple_checklist_items where couple_id = v_couple_id;
-
   if v_partner_id is not null then
     insert into public.journey_closure_notices (user_id, reason)
     values (v_partner_id, 'closed');
   end if;
+
+  update public.couples
+  set status = 'closed'
+  where id = v_couple_id;
+
+  -- The couple row owns every journey-scoped record through cascading keys.
+  delete from public.couples where id = v_couple_id;
 end;
 $$;
 
@@ -280,18 +276,15 @@ begin
     set status = 'closed'
     where id = v_couple.id;
 
-    delete from public.guided_discussions where couple_id = v_couple.id;
-    delete from public.couple_checklist_items where couple_id = v_couple.id;
-
     if v_partner_id is not null and v_partner_id <> p_user_id then
       insert into public.journey_closure_notices (user_id, reason)
       values (v_partner_id, 'partner_account_deleted');
     end if;
 
+    -- Deleting the couple removes both users' journey-scoped content. The
+    -- server then deletes the Auth identity through the Supabase Admin API.
     delete from public.couples where id = v_couple.id;
   end loop;
-
-  delete from public.private_accounts where id = p_user_id;
 end;
 $$;
 

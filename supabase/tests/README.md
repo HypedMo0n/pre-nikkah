@@ -6,11 +6,19 @@ Run the suite with:
 npm run db:test
 ```
 
-The suite proves account non-enumeration, answer ownership, reveal ownership,
-safe revealed-answer access, revocation behavior, outsider isolation, canonical
-content immutability, couple-only shared records, and invitation self-use,
-expiry, conflict, and reuse protections.
+The four pgTAP files contain 95 assertions covering schema and function grants,
+account non-enumeration, answer ownership, the complete comparison matrix,
+reveal ownership, safe revealed-answer access, revocation behavior, outsider
+isolation, canonical content immutability, policy acceptance, couple-only shared
+records, invitation misuse, and the agreed two-person deletion cascade.
 
-The test requires a running local Supabase stack. Docker is not available in
-the current workspace environment, so the committed test has not yet produced
-a passing runtime result.
+The remote test command also runs a two-connection redemption race and requires
+exactly one successful redeemer:
+
+```bash
+npm run db:remote:test
+```
+
+These tests are not considered passed until executed against PostgreSQL. Source
+inspection and the Vitest migration-invariant checks are supplementary and are
+not substitutes for the pgTAP run.

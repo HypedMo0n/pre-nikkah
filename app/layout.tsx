@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { cookies } from "next/headers";
 
 import { brand } from "@/config/brand";
+import { localeCookieName, parseLocale } from "@/lib/i18n/config";
 
 import "./globals.css";
 
@@ -25,13 +27,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = parseLocale(cookieStore.get(localeCookieName)?.value);
+
   return (
-    <html dir="ltr" lang="en">
+    <html dir="ltr" lang={locale}>
       <body className={`${inter.variable} ${fraunces.variable} antialiased`}>
         {children}
       </body>

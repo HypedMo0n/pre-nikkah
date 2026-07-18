@@ -3,22 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --color-background: 250 247 242;
-  --color-section: 240 235 227;
-  --color-border: 231 224 214;
-  --color-card: 255 255 255;
-  --color-ink-soft: 140 131 119;
-  --color-body: 74 68 60;
-  --color-ink: 43 38 32;
-  --color-primary: 69 51 80;
-  --color-primary-soft: 239 233 242;
-  --color-accent: 201 154 60;
-  --color-aligned: 92 117 99;
-  --color-aligned-soft: 238 243 239;
-  --color-discuss: 166 122 46;
-  --color-discuss-soft: 251 243 226;
-  --color-concern: 150 73 59;
-  --color-concern-soft: 248 236 233;
+  --color-background: 255 253 248;
+  --color-section: 245 239 228;
+  --color-border: 222 213 198;
+  --color-card: 255 255 252;
+  --color-ink-soft: 111 113 128;
+  --color-body: 65 70 87;
+  --color-ink: 23 35 66;
+  --color-primary: 94 103 69;
+  --color-primary-soft: 237 240 229;
+  --color-accent: 196 154 74;
+  --color-aligned: 94 103 69;
+  --color-aligned-soft: 237 240 229;
+  --color-discuss: 153 113 38;
+  --color-discuss-soft: 250 243 225;
+  --color-concern: 165 65 62;
+  --color-concern-soft: 249 235 232;
+  --color-focus: 23 35 66;
+  --touch-target: 2.75rem;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
@@ -36,7 +40,22 @@ body {
   background: rgb(var(--color-background));
   color: rgb(var(--color-body));
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  overflow-wrap: anywhere;
   text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-inline-size: 100%;
 }
 
 ::selection {
@@ -45,7 +64,15 @@ body {
 }
 
 :focus-visible {
-  outline-color: rgb(var(--color-primary));
+  outline: 2px solid rgb(var(--color-focus));
+  outline-offset: 3px;
+}
+
+@supports (padding: max(0px)) {
+  .safe-screen {
+    padding-block-start: max(0px, var(--safe-area-top));
+    padding-block-end: max(0px, var(--safe-area-bottom));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -76,5 +103,10 @@ body {
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  .touch-target {
+    min-block-size: var(--touch-target);
+    min-inline-size: var(--touch-target);
   }
 }

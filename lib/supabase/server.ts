@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import { getPublicEnv } from "@/lib/env/public";
 import type { Database } from "@/types/database";
 
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  const cookieStore = await cookies();
   const env = getPublicEnv();
 
   return createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
@@ -15,13 +15,14 @@ export function createClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, headersToSet) {
+        void headersToSet;
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Server Components cannot write cookies. Middleware refreshes them.
+          // Server Components cannot write cookies. Proxy refreshes them.
         }
       },
     },

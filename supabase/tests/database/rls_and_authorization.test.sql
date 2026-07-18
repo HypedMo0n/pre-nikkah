@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(25);
+select plan(40);
 
 insert into auth.users (
   id,
@@ -99,9 +99,27 @@ select set_config(
 );
 select set_config('request.jwt.claim.role', 'authenticated', true);
 
+select throws_ok(
+  $$select * from public.create_couple_invite('outdated-policy')$$,
+  'P0001',
+  'JOURNEY_POLICY_VERSION_INVALID',
+  'Invite creation requires acceptance of the current journey-deletion policy'
+);
+
 insert into test_state (key, value)
 select 'invite_code', invite.invite_code
-from public.create_couple_invite() invite;
+from public.create_couple_invite(public.current_journey_policy_version()) invite;
+
+select is(
+  (
+    select count(*)
+    from public.journey_policy_acceptances acceptance
+    where acceptance.user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+      and acceptance.policy_version = public.current_journey_policy_version()
+  ),
+  1::bigint,
+  'Invite creation records the creator policy version and acceptance timestamp'
+);
 
 insert into test_state (key, value)
 select 'couple_id', couple.id::text
@@ -118,7 +136,7 @@ select isnt(
 
 select throws_ok(
   format(
-    'select public.redeem_couple_invite(%L)',
+    'select public.redeem_couple_invite(%L, public.current_journey_policy_version())',
     (select value from test_state where key = 'invite_code')
   ),
   'P0001',
@@ -132,12 +150,41 @@ select set_config(
   true
 );
 
+select is(
+  public.inspect_couple_invite(
+    (select value from test_state where key = 'invite_code')
+  ) ->> 'status',
+  'available',
+  'An authenticated prospective partner can inspect an available opaque invitation'
+);
+
 select lives_ok(
   format(
-    'select public.redeem_couple_invite(%L)',
+    'select public.redeem_couple_invite(%L, public.current_journey_policy_version())',
     (select value from test_state where key = 'invite_code')
   ),
   'A connected partner can redeem a valid invitation once'
+);
+
+select is(
+  (
+    select count(*)
+    from public.journey_policy_acceptances acceptance
+    where acceptance.couple_id = (select value::uuid from test_state where key = 'couple_id')
+      and acceptance.policy_version = public.current_journey_policy_version()
+  ),
+  2::bigint,
+  'Both participants accept the current journey-deletion policy'
+);
+
+select is(
+  (
+    select couple.status
+    from public.couples couple
+    where couple.id = (select value::uuid from test_state where key = 'couple_id')
+  ),
+  'active',
+  'A couple becomes active only after both policy acceptances exist'
 );
 
 select set_config(
@@ -148,12 +195,20 @@ select set_config(
 
 select throws_ok(
   format(
-    'select public.redeem_couple_invite(%L)',
+    'select public.redeem_couple_invite(%L, public.current_journey_policy_version())',
     (select value from test_state where key = 'invite_code')
   ),
   'P0001',
   'INVITE_ALREADY_USED',
   'A redeemed invitation cannot be reused'
+);
+
+select is(
+  public.inspect_couple_invite(
+    (select value from test_state where key = 'invite_code')
+  ) ->> 'status',
+  'unavailable',
+  'Inspection does not expose details about a used invitation'
 );
 
 select set_config(
@@ -164,11 +219,55 @@ select set_config(
 
 insert into test_state (key, value)
 select 'expired_code', invite.invite_code
-from public.create_couple_invite() invite;
+from public.create_couple_invite(public.current_journey_policy_version()) invite;
 
-update public.couple_invites invitation
-set expires_at = now() - interval '1 minute'
-where invitation.created_by = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4';
+insert into test_state (key, value)
+select 'expired_invite_id', invitation.id::text
+from public.couple_invites invitation
+where invitation.created_by = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4'
+  and invitation.redeemed_at is null;
+
+select set_config(
+  'request.jwt.claim.sub',
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
+  true
+);
+
+select throws_ok(
+  format(
+    'select public.redeem_couple_invite(%L, public.current_journey_policy_version())',
+    (select value from test_state where key = 'expired_code')
+  ),
+  'P0001',
+  'ACTIVE_COUPLE_CONFLICT',
+  'A user in an active couple cannot redeem another valid invitation'
+);
+
+select throws_ok(
+  $$
+    update public.couples
+    set user_b_id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
+        status = 'active'
+    where user_a_id = 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4'
+  $$,
+  'P0001',
+  'JOURNEY_POLICY_ACCEPTANCE_REQUIRED',
+  'A journey cannot become active before both current policy acceptances exist'
+);
+
+select set_config(
+  'request.jwt.claim.sub',
+  'dddddddd-dddd-4ddd-8ddd-ddddddddddd4',
+  true
+);
+
+select lives_ok(
+  format(
+    'select public.revoke_couple_invite(%L)',
+    (select value from test_state where key = 'expired_invite_id')
+  ),
+  'An invitation creator can revoke an unused invitation'
+);
 
 select set_config(
   'request.jwt.claim.sub',
@@ -178,7 +277,7 @@ select set_config(
 
 select throws_ok(
   format(
-    'select public.redeem_couple_invite(%L)',
+    'select public.redeem_couple_invite(%L, public.current_journey_policy_version())',
     (select value from test_state where key = 'expired_code')
   ),
   'P0001',
@@ -193,7 +292,7 @@ select set_config(
 );
 
 select throws_ok(
-  'select * from public.create_couple_invite()',
+  'select * from public.create_couple_invite(public.current_journey_policy_version())',
   'P0001',
   'ACTIVE_COUPLE_CONFLICT',
   'A user in an active couple cannot create another invitation'
@@ -234,6 +333,13 @@ select throws_ok(
   'Canonical topics cannot be edited by an authenticated user'
 );
 
+select throws_ok(
+  'update public.questions set text = ''Changed by user'' where true',
+  '42501',
+  'permission denied for table questions',
+  'Canonical questions cannot be edited by an authenticated user'
+);
+
 insert into public.answers (question_id, user_id, couple_id, value)
 values
   (
@@ -247,11 +353,23 @@ values
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
     (select value::uuid from test_state where key = 'couple_id'),
     '4'::jsonb
+  ),
+  (
+    '10000000-0000-4000-8000-000000000105',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    (select value::uuid from test_state where key = 'couple_id'),
+    to_jsonb('We would listen carefully and ask for trusted guidance.'::text)
+  ),
+  (
+    '10000000-0000-4000-8000-000000000307',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    (select value::uuid from test_state where key = 'couple_id'),
+    to_jsonb('Private family context for a direct conversation.'::text)
   );
 
 select is(
   (select count(*) from public.answers),
-  2::bigint,
+  4::bigint,
   'A user can read their own answers'
 );
 
@@ -276,7 +394,73 @@ values
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
     (select value::uuid from test_state where key = 'couple_id'),
     '1'::jsonb
+  ),
+  (
+    '10000000-0000-4000-8000-000000000105',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
+    (select value::uuid from test_state where key = 'couple_id'),
+    to_jsonb('We would make space for a respectful conversation.'::text)
+  ),
+  (
+    '10000000-0000-4000-8000-000000000307',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
+    (select value::uuid from test_state where key = 'couple_id'),
+    to_jsonb('Different private family context.'::text)
   );
+
+select ok(
+  (
+    select not comparison.partner_answer_revealed
+      and comparison.partner_answer is null
+    from public.get_question_comparison(
+      '10000000-0000-4000-8000-000000000101'
+    ) comparison
+  ),
+  'Safe comparison responses omit an unrevealed partner value'
+);
+
+select ok(
+  (
+    select comparison.bucket = 'worth_discussing'
+      and not comparison.partner_answer_revealed
+      and comparison.partner_answer is null
+    from public.get_question_comparison(
+      '10000000-0000-4000-8000-000000000105'
+    ) comparison
+  ),
+  'Text discussion-only answers produce a neutral bucket without disclosing wording'
+);
+
+select ok(
+  (
+    select comparison.bucket = 'worth_discussing'
+      and not comparison.partner_answer_revealed
+      and comparison.partner_answer is null
+    from public.get_question_comparison(
+      '10000000-0000-4000-8000-000000000307'
+    ) comparison
+  ),
+  'Never-compare answers produce a neutral prompt without comparing or disclosing wording'
+);
+
+select throws_ok(
+  $$
+    update public.answers
+    set revealed = true
+    where question_id = '10000000-0000-4000-8000-000000000307'
+  $$,
+  'P0001',
+  'ANSWER_REVEAL_NOT_ALLOWED',
+  'A never-compare answer cannot be revealed'
+);
+
+select is(
+  public.get_topic_comparison_summary(
+    '00000000-0000-4000-8000-000000000101'
+  ),
+  '{"aligned":1,"worthDiscussing":1,"possibleConcern":1,"waiting":3}'::jsonb,
+  'A topic aggregate includes every active question rather than only the first'
+);
 
 select is(
   (

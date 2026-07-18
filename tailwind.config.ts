@@ -27,11 +27,11 @@ const config: Config = {
         "concern-soft": "rgb(var(--color-concern-soft) / <alpha-value>)",
       },
       borderRadius: {
-        expressive: "1.25rem",
+        expressive: "1.125rem",
         productive: "0.75rem",
       },
       boxShadow: {
-        soft: "0 16px 40px -24px rgba(69, 51, 80, 0.42)",
+        soft: "0 18px 44px -28px rgba(23, 35, 66, 0.42)",
       },
     },
   },
