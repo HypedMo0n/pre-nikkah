@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { cookies } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
 
 import { brand } from "@/config/brand";
 import { localeCookieName, parseLocale } from "@/lib/i18n/config";
@@ -39,6 +40,7 @@ export default async function RootLayout({
     <html dir="ltr" lang={locale}>
       <body className={`${inter.variable} ${fraunces.variable} antialiased`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
