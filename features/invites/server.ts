@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { getAuthenticatedUser } from "@/lib/auth/require-user";
 import type { Locale } from "@/lib/i18n/config";
+import { logServerActionError } from "@/lib/logging/server-action-error";
 
 import { isInviteCode, normalizeInviteCode } from "./invite-code";
 import type { InviteInspection } from "./types";
@@ -31,6 +32,11 @@ export async function inspectInvite(
     p_invite_code: normalizeInviteCode(inviteCode),
   });
   if (error) {
+    logServerActionError({
+      action: "invite.inspect",
+      error,
+      userId: authenticated.user.id,
+    });
     return { status: "unavailable" };
   }
   const parsed = inspectionSchema.safeParse(data);

@@ -7,6 +7,10 @@ import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
+import {
+  appendTraceId,
+  logServerActionError,
+} from "@/lib/logging/server-action-error";
 
 import {
   formatInviteCode,
@@ -16,8 +20,12 @@ import {
 } from "./invite-code";
 import type { InviteActionState } from "./types";
 
-function inviteError(locale: Locale): InviteActionState {
-  return { status: "error", message: translate(locale, "auth.genericError") };
+function inviteError(locale: Locale, traceId?: string): InviteActionState {
+  const message = translate(locale, "auth.genericError");
+  return {
+    status: "error",
+    message: traceId ? appendTraceId(message, traceId) : message,
+  };
 }
 
 export async function createInviteAction(
@@ -33,14 +41,24 @@ export async function createInviteAction(
     "current_journey_policy_version",
   );
   if (policyError || !policyVersion) {
-    return inviteError(locale);
+    const traceId = logServerActionError({
+      action: "invite.create.policy_version",
+      error: policyError,
+      userId: user.id,
+    });
+    return inviteError(locale, traceId);
   }
   const { data, error } = await supabase.rpc("create_couple_invite", {
     p_policy_version: policyVersion,
   });
   const invitation = data?.[0];
   if (error || !invitation) {
-    return inviteError(locale);
+    const traceId = logServerActionError({
+      action: "invite.create",
+      error,
+      userId: user.id,
+    });
+    return inviteError(locale, traceId);
   }
 
   await supabase
@@ -75,11 +93,20 @@ export async function revokeInviteAction(
   if (typeof inviteId !== "string" || !/^[0-9a-f-]{36}$/i.test(inviteId)) {
     return inviteError(locale);
   }
-  const { supabase } = await requireAuthenticatedUser(locale);
+  const { supabase, user } = await requireAuthenticatedUser(locale);
   const { error } = await supabase.rpc("revoke_couple_invite", {
     p_invite_id: inviteId,
   });
-  return error ? inviteError(locale) : { status: "revoked" };
+  if (error) {
+    const traceId = logServerActionError({
+      action: "invite.revoke",
+      context: { inviteId },
+      error,
+      userId: user.id,
+    });
+    return inviteError(locale, traceId);
+  }
+  return { status: "revoked" };
 }
 
 export async function redeemInviteAction(
@@ -96,14 +123,24 @@ export async function redeemInviteAction(
     "current_journey_policy_version",
   );
   if (policyError || !policyVersion) {
-    return inviteError(locale);
+    const traceId = logServerActionError({
+      action: "invite.redeem.policy_version",
+      error: policyError,
+      userId: user.id,
+    });
+    return inviteError(locale, traceId);
   }
   const { error } = await supabase.rpc("redeem_couple_invite", {
     p_invite_code: normalizeInviteCode(rawCode),
     p_policy_version: policyVersion,
   });
   if (error) {
-    return inviteError(locale);
+    const traceId = logServerActionError({
+      action: "invite.redeem",
+      error,
+      userId: user.id,
+    });
+    return inviteError(locale, traceId);
   }
 
   await supabase

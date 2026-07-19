@@ -9,16 +9,22 @@ const publicEnvSchema = z.object({
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;
 
+function readPublicEnvInput() {
+  return {
+    supabaseUrl:
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
+    supabaseAnonKey:
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+      process.env.SUPABASE_PUBLISHABLE_KEY,
+  };
+}
+
+
 export function hasPublicEnv(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  const input = readPublicEnvInput();
+  return Boolean(input.supabaseUrl && input.supabaseAnonKey);
 }
 
 export function getPublicEnv(): PublicEnv {
-  return publicEnvSchema.parse({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  });
+  return publicEnvSchema.parse(readPublicEnvInput());
 }
