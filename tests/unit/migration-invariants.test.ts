@@ -9,6 +9,7 @@ const migrationFiles = [
   "20260718000300_answers_and_progress.sql",
   "20260718000400_shared_journey_and_lifecycle.sql",
   "20260718000500_safe_read_functions.sql",
+  "20260719000100_fix_invite_policy_upsert.sql",
 ];
 const migrations = migrationFiles
   .map((fileName) => readFileSync(path.join(migrationsDirectory, fileName), "utf8"))
@@ -47,6 +48,24 @@ describe("migration source invariants", () => {
     expect(inviteTable).toBeDefined();
     expect(inviteTable).toContain("code_hash text unique not null");
     expect(inviteTable).not.toMatch(/\binvite_code\s+text\b/i);
+  });
+
+  it("avoids an ambiguous conflict target in the invite policy acceptance upsert", () => {
+    const repair = readFileSync(
+      path.join(
+        migrationsDirectory,
+        "20260719000100_fix_invite_policy_upsert.sql",
+      ),
+      "utf8",
+    );
+
+    expect(repair).toContain("on conflict do nothing");
+    expect(repair).not.toContain(
+      "on conflict (couple_id, user_id, policy_version)",
+    );
+    expect(repair).toContain(
+      "update public.journey_policy_acceptances acceptance",
+    );
   });
 
   it("contains the approved onboarding and journey-policy schema", () => {
