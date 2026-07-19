@@ -46,7 +46,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "true"
         run: npm run db:remote:push
 
       - name: Seed database
@@ -56,7 +56,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "true"
         run: npm run db:remote:seed
 
       - name: Lint remote database
@@ -66,7 +66,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "true"
         run: npm run db:remote:lint
 
       - name: Run non-resetting remote tests
@@ -76,7 +76,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "true"
         run: npm run db:remote:test
 
       - name: Dry-run notice
