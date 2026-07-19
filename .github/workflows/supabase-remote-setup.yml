@@ -1,0 +1,93 @@
+name: Supabase remote database setup (private alpha)
+
+# Manual-only trigger. This never runs automatically on push, so it can't
+# accidentally fire against the live database from an unrelated commit.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "apply" to run push+seed+lint+test against the private-alpha Supabase project. Anything else runs a dry check only.'
+        required: true
+        default: "dry-run"
+
+jobs:
+  supabase-remote-setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/together-in-amanah-private-alpha
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Confirm no local secret files are tracked
+        run: |
+          for f in .env .env.local .env.development .env.development.local; do
+            if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              echo "::error::$f is tracked by git. Aborting."
+              exit 1
+            fi
+          done
+          echo "No secret env files are tracked. Safe to continue."
+
+      - name: Push migrations (non-destructive)
+        if: ${{ github.event.inputs.confirm == 'apply' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+        run: npm run db:remote:push
+
+      - name: Seed database
+        if: ${{ github.event.inputs.confirm == 'apply' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+        run: npm run db:remote:seed
+
+      - name: Lint remote database
+        if: ${{ github.event.inputs.confirm == 'apply' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+        run: npm run db:remote:lint
+
+      - name: Run non-resetting remote tests
+        if: ${{ github.event.inputs.confirm == 'apply' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS: "false"
+        run: npm run db:remote:test
+
+      - name: Dry-run notice
+        if: ${{ github.event.inputs.confirm != 'apply' }}
+        run: |
+          echo "Dependencies installed and secret-file check passed."
+          echo "No database commands were run because 'confirm' input was not 'apply'."
+          echo "Re-run this workflow with confirm=apply to actually push+seed+lint+test."
+
+# Intentionally does NOT include a "verify" step. db:remote:verify resets the
+# target database twice and must never run against the live private-alpha
+# project. If a disposable dev database is ever needed for that command, add
+# a separate workflow pointed at a different secret set, do not repurpose
+# this one.
