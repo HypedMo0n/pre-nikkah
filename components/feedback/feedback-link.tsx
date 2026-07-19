@@ -24,3 +24,17 @@ export function FeedbackLink({ locale, url }: { locale: Locale; url: string }) {
     </div>
   );
 }
+
+export function FeedbackHandoff({ locale, url }: { locale: Locale; url: string | null }) {
+  const d = getDictionary(locale);
+
+  if (!url) {
+    return (
+      <p className="rounded-productive border bg-section p-4 text-sm leading-6 text-body" role="status">
+        {d["feedback.unavailable"]}
+      </p>
+    );
+  }
+
+  return <FeedbackLink locale={locale} url={url} />;
+}

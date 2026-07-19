@@ -53,11 +53,12 @@ The database cascade and remaining-participant isolation tests remain pending Po
 ## External feedback handoff
 
 - `NEXT_PUBLIC_FEEDBACK_FORM_URL` is optional and browser-visible.
-- The validator accepts HTTPS `docs.google.com/forms/...` and `forms.gle/...` links only.
-- Query strings and fragments are removed before rendering, so the app cannot forward prefilled names, emails, answers, invite codes, journey IDs, notes, or reveal records.
+- The validator accepts only the approved HTTPS `www.cognitoforms.com/PreNikah/PreNikahAlphaFeedback2` endpoint. Credentials, ports, query strings, fragments, alternate paths, and look-alike hosts fail closed.
+- The app never appends names, emails, answers, invite codes, user or journey IDs, notes, comparison results, session data, or reveal records.
 - The link opens with `target="_blank"` and `rel="noopener noreferrer"`.
 - No analytics or private telemetry is attached to the external-link action.
-- The app does not claim to know whether the Google Form was submitted.
+- The app does not claim to know whether the external form was submitted.
+- No analytics system is installed. A future `feedback_opened` event may include only locale, application version, page identifier, and a non-identifying completion category.
 
 ## General web controls
 

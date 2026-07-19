@@ -20,7 +20,7 @@ French authentication and onboarding, email verification and password reset,
 start-or-join choices, policy acknowledgment, opaque invitation codes and QR
 codes, a durable non-gamified pace preference, solo start, an authenticated dashboard, private autosave, server-only
 comparison consumption, answer-specific reveal/revoke controls, guided notes,
-safe JSON summary export, an optional Google Forms feedback handoff, and a
+safe JSON summary export, an optional provider-neutral feedback handoff, and a
 protected account-deletion caller. The integration map, question-cadence model,
 private-alpha security review, and Vercel staging guide are under `docs/`.
 
@@ -48,7 +48,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
 ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS=false
 NEXT_PUBLIC_APP_NAME=
-NEXT_PUBLIC_FEEDBACK_FORM_URL=
+NEXT_PUBLIC_FEEDBACK_FORM_URL=https://www.cognitoforms.com/PreNikah/PreNikahAlphaFeedback2
 ```
 
 The service-role key is imported only by `lib/supabase/admin.ts`. That module
@@ -56,6 +56,11 @@ uses the `server-only` package so a client-component import fails at build time.
 Never prefix the service-role variable with `NEXT_PUBLIC_`.
 `SUPABASE_DB_URL` is used only by local database tooling and must never be
 committed, pasted into reports, or placed in a public environment variable.
+`NEXT_PUBLIC_FEEDBACK_FORM_URL` is public configuration, not a secret. It must
+use the approved HTTPS Cognito Forms host and path. The app sends no private
+journey information to the form. A future provider can be selected by changing
+the centralized validator and environment configuration without rewriting UI
+components.
 
 ## Local development
 

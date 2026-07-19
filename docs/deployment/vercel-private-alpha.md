@@ -10,7 +10,7 @@ The application is prepared for a protected Vercel preview or staging deployment
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser-visible | Required | Publishable anonymous key for that same project; RLS must remain enabled |
 | `NEXT_PUBLIC_SITE_URL` | Browser-visible | Required | Exact HTTPS Vercel deployment origin used for auth redirects |
 | `NEXT_PUBLIC_APP_NAME` | Browser-visible | Required | Set to the approved product name; components read the centralized brand config |
-| `NEXT_PUBLIC_FEEDBACK_FORM_URL` | Browser-visible | Optional | HTTPS Google Forms responder URL; use an environment-specific form if configured |
+| `NEXT_PUBLIC_FEEDBACK_FORM_URL` | Browser-visible | Optional | `https://www.cognitoforms.com/PreNikah/PreNikahAlphaFeedback2`; public configuration restricted to the approved HTTPS host and path |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only | Required for deletion | Never expose in client code, logs, preview comments, or screenshots |
 | `SUPABASE_DB_URL` | Tooling only | Never set in Vercel | Used only for isolated destructive database verification from a trusted workstation or CI secret store |
 | `ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS` | Tooling safety flag | Never set in Vercel | Must never be enabled in preview or production application environments |
@@ -24,6 +24,8 @@ Playwright variables such as `E2E_USER_A_EMAIL` and `E2E_USER_A_PASSWORD` belong
 - Vercel Preview variables should point only to preview/staging services.
 - Production variables must not be created until the PostgreSQL gate, two-user authorization journey, Next.js security recheck, and release review pass.
 - Protect private-alpha deployments with Vercel deployment protection or another invite-only access control. Supabase authentication remains required inside the app.
+- Configure the feedback URL separately for Preview and Production. It is browser-visible and is not a secret, but neither environment may append journey or user context.
+- The handoff UI is provider-neutral. Replacing the provider requires an environment and centralized-validator change, not component rewrites.
 
 ## Build settings
 
