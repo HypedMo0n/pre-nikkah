@@ -12,7 +12,9 @@ export function getServerEnv() {
   return {
     ...getPublicEnv(),
     ...serverEnvSchema.parse({
-      serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      serviceRoleKey:
+        process.env.SUPABASE_SERVICE_ROLE_KEY ??
+        process.env.SUPABASE_SECRET_KEY,
     }),
   };
 }
