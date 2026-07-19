@@ -29,8 +29,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
       - name: Confirm no local secret files are tracked
+        run: |
+          for f in .env .env.local .env.development .env.development.local; do
+            if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              echo "::error::$f is tracked by git. Aborting."
+              exit 1
+            fi
+          done
+          echo "No secret env files are tracked. Safe to continue."
+
       - name: Diagnose secret availability
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -43,14 +51,7 @@ jobs:
           echo "environment name: supabase-private-alpha"
           echo "branch/ref: $GITHUB_REF"
           echo "workflow commit SHA: $GITHUB_SHA"
-        run: |
-          for f in .env .env.local .env.development .env.development.local; do
-            if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
-              echo "::error::$f is tracked by git. Aborting."
-              exit 1
-            fi
-          done
-          echo "No secret env files are tracked. Safe to continue."
+
 
       - name: Push migrations (non-destructive)
         if: ${{ github.event.inputs.confirm == 'apply' }}
