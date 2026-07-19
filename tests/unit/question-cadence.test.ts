@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -52,6 +53,32 @@ describe("question cadence", () => {
     expect(cadence.at(-1)).toMatchObject({
       order: 6,
       recommendedBreakAfter: true,
+    });
+  });
+
+  it("marks the seeded high-sensitivity dealbreakers prompt for a pause", () => {
+    const seed = readFileSync("supabase/seed.sql", "utf8");
+    const dealbreakersQuestion = seed.match(
+      /'10000000-0000-4000-8000-000000000801'[\s\S]*?'professional_discussion',[\s\S]*?'never_compare',[\s\S]*?false,[\s\S]*?1,[\s\S]*?true/,
+    );
+    expect(dealbreakersQuestion).not.toBeNull();
+
+    expect(
+      buildQuestionCadence(
+        {
+          id: "10000000-0000-4000-8000-000000000801",
+          order_index: 1,
+          sensitivity: "professional_discussion",
+          type: "text",
+        },
+        0,
+        1,
+      ),
+    ).toMatchObject({
+      effort: "deep",
+      pauseAfter: true,
+      recommendedBreakAfter: false,
+      sensitivity: "high",
     });
   });
 });

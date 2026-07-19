@@ -38,7 +38,7 @@ Runtime authentication and two-user session behavior still require isolated-envi
 - A private response contains `partner_answer: null` unless that exact partner answer is currently revealed.
 - Summary export currently excludes all raw answers, including revealed answers. It includes shared notes, workflow status, and checklist state only.
 
-These guarantees depend on the pending 95-assertion pgTAP suite and cannot be described as runtime-verified yet.
+These guarantees depend on the pending 96-assertion pgTAP suite and cannot be described as runtime-verified yet.
 
 ## Journey and account deletion
 

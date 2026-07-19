@@ -9,20 +9,20 @@ insert into public.topics (
 )
 values
   (
+    '00000000-0000-4000-8000-000000000105',
+    'communication-and-conflict',
+    'Communication and conflict',
+    'How you each communicate, listen, and find a way forward when something feels difficult.',
+    2,
+    1,
+    true
+  ),
+  (
     '00000000-0000-4000-8000-000000000101',
     'faith-and-religious-practice',
     'Faith and religious practice',
     'How you each practice, grow, and hope to build shared religious routines.',
     7,
-    1,
-    true
-  ),
-  (
-    '00000000-0000-4000-8000-000000000102',
-    'finances-and-debt',
-    'Finances and debt',
-    'How you approach money, transparency, responsibilities, and shared decisions.',
-    8,
     2,
     true
   ),
@@ -36,12 +36,48 @@ values
     true
   ),
   (
+    '00000000-0000-4000-8000-000000000106',
+    'living-arrangements',
+    'Living arrangements',
+    'Where you may live at first and how open each person feels to future changes.',
+    2,
+    4,
+    true
+  ),
+  (
+    '00000000-0000-4000-8000-000000000107',
+    'household-roles',
+    'Household roles',
+    'How everyday responsibilities could be shared, adjusted, and discussed without fixed assumptions.',
+    3,
+    5,
+    true
+  ),
+  (
+    '00000000-0000-4000-8000-000000000102',
+    'finances-and-debt',
+    'Finances and debt',
+    'How you approach money, transparency, responsibilities, and shared decisions.',
+    8,
+    6,
+    true
+  ),
+  (
     '00000000-0000-4000-8000-000000000104',
     'children-and-parenting',
     'Children and parenting',
     'Your general hopes and expectations for raising a family together.',
     7,
-    4,
+    7,
+    true
+  ),
+  (
+    '00000000-0000-4000-8000-000000000108',
+    'dealbreakers',
+    'Dealbreakers',
+    'A private reflection on anything important enough to name as non-negotiable.',
+    2,
+    8,
     true
   )
 on conflict (id) do update set
@@ -66,6 +102,32 @@ insert into public.questions (
   is_active
 )
 values
+  (
+    '10000000-0000-4000-8000-000000000501',
+    '00000000-0000-4000-8000-000000000105',
+    'single',
+    'When something is bothering you, how do you usually prefer to communicate about it?',
+    null,
+    '[{"id":"talk_right_away","label":"Talk it through right away"},{"id":"space_then_talk","label":"Take some space, then talk"},{"id":"write_first","label":"Write it down before talking"},{"id":"depends_on_situation","label":"It depends on the situation"}]'::jsonb,
+    'standard',
+    'exact',
+    true,
+    1,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000502',
+    '00000000-0000-4000-8000-000000000105',
+    'single',
+    'When you disagree, what do you most need from your partner in the moment?',
+    null,
+    '[{"id":"calm_listening","label":"Calm listening before responding"},{"id":"time_to_process","label":"Time to process what I am feeling"},{"id":"reassurance_and_clarity","label":"Reassurance and clear communication"},{"id":"practical_next_step","label":"A practical next step we can agree on"}]'::jsonb,
+    'standard',
+    'exact',
+    true,
+    2,
+    true
+  ),
   (
     '10000000-0000-4000-8000-000000000101',
     '00000000-0000-4000-8000-000000000101',
@@ -415,6 +477,71 @@ values
     'scale_distance',
     true,
     7,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000601',
+    '00000000-0000-4000-8000-000000000106',
+    'single',
+    'What is your expectation for where you will live in the first year?',
+    'Choose the option closest to your current expectation. Future circumstances can still change a shared plan.',
+    '[{"id":"own_place_right_away","label":"Our own place right away"},{"id":"family_then_own_place","label":"With family briefly, then our own place"},{"id":"family_no_fixed_timeline","label":"With family, with no fixed timeline"},{"id":"open_to_either","label":"Open to either arrangement"}]'::jsonb,
+    'standard',
+    'exact',
+    true,
+    1,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000602',
+    '00000000-0000-4000-8000-000000000106',
+    'scale',
+    'How open would you be to relocating for work, family, or another important reason?',
+    'Choose 1 for strongly preferring to stay where you are and 5 for being very open to relocating.',
+    null,
+    'standard',
+    'scale_distance',
+    true,
+    2,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000701',
+    '00000000-0000-4000-8000-000000000107',
+    'text',
+    'What household responsibilities are you used to handling day to day?',
+    'Keep this general. The purpose is to understand current habits, not to assign permanent roles.',
+    null,
+    'standard',
+    'discussion_only',
+    true,
+    1,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000702',
+    '00000000-0000-4000-8000-000000000107',
+    'single',
+    'How do you expect household chores and responsibilities to be divided?',
+    'Choose the approach closest to your expectation. Responsibilities can still be revisited as circumstances change.',
+    '[{"id":"shared_evenly","label":"Share responsibilities as evenly as possible"},{"id":"by_strengths","label":"Divide them around each person’s strengths"},{"id":"by_availability","label":"Adjust them around time and availability"},{"id":"agree_and_revisit","label":"Agree together and revisit the plan regularly"}]'::jsonb,
+    'standard',
+    'exact',
+    true,
+    2,
+    true
+  ),
+  (
+    '10000000-0000-4000-8000-000000000801',
+    '00000000-0000-4000-8000-000000000108',
+    'text',
+    'Is there anything you consider non-negotiable that has not come up in earlier topics?',
+    'Share only what feels appropriate. Do not include trauma, abuse history, medical information, or identifying details about another person. This answer is never compared or revealed.',
+    null,
+    'professional_discussion',
+    'never_compare',
+    false,
+    1,
     true
   )
 on conflict (id) do update set

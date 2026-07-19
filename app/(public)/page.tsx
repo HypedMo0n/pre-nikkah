@@ -1,10 +1,10 @@
 import { Languages, LockKeyhole } from "lucide-react";
+import Link from "next/link";
 
 import { BrandMark } from "@/components/brand/brand-mark";
-import { Button } from "@/components/ui/button";
+import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { setLocaleAction } from "@/features/onboarding/actions";
 
 export default function LanguageEntryPage() {
   return (
@@ -27,20 +27,17 @@ export default function LanguageEntryPage() {
             You can change this later in your private account settings.
           </p>
 
-          <form action={setLocaleAction} className="mt-8 grid gap-3 sm:grid-cols-2">
-            <Button className="w-full" name="locale" type="submit" value="en">
+          <nav aria-label="Language" className="mt-8 grid gap-3 sm:grid-cols-2">
+            <Link className={buttonClasses({ className: "w-full" })} href="/en/welcome">
               English
-            </Button>
-            <Button
-              className="w-full"
-              name="locale"
-              type="submit"
-              value="fr"
-              variant="secondary"
+            </Link>
+            <Link
+              className={buttonClasses({ className: "w-full", variant: "secondary" })}
+              href="/fr/welcome"
             >
               Français
-            </Button>
-          </form>
+            </Link>
+          </nav>
 
           <div className="mt-7 flex items-start gap-3 border-t pt-5 text-sm leading-6 text-ink-soft">
             <LockKeyhole aria-hidden="true" className="mt-0.5 shrink-0" size={17} />

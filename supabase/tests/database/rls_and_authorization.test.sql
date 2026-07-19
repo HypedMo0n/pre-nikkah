@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(40);
+select plan(41);
 
 insert into auth.users (
   id,
@@ -322,8 +322,26 @@ select is(
 
 select is(
   (select count(*) from public.topics),
-  4::bigint,
-  'An authenticated user can read the four active topics'
+  8::bigint,
+  'An authenticated user can read all eight active topics'
+);
+
+select is(
+  (
+    select array_agg(slug order by order_index)
+    from public.topics
+  ),
+  array[
+    'communication-and-conflict',
+    'faith-and-religious-practice',
+    'family-boundaries-and-involvement',
+    'living-arrangements',
+    'household-roles',
+    'finances-and-debt',
+    'children-and-parenting',
+    'dealbreakers'
+  ]::text[],
+  'Authenticated topic reads preserve the approved low-to-high intensity order'
 );
 
 select throws_ok(

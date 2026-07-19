@@ -6,7 +6,7 @@ Run the suite with:
 npm run db:test
 ```
 
-The four pgTAP files contain 95 assertions covering schema and function grants,
+The four pgTAP files contain 96 assertions covering schema and function grants,
 account non-enumeration, answer ownership, the complete comparison matrix,
 reveal ownership, safe revealed-answer access, revocation behavior, outsider
 isolation, canonical content immutability, policy acceptance, couple-only shared

@@ -15,12 +15,12 @@ access, Supabase browser and server clients, a server-only admin boundary,
 session-refresh Proxy, protected-route scaffolding, and the public welcome
 screen.
 
-Phase 3 and private-alpha interface integration are in implementation. The repository now includes localized English and
+Phase 3 and private-alpha interface source implementation are complete. Runtime authentication and database authorization verification remain gated on the isolated development environment. The repository includes localized English and
 French authentication and onboarding, email verification and password reset,
 start-or-join choices, policy acknowledgment, opaque invitation codes and QR
 codes, a durable non-gamified pace preference, solo start, an authenticated dashboard, private autosave, server-only
 comparison consumption, answer-specific reveal/revoke controls, guided notes,
-safe JSON summary export, an optional provider-neutral feedback handoff, and a
+shared checklist progress, private display-name settings, answer reveal management, safe journey closure, safe JSON summary export, an optional provider-neutral feedback handoff, and a
 protected account-deletion caller. The integration map, question-cadence model,
 private-alpha security review, and Vercel staging guide are under `docs/`.
 

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test("language choice and localized onboarding remain touch accessible", async ({ page }) => {
   await page.goto("/");
-  const english = page.getByRole("button", { name: "English" });
-  const french = page.getByRole("button", { name: "Français" });
+  const english = page.getByRole("link", { name: "English" });
+  const french = page.getByRole("link", { name: "Français" });
   await expect(english).toBeVisible();
   await expect(french).toBeVisible();
   for (const control of [english, french]) {

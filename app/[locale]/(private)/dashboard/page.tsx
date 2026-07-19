@@ -21,12 +21,14 @@ export default async function DashboardPage({ params, searchParams }: { params: 
   if (!isLocale(locale)) notFound();
   const query = await searchParams;
   const { supabase } = await requireAuthenticatedUser(locale);
-  const [connectionResult, topicResult, questionResult, progressResult, discussionResult] = await Promise.all([
+  const [connectionResult, topicResult, questionResult, progressResult, discussionResult, checklistDefinitionsResult, checklistStateResult] = await Promise.all([
     supabase.rpc("get_connection_overview"),
     supabase.from("topics").select("id,slug,name,blurb,order_index").eq("is_active", true).order("order_index"),
     supabase.from("questions").select("id,topic_id,type").eq("is_active", true),
     supabase.from("topic_progress").select("topic_id,user_id,completed_at"),
     supabase.from("guided_discussions").select("topic_id,status").eq("status", "discussed"),
+    supabase.from("checklist_definitions").select("id").eq("is_active", true),
+    supabase.from("couple_checklist_items").select("checklist_definition_id,done").eq("done", true),
   ]);
   const connection = connectionSchema.safeParse(connectionResult.data).success ? connectionSchema.parse(connectionResult.data) : { status: "not_connected" as const };
   const topics = topicResult.data ?? [];
@@ -39,6 +41,8 @@ export default async function DashboardPage({ params, searchParams }: { params: 
     return parsed.success ? parsed.data : null;
   }))).filter((summary): summary is z.infer<typeof topicComparisonSummarySchema> => summary !== null) : [];
   const worthCount = countQuestionsWorthDiscussing(summaries);
+  const checklistTotal = checklistDefinitionsResult.data?.length ?? 0;
+  const checklistDone = checklistStateResult.data?.length ?? 0;
   const layers: FoundationLayerState[] = topics.map((topic) => {
     if (discussedTopicIds.has(topic.id)) return "discussed";
     const completionCount = new Set(progress.filter((item) => item.topic_id === topic.id && item.completed_at).map((item) => item.user_id)).size;
@@ -57,7 +61,7 @@ export default async function DashboardPage({ params, searchParams }: { params: 
       {connection.status !== "active" && <Link className={buttonClasses({ variant: "secondary", className: "mt-4 w-full" })} href={localizedPath(locale, "/invite")}><Link2 aria-hidden="true" size={18} />{d["dashboard.invite"]}</Link>}
       <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} /></div>
       <section className="mt-7" aria-labelledby="topics-heading">
-        <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["dashboard.recommended"]}</p><h2 className="mt-1 text-xl font-semibold text-ink" id="topics-heading">{d["dashboard.faith"]}</h2></div>{connection.status === "active" && <p className="text-sm text-discuss">{worthCount} {d["dashboard.questionsWorth"]}</p>}</div>
+        <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["dashboard.recommended"]}</p><h2 className="mt-1 text-xl font-semibold text-ink" id="topics-heading">{d["dashboard.communication"]}</h2></div>{connection.status === "active" && <p className="text-sm text-discuss">{worthCount} {d["dashboard.questionsWorth"]}</p>}</div>
         <div className="mt-4 space-y-3">
           {topics.map((topic) => {
             const types = questions.filter((question) => question.topic_id === topic.id).map((question) => question.type as QuestionType);
@@ -66,6 +70,7 @@ export default async function DashboardPage({ params, searchParams }: { params: 
         </div>
       </section>
       {connection.status === "active" && <Link className={buttonClasses({ variant: "secondary", className: "mt-6 w-full" })} href={localizedPath(locale, "/comparisons")}>{d["comparison.title"]}<ArrowRight aria-hidden="true" size={18} /></Link>}
+      <Link className={buttonClasses({ variant: "secondary", className: "mt-3 h-auto w-full flex-col items-start text-start min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between" })} href={localizedPath(locale, "/checklist")}><span>{d["dashboard.checklist"]}</span><span className="text-xs text-ink-soft">{checklistDone}/{checklistTotal} {d["dashboard.checklistProgress"]}</span></Link>
       <Link className={buttonClasses({ variant: "ghost", className: "mt-3 w-full" })} href={localizedPath(locale, "/settings")}>{d["settings.title"]}</Link>
     </OnboardingShell>
   );

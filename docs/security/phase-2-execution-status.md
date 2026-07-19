@@ -49,7 +49,7 @@ and replays, but the safety prerequisites correctly block it.
 
 ## 8. Seed results
 
-Source inspection confirms four topics, 27 questions, and 10 checklist
+Source inspection confirms eight topics, 34 questions, and 10 checklist
 definitions. Database seed execution and replay are not yet proven.
 
 ## 9. Database lint results
@@ -59,8 +59,8 @@ schema at warning level and fails on errors.
 
 ## 10. Authorization tests
 
-The pgTAP suite contains 95 assertions in four files. Passed: 0 executed.
-Failed: 0 executed. Pending: 95. Supplementary Vitest source and safety
+The pgTAP suite contains 96 assertions in four files. Passed: 0 executed.
+Failed: 0 executed. Pending: 96. Supplementary Vitest source and safety
 invariants pass, but they are not counted as database authorization evidence.
 
 ## 11. Invitation and concurrency tests
@@ -132,6 +132,7 @@ both outstanding.
 
 ## 20. Has Phase 3 started?
 
-Yes, under the later approved controlled-demo exception. Phase 2 remains
-execution-blocked and no production-readiness claim is permitted until the
-remote database gate passes.
+Yes. Its application source implementation is complete under the later approved
+controlled-demo exception. Runtime authentication and two-user authorization
+verification remain pending. Phase 2 remains execution-blocked and no
+production-readiness claim is permitted until the remote database gate passes.
