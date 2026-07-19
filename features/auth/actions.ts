@@ -8,6 +8,10 @@ import { hasPublicEnv } from "@/lib/env/public";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
+import {
+  appendTraceId,
+  logServerActionError,
+} from "@/lib/logging/server-action-error";
 import { createClient } from "@/lib/supabase/server";
 
 import { getSafeAuthError } from "./errors";
@@ -71,7 +75,15 @@ export async function signUpAction(
   });
 
   if (error) {
-    return { status: "error", message: getSafeAuthError(locale, error.message) };
+    const traceId = logServerActionError({
+      action: "auth.sign_up",
+      error,
+      userId: "unauthenticated",
+    });
+    return {
+      status: "error",
+      message: appendTraceId(getSafeAuthError(locale, error.message), traceId),
+    };
   }
   if (!data.session) {
     redirect(localizedPath(locale, "/verify-email"));
