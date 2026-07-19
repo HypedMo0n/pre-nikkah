@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Confirm no local secret files are tracked
-            - name: Diagnose secret availability
+      - name: Diagnose secret availability
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
