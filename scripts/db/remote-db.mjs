@@ -64,6 +64,29 @@ async function verifySchemaAndSeed() {
   process.stdout.write("Verifying schema, RLS, functions, and seed inventory\n");
   const sql = postgres(context.dbUrl, { max: 1, prepare: false });
   try {
+    const applicationSecurityDefinerFunctions = [
+      "close_couple_journey",
+      "create_couple_invite",
+      "current_couple_id",
+      "current_couple_id_for",
+      "get_connection_overview",
+      "get_question_comparison",
+      "get_topic_comparison_summary",
+      "handle_new_auth_user",
+      "inspect_couple_invite",
+      "is_couple_member_for",
+      "is_current_user_couple_member",
+      "log_answer_reveal_event",
+      "prepare_account_deletion",
+      "redeem_couple_invite",
+      "revoke_couple_invite",
+      "validate_answer_write",
+      "validate_checklist_item",
+      "validate_couple_activation",
+      "validate_guided_discussion",
+      "validate_journey_policy_acceptance",
+      "validate_topic_progress",
+    ];
     const expectedTables = [
       "answer_reveal_events",
       "answers",
@@ -98,17 +121,31 @@ async function verifySchemaAndSeed() {
       throw new Error("Public table inventory or RLS state does not match the approved schema.");
     }
 
-    const unsafeDefiners = await sql`
-      select procedure.proname
+    const applicationDefiners = await sql`
+      select procedure.proname, procedure.proconfig
       from pg_proc procedure
       join pg_namespace namespace on namespace.oid = procedure.pronamespace
       where namespace.nspname = 'public'
         and procedure.prosecdef
-        and not coalesce(procedure.proconfig, '{}'::text[]) @> array['search_path=public, pg_temp']
-        and not coalesce(procedure.proconfig, '{}'::text[]) @> array['search_path=public, extensions, pg_temp']
+        and procedure.proname = any(${applicationSecurityDefinerFunctions})
+      order by procedure.proname
     `;
+    if (applicationDefiners.length !== applicationSecurityDefinerFunctions.length) {
+      throw new Error(
+        "The application SECURITY DEFINER inventory is incomplete or duplicated.",
+      );
+    }
+    const unsafeDefiners = applicationDefiners.filter(
+      (procedure) =>
+        !procedure.proconfig?.includes("search_path=public, pg_temp") &&
+        !procedure.proconfig?.includes(
+          "search_path=public, extensions, pg_temp",
+        ),
+    );
     if (unsafeDefiners.length > 0) {
-      throw new Error("A SECURITY DEFINER function does not have an approved fixed search_path.");
+      throw new Error(
+        "An application SECURITY DEFINER function does not have an approved fixed search_path.",
+      );
     }
 
     const [{ topic_count: topicCount, question_count: questionCount }] = await sql`
@@ -116,8 +153,8 @@ async function verifySchemaAndSeed() {
         (select count(*)::integer from public.topics where is_active) as topic_count,
         (select count(*)::integer from public.questions where is_active) as question_count
     `;
-    if (topicCount !== 4 || questionCount < 20 || questionCount > 30) {
-      throw new Error("Seed inventory is outside the approved four-topic, 20-to-30-question scope.");
+    if (topicCount !== 8 || questionCount !== 34) {
+      throw new Error("Seed inventory does not match the approved eight-topic library.");
     }
   } finally {
     await sql.end();

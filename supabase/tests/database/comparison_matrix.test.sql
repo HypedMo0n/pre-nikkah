@@ -50,7 +50,7 @@ create temp table comparison_state (
   key text primary key,
   value text not null
 );
-grant select on table comparison_state to authenticated;
+grant select, insert on table comparison_state to authenticated;
 
 select set_config(
   'request.jwt.claim.sub',

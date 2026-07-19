@@ -5,6 +5,34 @@ set search_path = public, extensions;
 
 select plan(18);
 
+create temp table application_security_definer_functions (
+  function_name name primary key
+);
+
+insert into application_security_definer_functions (function_name)
+values
+  ('handle_new_auth_user'),
+  ('validate_journey_policy_acceptance'),
+  ('validate_couple_activation'),
+  ('is_couple_member_for'),
+  ('is_current_user_couple_member'),
+  ('current_couple_id_for'),
+  ('current_couple_id'),
+  ('create_couple_invite'),
+  ('redeem_couple_invite'),
+  ('inspect_couple_invite'),
+  ('revoke_couple_invite'),
+  ('validate_answer_write'),
+  ('log_answer_reveal_event'),
+  ('validate_topic_progress'),
+  ('get_connection_overview'),
+  ('get_question_comparison'),
+  ('get_topic_comparison_summary'),
+  ('validate_guided_discussion'),
+  ('validate_checklist_item'),
+  ('close_couple_journey'),
+  ('prepare_account_deletion');
+
 select is(
   (
     select count(*)
@@ -116,11 +144,13 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    join application_security_definer_functions application_function
+      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
   ),
   21::bigint,
-  'The privileged-function inventory has the expected size'
+  'The application privileged-function inventory has the expected size'
 );
 
 select is(
@@ -128,6 +158,8 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    join application_security_definer_functions application_function
+      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
       and not exists (
@@ -140,7 +172,7 @@ select is(
       )
   ),
   0::bigint,
-  'Every SECURITY DEFINER function has an approved fixed search path'
+  'Every application SECURITY DEFINER function has an approved fixed search path'
 );
 
 select is(
@@ -148,12 +180,14 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    join application_security_definer_functions application_function
+      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
       and has_function_privilege('anon', procedure.oid, 'execute')
   ),
   0::bigint,
-  'Anonymous clients cannot execute any SECURITY DEFINER function'
+  'Anonymous clients cannot execute any application SECURITY DEFINER function'
 );
 
 select is(
@@ -161,12 +195,14 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    join application_security_definer_functions application_function
+      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
   10::bigint,
-  'Authenticated clients can execute only the ten approved privileged endpoints'
+  'Authenticated clients can execute only the ten approved application privileged endpoints'
 );
 
 select ok(

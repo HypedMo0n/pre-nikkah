@@ -490,35 +490,39 @@ select is(
   'A partner cannot directly read an unrevealed answer'
 );
 
+update public.answers
+set value = to_jsonb('very_structured'::text)
+where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+
+reset role;
 select is(
   (
-    with changed as (
-      update public.answers
-      set value = to_jsonb('very_structured'::text)
-      where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
-      returning 1
-    )
-    select count(*) from changed
+    select answer.value
+    from public.answers answer
+    where answer.user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+      and answer.question_id = '10000000-0000-4000-8000-000000000101'
   ),
-  0::bigint,
+  to_jsonb('mostly_consistent'::text),
   'A partner cannot update another user answer'
 );
 
+set local role authenticated;
+update public.answers
+set revealed = true
+where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+
+reset role;
 select is(
   (
-    with changed as (
-      update public.answers
-      set revealed = true
-      where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
-      returning 1
-    )
-    select count(*) from changed
+    select answer.revealed
+    from public.answers answer
+    where answer.user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+      and answer.question_id = '10000000-0000-4000-8000-000000000101'
   ),
-  0::bigint,
+  false,
   'A partner cannot reveal another user answer'
 );
 
-reset role;
 select set_config(
   'request.jwt.claim.sub',
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
