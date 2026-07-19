@@ -31,6 +31,18 @@ jobs:
         run: npm ci
 
       - name: Confirm no local secret files are tracked
+            - name: Diagnose secret availability
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL present: yes"
+          else
+            echo "SUPABASE_DB_URL present: no"
+          fi
+          echo "environment name: supabase-private-alpha"
+          echo "branch/ref: $GITHUB_REF"
+          echo "workflow commit SHA: $GITHUB_SHA"
         run: |
           for f in .env .env.local .env.development .env.development.local; do
             if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
