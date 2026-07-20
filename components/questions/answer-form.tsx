@@ -7,36 +7,103 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { saveAnswerAction } from "@/features/answers/save-action";
 import { initialAnswerSaveState, type AnswerSaveState } from "@/features/answers/types";
 import { buttonClasses } from "@/components/ui/button";
+import { saveAnswerAction } from "@/features/answers/save-action";
+import {
+  initialAnswerSaveState,
+  type AnswerSaveState,
+} from "@/features/answers/types";
 import type { QuestionCadence } from "@/features/topics/cadence";
 import type { Locale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
 
-type Option = { id: string; label: string };
+type Option = {
+  id: string;
+  label: string;
+};
 
-export function AnswerForm({ cadence, complete, initialValue, locale, next, options, previous, questionId, type }: { cadence: QuestionCadence; complete: string; initialValue: unknown; locale: Locale; next?: string; options: Option[] | null; previous?: string; questionId: string; type: "single" | "scale" | "text" }) {
+type AnswerFormProps = {
+  cadence: QuestionCadence;
+  complete: string;
+  initialValue: unknown;
+  locale: Locale;
+  next?: string;
+  options: Option[] | null;
+  previous?: string;
+  questionId: string;
+  type: "single" | "scale" | "text";
+};
+
+export function AnswerForm({
+  cadence,
+  complete,
+  initialValue,
+  locale,
+  next,
+  options,
+  previous,
+  questionId,
+  type,
+}: AnswerFormProps) {
   const d = getDictionary(locale);
-  const initialStringValue = typeof initialValue === "string" || typeof initialValue === "number" ? String(initialValue) : type === "scale" ? "3" : "";
+
+  const initialStringValue =
+    typeof initialValue === "string" || typeof initialValue === "number"
+      ? String(initialValue)
+      : type === "scale"
+        ? "3"
+        : "";
+
   const initialState: AnswerSaveState = {
     status: initialAnswerSaveState.status,
-    savedValue: initialValue === null || initialValue === undefined ? undefined : initialStringValue,
+    savedValue:
+      initialValue === null || initialValue === undefined
+        ? undefined
+        : initialStringValue,
   };
-  const [state, action, pending] = useActionState(saveAnswerAction, initialState);
+
+  const [state, action, pending] = useActionState(
+    saveAnswerAction,
+    initialState,
+  );
+
   const [value, setValue] = useState(initialStringValue);
   const formRef = useRef<HTMLFormElement>(null);
   const changedRef = useRef(false);
 
   useEffect(() => {
-    if (type !== "text" || !changedRef.current || value.trim().length === 0) return;
-    const timer = window.setTimeout(() => formRef.current?.requestSubmit(), 700);
-    return () => window.clearTimeout(timer);
+    if (
+      type !== "text" ||
+      !changedRef.current ||
+      value.trim().length === 0
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      formRef.current?.requestSubmit();
+    }, 700);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [type, value]);
 
-  function saveImmediately(next: string) {
+  function saveImmediately(nextValue: string) {
     changedRef.current = true;
-    setValue(next);
-    window.setTimeout(() => formRef.current?.requestSubmit(), 0);
+    setValue(nextValue);
+
+    window.setTimeout(() => {
+      formRef.current?.requestSubmit();
+    }, 0);
   }
+
+  const trimmedValue = value.trim();
+
+  const canContinue =
+    !pending &&
+    state.status === "saved" &&
+    state.savedValue === trimmedValue;
 
   return (
     <form action={action} className="mt-8" ref={formRef}>

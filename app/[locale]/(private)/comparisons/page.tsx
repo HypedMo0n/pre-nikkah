@@ -44,8 +44,8 @@ export default async function ComparisonsPage({ params }: { params: Promise<{ lo
   const hasReady = readyGroups.length > 0;
   const hasReviewed = reviewedGroups.length > 0;
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive>
-      <h1 className="text-3xl font-semibold text-ink">{d["comparison.title"]}</h1>
+    <OnboardingShell locale={locale} productive withTabBar>
+      <h1 className="font-expressive text-3xl font-medium text-ink">{d["comparison.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["comparison.body"]}</p>
       <section className="mt-7" aria-labelledby="ready-comparisons">
         <h2 className="text-xl font-semibold text-ink" id="ready-comparisons">{d["comparison.readyTitle"]}</h2>

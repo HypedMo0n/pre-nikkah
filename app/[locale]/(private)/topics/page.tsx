@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

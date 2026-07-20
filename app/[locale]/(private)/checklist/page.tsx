@@ -39,14 +39,14 @@ export default async function ChecklistPage({
 
   return (
     <OnboardingShell
-      backHref={localizedPath(locale, "/dashboard")}
       locale={locale}
       productive
+      withTabBar
     >
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
         {d["checklist.eyebrow"]}
       </p>
-      <h1 className="mt-2 text-3xl font-semibold text-ink">{d["checklist.title"]}</h1>
+      <h1 className="font-expressive mt-2 text-3xl font-medium text-ink">{d["checklist.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["checklist.body"]}</p>
       <p className="mt-4 text-sm font-semibold text-primary" aria-live="polite">
         {doneCount} {d["checklist.of"]} {definitions.length} {d["checklist.complete"]}
