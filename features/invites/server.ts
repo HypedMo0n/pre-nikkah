@@ -12,7 +12,12 @@ import type { InviteInspection } from "./types";
 const inspectionSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("available"),
-    expiresAt: z.string().datetime(),
+    expiresAt: z.string().refine(
+      (value) => !Number.isNaN(Date.parse(value)),
+      {
+        message: "Invalid date",
+      },
+    ),
   }),
   z.object({
     status: z.literal("unavailable"),
