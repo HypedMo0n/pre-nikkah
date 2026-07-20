@@ -130,17 +130,45 @@ export async function redeemInviteAction(
     });
     return inviteError(locale, traceId);
   }
+
   const { error } = await supabase.rpc("redeem_couple_invite", {
     p_invite_code: normalizeInviteCode(rawCode),
     p_policy_version: policyVersion,
   });
+
   if (error) {
+    const errorMessage = error.message || "";
+    let userMessage = translate(locale, "auth.genericError");
+
+    // Distinguish specific error codes
+    if (errorMessage === "WAITING_JOURNEY_CONFLICT") {
+      return {
+        status: "waiting_journey_conflict",
+        message: translate(locale, "invite.waitingJourneyConflict"),
+      };
+    } else if (errorMessage === "ACTIVE_COUPLE_CONFLICT") {
+      userMessage = translate(locale, "invite.activeJourneyConflict");
+    } else if (errorMessage === "INVITE_EXPIRED") {
+      userMessage = translate(locale, "invite.expired");
+    } else if (errorMessage === "INVITE_ALREADY_REDEEMED") {
+      userMessage = translate(locale, "invite.alreadyRedeemed");
+    } else if (errorMessage === "SELF_INVITE") {
+      userMessage = translate(locale, "invite.selfInvite");
+    } else if (errorMessage === "INVITE_INVALID") {
+      userMessage = translate(locale, "invite.invalid");
+    }
+
     const traceId = logServerActionError({
       action: "invite.redeem",
+      context: { errorCode: errorMessage },
       error,
       userId: user.id,
     });
-    return inviteError(locale, traceId);
+
+    return {
+      status: "error",
+      message: appendTraceId(userMessage, traceId),
+    };
   }
 
   await supabase

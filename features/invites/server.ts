@@ -1,44 +1,28 @@
-import "server-only";
+import { createServerClient } from "@/lib/supabase/server";
 
-import { z } from "zod";
-
-import { getAuthenticatedUser } from "@/lib/auth/require-user";
-import type { Locale } from "@/lib/i18n/config";
-import { logServerActionError } from "@/lib/logging/server-action-error";
-
-import { isInviteCode, normalizeInviteCode } from "./invite-code";
-import type { InviteInspection } from "./types";
-
-const inspectionSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("available"), expiresAt: z.string().datetime() }),
-  z.object({ status: z.literal("unavailable") }),
-  z.object({ status: z.literal("self_invite") }),
-  z.object({ status: z.literal("active_couple_conflict") }),
-]);
-
-export async function inspectInvite(
-  _locale: Locale,
-  inviteCode: string,
-): Promise<InviteInspection> {
-  if (!isInviteCode(inviteCode)) {
-    return { status: "unavailable" };
-  }
-  const authenticated = await getAuthenticatedUser();
-  if (!authenticated) {
-    return { status: "unavailable" };
-  }
-
-  const { data, error } = await authenticated.supabase.rpc("inspect_couple_invite", {
-    p_invite_code: normalizeInviteCode(inviteCode),
+export async function inspectInviteCode(inviteCode: string) {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase.rpc("inspect_couple_invite", {
+    p_invite_code: inviteCode,
   });
+
   if (error) {
-    logServerActionError({
-      action: "invite.inspect",
-      error,
-      userId: authenticated.user.id,
-    });
-    return { status: "unavailable" };
+    return null;
   }
-  const parsed = inspectionSchema.safeParse(data);
-  return parsed.success ? parsed.data : { status: "unavailable" };
+
+  return data;
+}
+
+export async function getCurrentCoupleId() {
+  const supabase = await createServerClient();
+  const { data } = await supabase.rpc("current_couple_id");
+  return data;
+}
+
+export async function getWaitingCoupleId(userId: string) {
+  const supabase = await createServerClient();
+  const { data } = await supabase.rpc("waiting_couple_id_for", {
+    p_user_id: userId,
+  });
+  return data;
 }
