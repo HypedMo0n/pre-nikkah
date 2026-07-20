@@ -1,16 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { parseLocale } from "@/lib/i18n/config";
 
-const discussionSchema = z.object({
-  questionId: z.string().uuid(),
-  sharedNote: z.string().trim().max(5000),
-  status: z.enum(["discussing", "discussed"]),
-});
+import { discussionSchema } from "./validation";
 
 export async function saveDiscussionAction(formData: FormData) {
   const locale = parseLocale(formData.get("locale"));

@@ -1,17 +1,13 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
-import { appendTraceId } from "@/lib/logging/server-action-error";
+import { appendTraceId, logServerActionError } from "@/lib/logging/server-action-error";
 
 import { deleteVerifiedAuthenticatedAccount } from "./service";
+import type { DeleteAccountState } from "./types";
 import { deletionRequestSchema, hasForbiddenDeletionTarget } from "./validation";
-
-export type DeleteAccountState = { status: "idle" | "error"; message?: string };
-export const initialDeleteAccountState: DeleteAccountState = { status: "idle" };
 
 export async function deleteOwnAccountAction(_previous: DeleteAccountState, formData: FormData): Promise<DeleteAccountState> {
   const locale = parseLocale(formData.get("locale"));
@@ -35,6 +31,22 @@ export async function deleteOwnAccountAction(_previous: DeleteAccountState, form
       message: traceId ? appendTraceId(message, traceId) : message,
     };
   }
-  await supabase.auth.signOut({ scope: "local" });
-  redirect(localizedPath(locale, "/account-deleted"));
+  const redirectTo = localizedPath(locale, "/account-deleted");
+  try {
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+    if (signOutError) {
+      logServerActionError({
+        action: "account_deletion.local_sign_out",
+        error: signOutError,
+        userId: "deleted-user",
+      });
+    }
+  } catch (error) {
+    logServerActionError({
+      action: "account_deletion.local_sign_out",
+      error: error instanceof Error ? { message: error.message } : { message: "Unknown sign-out failure" },
+      userId: "deleted-user",
+    });
+  }
+  return { status: "deleted", redirectTo };
 }
