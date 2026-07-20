@@ -13,6 +13,61 @@ vi.mock("@/lib/auth/require-user", () => ({
 vi.mock("@/lib/logging/server-action-error", async () => {
   const actual = await vi.importActual<typeof import("@/lib/logging/server-action-error")>("@/lib/logging/server-action-error");
   return { ...actual, logServerActionError: mocks.logServerActionError };
+
+
+  it("returns journey_required for waiting journeys without a current couple id", async () => {
+    const supabase = supabaseFor({ connectionStatus: "waiting", coupleId: null });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "journey_required",
+      redirectTo: "/en/onboarding/waiting-journey",
+    });
+  });
+
+  it("returns journey_required for no journey without generic Save failed", async () => {
+    const supabase = supabaseFor({ connectionStatus: "not_connected", coupleId: null });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    const result = await saveAnswerAction({ status: "idle" }, form("4"));
+    expect(result).toMatchObject({ status: "journey_required", redirectTo: "/en/dashboard" });
+    expect(result.message).not.toBe("Save failed");
+  });
+
+  it("returns journey_required for closed journeys", async () => {
+    const supabase = supabaseFor({ connectionStatus: "closed", coupleId: null });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "journey_required",
+      redirectTo: "/en/dashboard",
+    });
+  });
+
+  it("returns a traced error for active overview plus null current_couple_id", async () => {
+    const supabase = supabaseFor({ connectionStatus: "active", coupleId: null });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "12345678-0000-4000-8000-000000000001" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "error",
+      message: expect.stringContaining("trace9999"),
+    });
+  });
+
+  it("returns question_unavailable for a missing question", async () => {
+    const supabase = supabaseFor({ questionMissing: true });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "question_unavailable",
+      redirectTo: "/en/dashboard",
+    });
+  });
+
+  it("returns a traced error when current_couple_id fails", async () => {
+    const supabase = supabaseFor({ coupleError: { message: "rpc failed" } });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "error",
+      message: expect.stringContaining("trace9999"),
+    });
+  });
+
 });
 
 const { saveAnswerAction } = await import("@/features/answers/save-action");
@@ -139,3 +194,33 @@ describe("saveAnswerAction", () => {
       redirectTo: "/en/dashboard",
     });
   });
+
+
+  it("returns a traced error for active overview plus null current_couple_id", async () => {
+    const supabase = supabaseFor({ connectionStatus: "active", coupleId: null });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "12345678-0000-4000-8000-000000000001" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "error",
+      message: expect.stringContaining("trace9999"),
+    });
+  });
+
+  it("returns question_unavailable for a missing question", async () => {
+    const supabase = supabaseFor({ questionMissing: true });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "question_unavailable",
+      redirectTo: "/en/dashboard",
+    });
+  });
+
+  it("returns a traced error when current_couple_id fails", async () => {
+    const supabase = supabaseFor({ coupleError: { message: "rpc failed" } });
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
+    await expect(saveAnswerAction({ status: "idle" }, form("4"))).resolves.toMatchObject({
+      status: "error",
+      message: expect.stringContaining("trace9999"),
+    });
+  });
+});
+

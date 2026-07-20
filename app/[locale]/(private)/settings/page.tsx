@@ -103,6 +103,15 @@ export default async function SettingsPage({
         )}
       </Card>
 
+
+      {coupleResult.data ? (
+        <Card className="mt-8 border-concern/30 p-5">
+          <h2 className="text-xl font-semibold text-concern">{d["settings.closeTitle"]}</h2>
+          <p className="mt-3 text-sm leading-6 text-body">{d["settings.closeBody"]}</p>
+          <CloseJourneyForm locale={locale} mode={connectionStatus === "waiting" ? "waiting" : "active"} />
+        </Card>
+      ) : null}
+
       <div className="mt-12">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-concern">{d["settings.dangerZone"]}</p>
         {coupleResult.data ? (
@@ -112,6 +121,7 @@ export default async function SettingsPage({
             <CloseJourneyForm locale={locale} mode={connectionStatus === "waiting" ? "waiting" : "active"} />
           </Card>
         ) : null}
+
 
         <Card className="mt-4 border-concern/30 bg-concern-soft p-5">
           <h2 className="text-xl font-semibold text-concern">{d["settings.deleteTitle"]}</h2>

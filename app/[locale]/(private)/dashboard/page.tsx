@@ -64,7 +64,11 @@ export default async function DashboardPage({ params, searchParams }: { params: 
           <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/join")}>{d["journey.joinTitle"]}</Link>
         </div>
       )}
+ 
+      <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} /></div>
+
       <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} topicNames={topics.map((topic) => topic.name)} /></div>
+
       <section className="mt-7" aria-labelledby="topics-heading">
         <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["dashboard.recommended"]}</p><h2 className="mt-1 text-xl font-semibold text-ink" id="topics-heading">{d["dashboard.communication"]}</h2></div>{connection.status === "active" && <p className="text-sm text-discuss">{worthCount} {d["dashboard.questionsWorth"]}</p>}</div>
         <div className="mt-4 space-y-3">
