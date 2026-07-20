@@ -1,48 +1,63 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
-import { Card } from "@/components/ui/card";
-import { buildTopicStages } from "@/features/topics/stages";
 import { estimateTopicMinutes } from "@/features/topics/timing";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { cn } from "@/lib/utils";
 import type { QuestionType } from "@/types/domain";
-
-const stageLabelKeys = {
-  completed: "dashboard.stageCompleted",
-  in_progress: "dashboard.stageInProgress",
-  not_started: "dashboard.stageNotStarted",
-  ready_to_discuss: "dashboard.stageReadyDiscuss",
-  waiting_for_partner: "dashboard.stageWaitingPartner",
-} as const;
 
 export default async function TopicsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const { supabase, user } = await requireAuthenticatedUser(locale);
-  const [topicResult, questionResult, progressResult, discussionResult, answerResult] = await Promise.all([
+  const { supabase } = await requireAuthenticatedUser(locale);
+  const [topicResult, questionResult, progressResult, discussionResult] = await Promise.all([
     supabase.from("topics").select("id,slug,name,blurb,order_index").eq("is_active", true).order("order_index"),
-    supabase.from("questions").select("id,topic_id,text,type,order_index").eq("is_active", true).order("order_index"),
+    supabase.from("questions").select("id,topic_id,type").eq("is_active", true),
     supabase.from("topic_progress").select("topic_id,user_id,completed_at"),
-    supabase.from("guided_discussions").select("topic_id,question_id,status,updated_at"),
-    supabase.from("answers").select("question_id,user_id,questions(topic_id)"),
+    supabase.from("guided_discussions").select("topic_id,status").eq("status", "discussed"),
   ]);
   const topics = topicResult.data ?? [];
   const questions = questionResult.data ?? [];
-  const stages = buildTopicStages({ topics, questions, progress: progressResult.data ?? [], answers: (answerResult.data ?? []).map((answer) => ({ ...answer, questions: Array.isArray(answer.questions) ? answer.questions[0] : answer.questions })), discussions: discussionResult.data ?? [], currentUserId: user.id });
+  const progress = progressResult.data ?? [];
+  const discussedTopicIds = new Set((discussionResult.data ?? []).map((item) => item.topic_id));
   const d = getDictionary(locale);
+  const labels = { empty: d["dashboard.notStarted"], completed: d["dashboard.completed"], discussed: d["dashboard.discussedState"] } as const;
+  const icons = { empty: null, completed: Check, discussed: MessageCircle } as const;
+
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive>
+    <OnboardingShell locale={locale} productive withTabBar>
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{d["topics.eyebrow"]}</p>
-      <h1 className="mt-2 text-3xl font-semibold text-ink">{d["topics.title"]}</h1>
-      <p className="mt-3 text-sm leading-6 text-body">{d["topics.body"]}</p>
-      <div className="mt-7 space-y-3">
-        {stages.map((summary, index) => {
-          const types = questions.filter((question) => question.topic_id === summary.topic.id).map((question) => question.type as QuestionType);
-          return <Link className="block rounded-productive border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href={localizedPath(locale, `/topics/${summary.topic.slug}`)} key={summary.topic.id}><Card className="border-0 bg-transparent p-0 shadow-none"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-soft">{index + 1}</p><h2 className="mt-1 font-semibold text-ink">{summary.topic.name}</h2><p className="mt-1 text-sm text-ink-soft">{summary.currentUserCompletedCount}/{summary.totalQuestionCount} {d["dashboard.yourQuestions"]} · {summary.bothCompletedCount}/{summary.totalQuestionCount} {d["dashboard.togetherQuestions"]} · {estimateTopicMinutes(types)} {d["topic.minutes"]}</p></div><div className="flex shrink-0 items-center gap-2"><span className="rounded-full bg-section px-3 py-1 text-xs font-semibold text-ink-soft">{d[stageLabelKeys[summary.stage]]}</span><ArrowRight aria-hidden="true" size={18} /></div></div></Card></Link>;
+      <h1 className="font-expressive mt-2 text-3xl font-medium text-ink">{d["topics.title"]}</h1>
+      <div className="mt-6 space-y-3">
+        {topics.map((topic) => {
+          const types = questions.filter((question) => question.topic_id === topic.id).map((question) => question.type as QuestionType);
+          const state = discussedTopicIds.has(topic.id)
+            ? "discussed"
+            : new Set(progress.filter((item) => item.topic_id === topic.id && item.completed_at).map((item) => item.user_id)).size >= 2
+              ? "completed"
+              : "empty";
+          const StateIcon = icons[state];
+          return (
+            <Link
+              className="flex min-h-20 items-center justify-between gap-4 rounded-productive border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              href={`${localizedPath(locale, "/topics")}/${topic.slug}`}
+              key={topic.id}
+            >
+              <div>
+                <h3 className="font-semibold text-ink">{topic.name}</h3>
+                <p className="mt-1 text-sm text-ink-soft">{types.length} {d["topic.questions"]} · {estimateTopicMinutes(types)} {d["topic.minutes"]}</p>
+                <span className={cn("mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", state === "discussed" && "bg-accent/15 text-ink", state === "completed" && "bg-primary-soft text-primary", state === "empty" && "bg-background text-ink-soft")}>
+                  {StateIcon ? <StateIcon aria-hidden="true" size={13} /> : null}
+                  {labels[state]}
+                </span>
+              </div>
+              <ArrowRight aria-hidden="true" className="shrink-0 text-ink-soft" size={18} />
+            </Link>
+          );
         })}
       </div>
     </OnboardingShell>

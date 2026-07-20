@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { BrandLockup } from "@/components/brand/brand-lockup";
+import { PrivateTabBar } from "@/components/layout/private-tab-bar";
 import { Container } from "@/components/ui/container";
 import type { Locale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
@@ -11,15 +12,17 @@ export function OnboardingShell({
   children,
   locale,
   productive = false,
+  withTabBar = false,
 }: {
   backHref?: string;
   children: React.ReactNode;
   locale: Locale;
   productive?: boolean;
+  withTabBar?: boolean;
 }) {
   return (
     <main className="safe-screen">
-      <Container className="min-h-[100svh] max-w-xl py-5 sm:py-8">
+      <Container className={`min-h-[100svh] max-w-xl py-5 sm:py-8 ${withTabBar ? "pb-24" : ""}`}>
         <header className="flex min-h-12 items-center justify-between gap-4">
           {backHref ? (
             <Link
@@ -37,6 +40,7 @@ export function OnboardingShell({
         </header>
         <div className={productive ? "pt-7" : "pt-10 sm:pt-16"}>{children}</div>
       </Container>
+      {withTabBar ? <PrivateTabBar locale={locale} /> : null}
     </main>
   );
 }
