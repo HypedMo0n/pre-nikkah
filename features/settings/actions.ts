@@ -2,8 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
@@ -12,16 +10,8 @@ import {
   logServerActionError,
 } from "@/lib/logging/server-action-error";
 
-export type SettingsActionState = {
-  status: "idle" | "saved" | "error";
-  message?: string;
-};
-
-export const initialSettingsActionState: SettingsActionState = { status: "idle" };
-
-const displayNameSchema = z.object({
-  privateDisplayName: z.string().trim().max(60),
-});
+import type { SettingsActionState } from "./types";
+import { closeJourneySchema, displayNameSchema } from "./validation";
 
 export async function updatePrivateDisplayNameAction(
   _previousState: SettingsActionState,
@@ -47,8 +37,6 @@ export async function updatePrivateDisplayNameAction(
   revalidatePath(localizedPath(locale, "/settings"));
   return { status: "saved", message: translate(locale, "status.saved") };
 }
-
-const closeJourneySchema = z.object({ confirmation: z.literal("CLOSE") });
 
 export async function closeJourneyAction(
   _previousState: SettingsActionState,

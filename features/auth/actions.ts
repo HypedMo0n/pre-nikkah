@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getAuthRedirectOrigin } from "@/lib/auth/origin";
+import { setInviteIntent } from "@/lib/auth/invite-intent";
 import { safeReturnPath } from "@/lib/auth/paths";
 import { hasPublicEnv } from "@/lib/env/public";
 import type { Locale } from "@/lib/i18n/config";
@@ -22,6 +23,7 @@ import {
   signUpSchema,
   type AuthActionState,
 } from "./validation";
+import { getPostLoginRoute } from "./post-login-router";
 
 function unavailable(locale: Locale): AuthActionState {
   return { status: "error", message: translate(locale, "auth.unavailable") };
@@ -56,6 +58,10 @@ export async function signUpAction(
     parsed.data.next,
     localizedPath(locale, `/onboarding/account?mode=${parsed.data.entryMode}`),
   );
+  if (parsed.data.entryMode === "join") {
+    const code = new URL(next, "http://internal.local").searchParams.get("code");
+    if (code) await setInviteIntent(code);
+  }
   const origin = getAuthRedirectOrigin();
   const emailRedirectTo = origin
     ? `${origin}${localizedPath(locale, "/auth/callback")}?next=${encodeURIComponent(next)}`
@@ -88,7 +94,7 @@ export async function signUpAction(
   if (!data.session) {
     redirect(localizedPath(locale, "/verify-email"));
   }
-  redirect(next);
+  redirect(await getPostLoginRoute(locale, supabase, next));
 }
 
 export async function signInAction(
@@ -122,7 +128,7 @@ export async function signInAction(
     return { status: "error", message: getSafeAuthError(locale, error.message) };
   }
 
-  redirect(safeReturnPath(locale, parsed.data.next));
+  redirect(await getPostLoginRoute(locale, supabase, parsed.data.next));
 }
 
 export async function forgotPasswordAction(
