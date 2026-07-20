@@ -29,7 +29,7 @@ export default async function ComparisonsPage({ params }: { params: Promise<{ lo
   } as const;
   return (
     <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive>
-      <h1 className="text-3xl font-semibold text-ink">{d["comparison.title"]}</h1>
+      <h1 className="font-expressive text-3xl font-medium text-ink">{d["comparison.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["comparison.body"]}</p>
       <div className="mt-7 space-y-8">
         {(topics ?? []).map((topic) => {
