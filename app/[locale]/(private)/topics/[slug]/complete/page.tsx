@@ -14,11 +14,14 @@ export default async function TopicCompletePage({ params }: { params: Promise<{ 
   const { supabase, user } = await requireAuthenticatedUser(locale);
   const { data: topic } = await supabase.from("topics").select("id").eq("slug", slug).single();
   if (!topic) notFound();
-  const [{ count: questionCount }, { count: answerCount }] = await Promise.all([
+  const [
+    { count: questionCount, error: questionCountError },
+    { count: answerCount, error: answerCountError },
+  ] = await Promise.all([
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("topic_id", topic.id).eq("is_active", true),
-    supabase.from("answers").select("id,questions!inner(topic_id)", { count: "exact", head: true }).eq("user_id", user.id).eq("questions.topic_id", topic.id),
+    supabase.from("answers").select("id,questions!inner(topic_id,is_active)", { count: "exact", head: true }).eq("user_id", user.id).eq("questions.topic_id", topic.id).eq("questions.is_active", true),
   ]);
-  if (!questionCount || answerCount !== questionCount) redirect(localizedPath(locale, `/topics/${slug}`));
+  if (questionCountError || answerCountError || !questionCount || answerCount !== questionCount) redirect(localizedPath(locale, `/topics/${slug}`));
   const d = getDictionary(locale);
   return <OnboardingShell locale={locale}><div className="text-center"><span className="mx-auto flex size-16 items-center justify-center rounded-full bg-aligned-soft text-aligned"><Check aria-hidden="true" size={28} /></span><h1 className="font-expressive mt-6 text-3xl font-medium text-ink">{d["complete.title"]}</h1><p className="mt-3 leading-7 text-body">{d["complete.body"]}</p><Link className={buttonClasses({ className: "mt-8 w-full" })} href={localizedPath(locale, "/dashboard")}>{d["complete.dashboard"]}</Link></div></OnboardingShell>;
 }

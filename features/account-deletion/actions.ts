@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
+import { appendTraceId } from "@/lib/logging/server-action-error";
 
 import { deleteVerifiedAuthenticatedAccount } from "./service";
 import { deletionRequestSchema, hasForbiddenDeletionTarget } from "./validation";
@@ -24,8 +25,15 @@ export async function deleteOwnAccountAction(_previous: DeleteAccountState, form
   try {
     // The privileged target is derived exclusively from the verified session user.
     await deleteVerifiedAuthenticatedAccount(user.id);
-  } catch {
-    return { status: "error", message: translate(locale, "auth.genericError") };
+  } catch (error) {
+    const traceId = error instanceof Error
+      ? error.message.match(/^ACCOUNT_DELETION_FAILED:([a-f0-9-]+)$/i)?.[1]
+      : undefined;
+    const message = translate(locale, "auth.genericError");
+    return {
+      status: "error",
+      message: traceId ? appendTraceId(message, traceId) : message,
+    };
   }
   await supabase.auth.signOut({ scope: "local" });
   redirect(localizedPath(locale, "/account-deleted"));

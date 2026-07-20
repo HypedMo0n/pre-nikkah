@@ -7,6 +7,10 @@ import { z } from "zod";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
+import {
+  appendTraceId,
+  logServerActionError,
+} from "@/lib/logging/server-action-error";
 
 export type SettingsActionState = {
   status: "idle" | "saved" | "error";
@@ -58,10 +62,18 @@ export async function closeJourneyAction(
     return { status: "error", message: translate(locale, "settings.closeInvalid") };
   }
 
-  const { supabase } = await requireAuthenticatedUser(locale);
+  const { supabase, user } = await requireAuthenticatedUser(locale);
   const { error } = await supabase.rpc("close_couple_journey");
   if (error) {
-    return { status: "error", message: translate(locale, "auth.genericError") };
+    const traceId = logServerActionError({
+      action: "journey.close",
+      error,
+      userId: user.id,
+    });
+    return {
+      status: "error",
+      message: appendTraceId(translate(locale, "auth.genericError"), traceId),
+    };
   }
 
   redirect(localizedPath(locale, "/dashboard"));

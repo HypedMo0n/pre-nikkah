@@ -69,10 +69,22 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     return fail(traceId);
   }
 
-  const [{ count: questionCount }, { count: answerCount }] = await Promise.all([
+  const [
+    { count: questionCount, error: questionCountError },
+    { count: answerCount, error: answerCountError },
+  ] = await Promise.all([
     supabase.from("questions").select("id", { count: "exact", head: true }).eq("topic_id", question.topic_id).eq("is_active", true),
-    supabase.from("answers").select("id,questions!inner(topic_id)", { count: "exact", head: true }).eq("user_id", user.id).eq("couple_id", coupleId).eq("questions.topic_id", question.topic_id),
+    supabase.from("answers").select("id,questions!inner(topic_id,is_active)", { count: "exact", head: true }).eq("user_id", user.id).eq("couple_id", coupleId).eq("questions.topic_id", question.topic_id).eq("questions.is_active", true),
   ]);
+  if (questionCountError || answerCountError) {
+    const traceId = logServerActionError({
+      action: "answer.count_progress",
+      context: { coupleId, questionId: question.id, topicId: question.topic_id },
+      error: questionCountError ?? answerCountError,
+      userId: user.id,
+    });
+    return fail(traceId);
+  }
   if (questionCount && answerCount === questionCount) {
     const { error: progressError } = await supabase.from("topic_progress").upsert({ couple_id: coupleId, topic_id: question.topic_id, user_id: user.id, completed_at: new Date().toISOString() }, { onConflict: "couple_id,topic_id,user_id" });
     if (progressError) {
