@@ -14,6 +14,9 @@ const inspectionSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("unavailable") }),
   z.object({ status: z.literal("self_invite") }),
   z.object({ status: z.literal("active_couple_conflict") }),
+  z.object({ status: z.literal("expired") }),
+  z.object({ status: z.literal("already_used") }),
+  z.object({ status: z.literal("waiting_journey_conflict") }),
 ]);
 
 export async function inspectInvite(
