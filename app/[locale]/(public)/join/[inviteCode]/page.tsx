@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { Card } from "@/components/ui/card";
@@ -39,6 +39,17 @@ export default async function InspectInvitePage({ params }: { params: Promise<{ 
         </Card>
       </OnboardingShell>
     );
+  }
+
+  const { data: connection } = await authenticated.supabase.rpc("get_connection_overview");
+  if (
+    connection &&
+    typeof connection === "object" &&
+    "status" in connection &&
+    connection.status === "waiting"
+  ) {
+    await setInviteIntent(code);
+    redirect(localizedPath(locale, "/onboarding/waiting-journey"));
   }
 
   const inspection = await inspectInvite(locale, code);

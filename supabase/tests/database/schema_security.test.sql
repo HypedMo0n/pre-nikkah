@@ -150,7 +150,7 @@ select is(
     where namespace.nspname = 'public'
       and procedure.prosecdef
   ),
-  21::bigint,
+  22::bigint,
   'The application privileged-function inventory has the expected size'
 );
 
@@ -202,8 +202,8 @@ select is(
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
-  10::bigint,
-  'Authenticated clients can execute only the ten approved application privileged endpoints'
+  11::bigint,
+  'Authenticated clients can execute only the eleven approved application privileged endpoints'
 );
 
 select ok(
