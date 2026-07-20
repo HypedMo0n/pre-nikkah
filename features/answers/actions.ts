@@ -1,12 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { parseLocale } from "@/lib/i18n/config";
 
-const revealSchema = z.object({ questionId: z.string().uuid(), revealed: z.enum(["true", "false"]) });
+import { revealSchema } from "./reveal-validation";
 
 export async function setOwnAnswerRevealAction(formData: FormData) {
   const locale = parseLocale(formData.get("locale"));

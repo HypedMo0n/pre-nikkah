@@ -1,20 +1,17 @@
 "use server";
 
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
-import { parseLocale } from "@/lib/i18n/config";
+import { localizedPath, parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
 import {
   appendTraceId,
   logServerActionError,
 } from "@/lib/logging/server-action-error";
 
-export type AnswerSaveState = { status: "idle" | "saved" | "error"; message?: string; savedAt?: string; savedValue?: string };
-export const initialAnswerSaveState: AnswerSaveState = { status: "idle" };
+import type { AnswerSaveState } from "./types";
+import { answerInputSchema, answerOptionsSchema } from "./validation";
 
-const inputSchema = z.object({ questionId: z.string().uuid(), value: z.string().max(4000) });
-
+import { getConnectionStatus, journeyRequiredState, logAnswerContextUnavailable } from "./journey-state";
 export async function saveAnswerAction(previous: AnswerSaveState, formData: FormData): Promise<AnswerSaveState> {
   const locale = parseLocale(formData.get("locale"));
   const fail = (traceId?: string): AnswerSaveState => {
@@ -25,21 +22,67 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
       savedValue: previous.savedValue,
     };
   };
-  const parsed = inputSchema.safeParse({ questionId: formData.get("questionId"), value: formData.get("value") });
+  const parsed = answerInputSchema.safeParse({ questionId: formData.get("questionId"), value: formData.get("value") });
   if (!parsed.success) return fail();
   const { supabase, user } = await requireAuthenticatedUser(locale);
   const [{ data: question, error: questionError }, { data: coupleId, error: coupleError }] = await Promise.all([
-    supabase.from("questions").select("id,topic_id,type,options").eq("id", parsed.data.questionId).eq("is_active", true).single(),
+    supabase.from("questions").select("id,topic_id,type,options").eq("id", parsed.data.questionId).eq("is_active", true).maybeSingle(),
     supabase.rpc("current_couple_id"),
   ]);
-  if (questionError || coupleError || !question || !coupleId) {
+  if (questionError) {
     const traceId = logServerActionError({
-      action: "answer.load_context",
-      context: { coupleId, questionId: parsed.data.questionId },
-      error: questionError ?? coupleError,
+      action: "answer.load_question",
+      context: { questionId: parsed.data.questionId },
+      error: questionError,
       userId: user.id,
     });
     return fail(traceId);
+  }
+  if (coupleError) {
+    const traceId = logServerActionError({
+      action: "answer.load_journey",
+      context: { questionId: parsed.data.questionId },
+      error: coupleError,
+      userId: user.id,
+    });
+    return fail(traceId);
+  }
+  if (!question) {
+    return {
+      status: "question_unavailable",
+      message: translate(locale, "answer.questionUnavailable"),
+      redirectTo: localizedPath(locale, "/dashboard"),
+      savedValue: previous.savedValue,
+    };
+  }
+  if (!coupleId) {
+    const { data: overview, error: overviewError } = await supabase.rpc("get_connection_overview");
+    if (overviewError) {
+      const traceId = logServerActionError({
+        action: "answer.load_journey_overview",
+        context: { questionId: parsed.data.questionId },
+        error: overviewError,
+        userId: user.id,
+      });
+      return fail(traceId);
+    }
+    const connectionStatus = getConnectionStatus(overview);
+    logAnswerContextUnavailable({
+      connectionStatus,
+      questionId: parsed.data.questionId,
+      reason: "no_current_journey",
+      userId: user.id,
+    });
+    if (connectionStatus === "active") {
+      const traceId = logServerActionError({
+        action: "answer.journey_invariant",
+        context: { questionId: parsed.data.questionId },
+        error: { message: `current_couple_id null with ${connectionStatus} overview` },
+        userId: user.id.slice(0, 8),
+      });
+      return fail(traceId);
+    }
+    return journeyRequiredState(locale, connectionStatus, previous.savedValue);
   }
 
   let value: string | number = parsed.data.value.trim();
@@ -48,7 +91,7 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     if (!Number.isInteger(numeric) || numeric < 1 || numeric > 5) return fail();
     value = numeric;
   } else if (question.type === "single") {
-    const options = z.array(z.object({ id: z.string(), label: z.string() })).safeParse(question.options);
+    const options = answerOptionsSchema.safeParse(question.options);
     if (!options.success || !options.data.some((option) => option.id === value)) return fail();
   } else if (!value) {
     return fail();

@@ -1,15 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { parseLocale } from "@/lib/i18n/config";
 
-const checklistItemSchema = z.object({
-  checklistDefinitionId: z.string().uuid(),
-  done: z.enum(["true", "false"]),
-});
+import { checklistItemSchema } from "./validation";
 
 export async function setChecklistItemAction(formData: FormData) {
   const locale = parseLocale(formData.get("locale"));
