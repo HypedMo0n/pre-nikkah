@@ -6,18 +6,17 @@ import { useActionState, useEffect, useRef, useState } from "react";
 
 import { saveAnswerAction } from "@/features/answers/save-action";
 import { initialAnswerSaveState, type AnswerSaveState } from "@/features/answers/types";
+import { saveAnswerAction } from "@/features/answers/save-action";
+import {
+  initialAnswerSaveState,
+  type AnswerSaveState,
+} from "@/features/answers/types";
 
-import { buttonClasses } from "@/components/ui/button";
-import type { QuestionCadence } from "@/features/topics/cadence";
-import type { Locale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
 import { buttonClasses } from "@/components/ui/button";
 import type { QuestionCadence } from "@/features/topics/cadence";
 import type { Locale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
-
-type Option = { id: string; label: string };
 
 export function AnswerForm({ cadence, complete, initialValue, locale, next, options, previous, questionId, type }: { cadence: QuestionCadence; complete: string; initialValue: unknown; locale: Locale; next?: string; options: Option[] | null; previous?: string; questionId: string; type: "single" | "scale" | "text" }) {
   const d = getDictionary(locale);
