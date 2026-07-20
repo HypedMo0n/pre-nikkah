@@ -55,9 +55,9 @@ export default async function SettingsPage({
 
   return (
     <OnboardingShell
-      backHref={localizedPath(locale, "/dashboard")}
       locale={locale}
       productive
+      withTabBar
     >
       <h1 className="font-expressive text-3xl font-medium text-ink">{d["settings.title"]}</h1>
 
@@ -71,7 +71,6 @@ export default async function SettingsPage({
       </Card>
 
       <div className="mt-6 grid gap-3">
-        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/checklist")}>{d["dashboard.checklist"]}</Link>
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/summary")}>{d["settings.export"]}</Link>
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/test-complete")}>{d["settings.controlledTest"]}</Link>
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/forgot-password")}>{d["auth.forgotTitle"]}</Link>

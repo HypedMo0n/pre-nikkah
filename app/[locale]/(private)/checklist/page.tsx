@@ -39,9 +39,9 @@ export default async function ChecklistPage({
 
   return (
     <OnboardingShell
-      backHref={localizedPath(locale, "/dashboard")}
       locale={locale}
       productive
+      withTabBar
     >
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
         {d["checklist.eyebrow"]}

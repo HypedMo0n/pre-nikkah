@@ -28,7 +28,7 @@ export default async function ComparisonsPage({ params }: { params: Promise<{ lo
     worth_discussing: "bg-discuss",
   } as const;
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive>
+    <OnboardingShell locale={locale} productive withTabBar>
       <h1 className="font-expressive text-3xl font-medium text-ink">{d["comparison.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["comparison.body"]}</p>
       <div className="mt-7 space-y-8">
