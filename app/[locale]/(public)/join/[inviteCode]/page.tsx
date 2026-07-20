@@ -52,8 +52,14 @@ export default async function InspectInvitePage({ params }: { params: Promise<{ 
     redirect(localizedPath(locale, "/onboarding/waiting-journey"));
   }
 
-  const inspection = await inspectInvite(locale, code);
-  const message = inspection.status === "self_invite" ? d["join.self"] : inspection.status === "active_couple_conflict" ? d["join.conflict"] : d["join.unavailable"];
+const inspection = await inspectInvite(locale, code);
+  const message =
+    inspection.status === "self_invite" ? d["join.self"] :
+    inspection.status === "active_couple_conflict" ? d["join.conflict"] :
+    inspection.status === "expired" ? d["join.expired"] :
+    inspection.status === "already_used" ? d["join.alreadyUsed"] :
+    inspection.status === "waiting_journey_conflict" ? d["join.waitingConflict"] :
+    d["join.unavailable"];
   if (inspection.status !== "available") {
     return <OnboardingShell backHref={localizedPath(locale, "/join")} locale={locale}><p className="text-sm text-concern" role="alert">{message}</p></OnboardingShell>;
   }
