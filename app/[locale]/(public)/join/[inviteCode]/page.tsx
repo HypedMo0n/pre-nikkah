@@ -10,6 +10,7 @@ import {
   normalizeInviteCode,
 } from "@/features/invites/invite-code";
 import { inspectInvite } from "@/features/invites/server";
+import { setInviteIntent } from "@/lib/auth/invite-intent";
 import { getAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -107,9 +108,7 @@ export default async function InspectInvitePage({
     );
   }
 
-  const { data: connection } =
-    await authenticated.supabase.rpc("get_connection_overview");
-
+  const { data: connection } = await authenticated.supabase.rpc("get_connection_overview");
   if (
     connection &&
     typeof connection === "object" &&
