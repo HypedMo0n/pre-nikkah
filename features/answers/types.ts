@@ -1,3 +1,4 @@
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
 export type AnswerSaveState =
   | {
       status: "idle";
@@ -30,3 +31,13 @@ export type AnswerSaveState =
     };
 
 export const initialAnswerSaveState = { status: "idle" } satisfies AnswerSaveState;
+=======
+export type AnswerSaveState = {
+  status: "idle" | "saved" | "error";
+  message?: string;
+  savedAt?: string;
+  savedValue?: string;
+};
+
+export const initialAnswerSaveState: AnswerSaveState = { status: "idle" };
+ agent/together-in-amanah-private-alpha

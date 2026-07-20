@@ -13,6 +13,7 @@ vi.mock("@/lib/auth/require-user", () => ({
 vi.mock("@/lib/logging/server-action-error", async () => {
   const actual = await vi.importActual<typeof import("@/lib/logging/server-action-error")>("@/lib/logging/server-action-error");
   return { ...actual, logServerActionError: mocks.logServerActionError };
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
 
   it("returns journey_required for waiting journeys without a current couple id", async () => {
     const supabase = supabaseFor({ connectionStatus: "waiting", coupleId: null });
@@ -66,6 +67,8 @@ vi.mock("@/lib/logging/server-action-error", async () => {
       message: expect.stringContaining("trace9999"),
     });
   });
+
+ agent/together-in-amanah-private-alpha
 });
 
 const { saveAnswerAction } = await import("@/features/answers/save-action");
@@ -74,12 +77,17 @@ const { initialAnswerSaveState } = await import("@/features/answers/types");
 type Scenario = {
   answerCount?: number;
   answerSaveError?: { message: string } | null;
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
   connectionStatus?: "not_connected" | "waiting" | "active" | "closed";
   coupleError?: { message: string } | null;
   coupleId?: string | null;
   progressError?: { message: string } | null;
   questionCount?: number;
   questionMissing?: boolean;
+
+  progressError?: { message: string } | null;
+  questionCount?: number;
+ agent/together-in-amanah-private-alpha
 };
 
 function form(value = "4") {
@@ -94,7 +102,10 @@ function thenable<T>(result: T) {
   const chain = {
     eq: vi.fn(() => chain),
     single: vi.fn(() => Promise.resolve(result)),
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
     maybeSingle: vi.fn(() => Promise.resolve(result)),
+
+ agent/together-in-amanah-private-alpha
     then: (resolve: (value: T) => unknown, reject: (reason: unknown) => unknown) => Promise.resolve(result).then(resolve, reject),
   };
   return chain;
@@ -102,12 +113,16 @@ function thenable<T>(result: T) {
 
 function supabaseFor(scenario: Scenario = {}) {
   return {
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
     rpc: vi.fn((name: string) => {
       if (name === "get_connection_overview") {
         return Promise.resolve({ data: { status: scenario.connectionStatus ?? "active" }, error: null });
       }
       return Promise.resolve({ data: scenario.coupleId === undefined ? "20000000-0000-4000-8000-000000000001" : scenario.coupleId, error: scenario.coupleError ?? null });
     }),
+
+    rpc: vi.fn().mockResolvedValue({ data: "20000000-0000-4000-8000-000000000001", error: null }),
+ agent/together-in-amanah-private-alpha
     from: vi.fn((table: string) => ({
       select: vi.fn((_columns: string, options?: { count?: string; head?: boolean }) => {
         if (table === "questions" && options?.count) {
@@ -117,7 +132,11 @@ function supabaseFor(scenario: Scenario = {}) {
           return thenable({ count: scenario.answerCount ?? 0, error: null });
         }
         return thenable({
+codex/fix-implementation-issues-on-journey-state-machine-v9x94w
           data: scenario.questionMissing ? null : {
+
+          data: {
+ agent/together-in-amanah-private-alpha
             id: "10000000-0000-4000-8000-000000000301",
             options: null,
             topic_id: "30000000-0000-4000-8000-000000000001",
@@ -166,6 +185,7 @@ describe("saveAnswerAction", () => {
     const result = await saveAnswerAction({ status: "idle" }, form("4"));
     expect(result).toMatchObject({ status: "error", message: expect.stringContaining("trace9999") });
   });
+ codex/fix-implementation-issues-on-journey-state-machine-v9x94w
 
   it("returns journey_required for waiting journeys without a current couple id", async () => {
     const supabase = supabaseFor({ connectionStatus: "waiting", coupleId: null });
@@ -219,4 +239,6 @@ describe("saveAnswerAction", () => {
       message: expect.stringContaining("trace9999"),
     });
   });
+
+ agent/together-in-amanah-private-alpha
 });
