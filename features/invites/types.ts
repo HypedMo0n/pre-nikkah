@@ -17,4 +17,4 @@ export const initialInviteActionState: InviteActionState = { status: "idle" };
 
 export type InviteInspection =
   | { status: "available"; expiresAt: string }
-  | { status: "unavailable" | "self_invite" | "active_couple_conflict" };
+  | { status: "unavailable" | "self_invite" | "active_couple_conflict" | "expired" | "already_used" | "waiting_journey_conflict" };
