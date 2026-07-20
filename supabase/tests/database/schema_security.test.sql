@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(18);
+select plan(19);
 
 create temp table application_security_definer_functions (
   function_name name primary key
@@ -31,7 +31,8 @@ values
   ('validate_guided_discussion'),
   ('validate_checklist_item'),
   ('close_couple_journey'),
-  ('prepare_account_deletion');
+  ('prepare_account_deletion'),
+  ('abandon_empty_waiting_journey');
 
 select is(
   (
@@ -149,7 +150,7 @@ select is(
     where namespace.nspname = 'public'
       and procedure.prosecdef
   ),
-  21::bigint,
+  22::bigint,
   'The application privileged-function inventory has the expected size'
 );
 
@@ -201,8 +202,8 @@ select is(
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
-  10::bigint,
-  'Authenticated clients can execute only the ten approved application privileged endpoints'
+  11::bigint,
+  'Authenticated clients can execute only the eleven approved application privileged endpoints'
 );
 
 select ok(
@@ -277,6 +278,8 @@ select ok(
     and not has_schema_privilege('authenticated', 'public', 'create'),
   'Client roles cannot create objects in the public schema'
 );
+
+select has_function('public', 'abandon_empty_waiting_journey', array[]::name[], 'Remote pgTAP runner executes empty waiting journey abandonment invariant');
 
 select * from finish();
 rollback;

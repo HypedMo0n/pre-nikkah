@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getAuthRedirectOrigin } from "@/lib/auth/origin";
+import { clearInviteIntent } from "@/lib/auth/invite-intent";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath, parseLocale } from "@/lib/i18n/config";
@@ -151,5 +152,6 @@ export async function redeemInviteAction(
       entry_mode: "join",
     })
     .eq("id", user.id);
+  await clearInviteIntent();
   redirect(localizedPath(locale, "/dashboard?joined=1"));
 }

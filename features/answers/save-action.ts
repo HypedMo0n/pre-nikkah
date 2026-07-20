@@ -1,7 +1,5 @@
 "use server";
 
-import { z } from "zod";
-
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
@@ -10,10 +8,8 @@ import {
   logServerActionError,
 } from "@/lib/logging/server-action-error";
 
-export type AnswerSaveState = { status: "idle" | "saved" | "error"; message?: string; savedAt?: string; savedValue?: string };
-export const initialAnswerSaveState: AnswerSaveState = { status: "idle" };
-
-const inputSchema = z.object({ questionId: z.string().uuid(), value: z.string().max(4000) });
+import type { AnswerSaveState } from "./types";
+import { answerInputSchema, answerOptionsSchema } from "./validation";
 
 export async function saveAnswerAction(previous: AnswerSaveState, formData: FormData): Promise<AnswerSaveState> {
   const locale = parseLocale(formData.get("locale"));
@@ -25,7 +21,7 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
       savedValue: previous.savedValue,
     };
   };
-  const parsed = inputSchema.safeParse({ questionId: formData.get("questionId"), value: formData.get("value") });
+  const parsed = answerInputSchema.safeParse({ questionId: formData.get("questionId"), value: formData.get("value") });
   if (!parsed.success) return fail();
   const { supabase, user } = await requireAuthenticatedUser(locale);
   const [{ data: question, error: questionError }, { data: coupleId, error: coupleError }] = await Promise.all([
@@ -48,7 +44,7 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     if (!Number.isInteger(numeric) || numeric < 1 || numeric > 5) return fail();
     value = numeric;
   } else if (question.type === "single") {
-    const options = z.array(z.object({ id: z.string(), label: z.string() })).safeParse(question.options);
+    const options = answerOptionsSchema.safeParse(question.options);
     if (!options.success || !options.data.some((option) => option.id === value)) return fail();
   } else if (!value) {
     return fail();
