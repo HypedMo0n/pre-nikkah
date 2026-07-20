@@ -56,42 +56,45 @@ export default async function DashboardPage({ params, searchParams }: { params: 
           <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/join")}>{d["journey.joinTitle"]}</Link>
         </div>
       )}
-<<<<<<< ours
- 
-      <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} /></div>
-
-      <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} topicNames={topics.map((topic) => topic.name)} /></div>
-
-      <section className="mt-7" aria-labelledby="topics-heading">
-        <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["dashboard.recommended"]}</p><h2 className="mt-1 text-xl font-semibold text-ink" id="topics-heading">{d["dashboard.communication"]}</h2></div>{connection.status === "active" && <p className="text-sm text-discuss">{worthCount} {d["dashboard.questionsWorth"]}</p>}</div>
-        <div className="mt-4 space-y-3">
-          {topics.map((topic) => {
-            const types = questions.filter((question) => question.topic_id === topic.id).map((question) => question.type as QuestionType);
-            return <Link className="flex min-h-20 items-center justify-between gap-4 rounded-productive border bg-card p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href={`${localizedPath(locale, "/topics")}/${topic.slug}`} key={topic.id}><div><h3 className="font-semibold text-ink">{topic.name}</h3><p className="mt-1 text-sm text-ink-soft">{types.length} {d["topic.questions"]} · {estimateTopicMinutes(types)} {d["topic.minutes"]}</p></div><ArrowRight aria-hidden="true" className="shrink-0 text-ink-soft" size={18} /></Link>;
-          })}
-        </div>
-      </section>
-      {connection.status === "active" && <Link className={buttonClasses({ variant: "secondary", className: "mt-6 w-full" })} href={localizedPath(locale, "/comparisons")}>{d["comparison.title"]}<ArrowRight aria-hidden="true" size={18} /></Link>}
-      <Link className={buttonClasses({ variant: "secondary", className: "mt-3 h-auto w-full flex-col items-start text-start min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between" })} href={localizedPath(locale, "/checklist")}><span>{d["dashboard.checklist"]}</span><span className="text-xs text-ink-soft">{checklistDone}/{checklistTotal} {d["dashboard.checklistProgress"]}</span></Link>
-      <Link className={buttonClasses({ variant: "ghost", className: "mt-3 w-full" })} href={localizedPath(locale, "/settings")}>{d["settings.title"]}</Link>
-=======
       {nextTopic ? (
         <Link
           className="mt-6 block rounded-expressive border border-primary/30 bg-primary-soft p-5 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           href={`${localizedPath(locale, "/topics")}/${nextTopic.slug}`}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">{d["dashboard.continueLabel"]}</p>
-          <p className="mt-2 text-lg font-semibold text-ink">{nextTopic.name}</p>
-          <p className="mt-1 text-sm text-ink-soft">{nextTopicTypes.length} {d["topic.questions"]} · {estimateTopicMinutes(nextTopicTypes)} {d["topic.minutes"]}</p>
-          <span className="mt-4 flex items-center gap-2 text-sm font-semibold text-primary">{d["topic.begin"]}<ArrowRight aria-hidden="true" size={16} /></span>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
+            {d["dashboard.continueLabel"]}
+          </p>
+          <p className="mt-2 text-lg font-semibold text-ink">
+            {nextTopic.name}
+          </p>
+          <p className="mt-1 text-sm text-ink-soft">
+            {nextTopicTypes.length} {d["topic.questions"]} ·{" "}
+            {estimateTopicMinutes(nextTopicTypes)} {d["topic.minutes"]}
+          </p>
+          <span className="mt-4 flex items-center gap-2 text-sm font-semibold text-primary">
+            {d["topic.begin"]}
+            <ArrowRight aria-hidden="true" size={16} />
+          </span>
         </Link>
       ) : (
         <Card className="mt-6 p-5">
-          <p className="text-sm leading-6 text-body">{d["dashboard.allCaughtUp"]}</p>
+          <p className="text-sm leading-6 text-body">
+            {d["dashboard.allCaughtUp"]}
+          </p>
         </Card>
       )}
-      <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} topicNames={topics.map((topic) => topic.name)} /></div>
->>>>>>> theirs
+
+      <div className="mt-6">
+        <FoundationVisual
+          layers={
+            layers.length
+              ? layers
+              : ["empty", "empty", "empty", "empty"]
+          }
+          locale={locale}
+          topicNames={topics.map((topic) => topic.name)}
+        />
+      </div>
     </OnboardingShell>
   );
 }
