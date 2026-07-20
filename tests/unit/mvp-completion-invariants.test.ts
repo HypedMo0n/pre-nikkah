@@ -16,7 +16,8 @@ describe("MVP completion security invariants", () => {
 
   it("closes only the authenticated user current journey", () => {
     const action = source("features", "settings", "actions.ts");
-    expect(action).toContain('z.literal("CLOSE")');
+    const validation = source("features", "settings", "validation.ts");
+    expect(validation).toContain('z.literal("CLOSE")');
     expect(action).toContain('requireAuthenticatedUser(locale)');
     expect(action).toContain('supabase.rpc("close_couple_journey")');
     expect(action).not.toMatch(/formData\.get\(["'](?:userId|coupleId)["']\)/);

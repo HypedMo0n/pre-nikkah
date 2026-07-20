@@ -7,9 +7,9 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { abandonEmptyWaitingJourneyAction } from "@/features/invites/journey-actions";
 import {
   closeJourneyAction,
-  initialSettingsActionState,
   updatePrivateDisplayNameAction,
 } from "@/features/settings/actions";
+import { initialSettingsActionState } from "@/features/settings/types";
 import type { Locale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 

@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { saveAnswerAction, initialAnswerSaveState } from "@/features/answers/save-action";
+import { saveAnswerAction } from "@/features/answers/save-action";
+import { initialAnswerSaveState } from "@/features/answers/types";
 import { buttonClasses } from "@/components/ui/button";
 import type { QuestionCadence } from "@/features/topics/cadence";
 import type { Locale } from "@/lib/i18n/config";
