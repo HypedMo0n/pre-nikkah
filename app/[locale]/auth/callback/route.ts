@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { getPostLoginRoute } from "@/features/auth/post-login-router";
 import { safeReturnPath } from "@/lib/auth/paths";
 import { hasPublicEnv } from "@/lib/env/public";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
@@ -15,7 +16,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ loc
   }
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-  return NextResponse.redirect(
-    new URL(error ? localizedPath(locale, "/sign-in") : next, request.url),
-  );
+  const route = error ? localizedPath(locale, "/sign-in") : await getPostLoginRoute(locale, supabase, next);
+  return NextResponse.redirect(new URL(route, request.url));
 }

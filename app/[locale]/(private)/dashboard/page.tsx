@@ -58,7 +58,12 @@ export default async function DashboardPage({ params, searchParams }: { params: 
         <div><p className="font-semibold text-ink">{connection.status === "active" ? d["dashboard.connectionReady"] : d["dashboard.connectionWaiting"]}</p><p className="mt-1 text-sm text-body">{connection.connectedPartner?.privateDisplayName ?? d["invite.body"]}</p></div>
         <span className={`size-3 shrink-0 rounded-full ${connection.status === "active" ? "bg-aligned" : "bg-discuss"}`}><span className="sr-only">{connection.status}</span></span>
       </Card>
-      {connection.status !== "active" && <Link className={buttonClasses({ variant: "secondary", className: "mt-4 w-full" })} href={localizedPath(locale, "/invite")}><Link2 aria-hidden="true" size={18} />{d["dashboard.invite"]}</Link>}
+      {connection.status !== "active" && (
+        <div className="mt-4 grid gap-3">
+          <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/invite")}><Link2 aria-hidden="true" size={18} />{d["dashboard.invite"]}</Link>
+          <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/join")}>{d["journey.joinTitle"]}</Link>
+        </div>
+      )}
       <div className="mt-6"><FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} /></div>
       <section className="mt-7" aria-labelledby="topics-heading">
         <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["dashboard.recommended"]}</p><h2 className="mt-1 text-xl font-semibold text-ink" id="topics-heading">{d["dashboard.communication"]}</h2></div>{connection.status === "active" && <p className="text-sm text-discuss">{worthCount} {d["dashboard.questionsWorth"]}</p>}</div>

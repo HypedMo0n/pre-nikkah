@@ -379,6 +379,10 @@ export type Database = {
         Returns: Json;
       };
       close_couple_journey: { Args: Record<string, never>; Returns: undefined };
+      abandon_empty_waiting_journey: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       prepare_account_deletion: { Args: { p_user_id: string }; Returns: undefined };
     };
     Enums: Record<string, never>;

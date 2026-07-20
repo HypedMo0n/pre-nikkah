@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
 import { formatInviteCode, isInviteCode, normalizeInviteCode } from "@/features/invites/invite-code";
 import { inspectInvite } from "@/features/invites/server";
+import { setInviteIntent } from "@/lib/auth/invite-intent";
 import { getAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -24,6 +25,7 @@ export default async function InspectInvitePage({ params }: { params: Promise<{ 
     return <OnboardingShell backHref={localizedPath(locale, "/join")} locale={locale}><p className="text-sm text-concern" role="alert">{d["join.unavailable"]}</p></OnboardingShell>;
   }
   if (!authenticated) {
+    await setInviteIntent(code);
     return (
       <OnboardingShell backHref={localizedPath(locale, "/join")} locale={locale}>
         <Card className="p-6 shadow-soft">
