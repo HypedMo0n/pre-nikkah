@@ -59,7 +59,7 @@ export default async function SettingsPage({
       locale={locale}
       productive
     >
-      <h1 className="text-3xl font-semibold text-ink">{d["settings.title"]}</h1>
+      <h1 className="font-expressive text-3xl font-medium text-ink">{d["settings.title"]}</h1>
 
       <Card className="mt-6 p-5">
         <h2 className="text-xl font-semibold text-ink">{d["settings.displayNameTitle"]}</h2>
@@ -103,6 +103,7 @@ export default async function SettingsPage({
         )}
       </Card>
 
+
       {coupleResult.data ? (
         <Card className="mt-8 border-concern/30 p-5">
           <h2 className="text-xl font-semibold text-concern">{d["settings.closeTitle"]}</h2>
@@ -111,12 +112,24 @@ export default async function SettingsPage({
         </Card>
       ) : null}
 
-      <Card className="mt-8 border-concern/30 p-5">
-        <h2 className="text-xl font-semibold text-concern">{d["settings.deleteTitle"]}</h2>
-        <p className="mt-3 text-sm font-semibold leading-6 text-ink">{d["settings.deleteBody"]}</p>
-        <p className="mt-3 text-xs leading-5 text-ink-soft">{d["settings.deleteBackup"]}</p>
-        <DeleteAccountForm locale={locale} />
-      </Card>
+      <div className="mt-12">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-concern">{d["settings.dangerZone"]}</p>
+        {coupleResult.data ? (
+          <Card className="mt-3 border-concern/30 bg-concern-soft p-5">
+            <h2 className="text-xl font-semibold text-concern">{d["settings.closeTitle"]}</h2>
+            <p className="mt-3 text-sm leading-6 text-body">{d["settings.closeBody"]}</p>
+            <CloseJourneyForm locale={locale} mode={connectionStatus === "waiting" ? "waiting" : "active"} />
+          </Card>
+        ) : null}
+
+
+        <Card className="mt-4 border-concern/30 bg-concern-soft p-5">
+          <h2 className="text-xl font-semibold text-concern">{d["settings.deleteTitle"]}</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-ink">{d["settings.deleteBody"]}</p>
+          <p className="mt-3 text-xs leading-5 text-ink-soft">{d["settings.deleteBackup"]}</p>
+          <DeleteAccountForm locale={locale} />
+        </Card>
+      </div>
     </OnboardingShell>
   );
 }

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export type FoundationLayerState = "empty" | "completed" | "discussed";
 
-export function FoundationVisual({ locale, layers }: { locale: Locale; layers: readonly FoundationLayerState[] }) {
+export function FoundationVisual({ locale, layers, topicNames }: { locale: Locale; layers: readonly FoundationLayerState[]; topicNames?: readonly string[] }) {
   const d = getDictionary(locale);
   const labels = {
     empty: d["dashboard.notStarted"],
@@ -25,7 +25,7 @@ export function FoundationVisual({ locale, layers }: { locale: Locale; layers: r
           <span
             className={cn(
               "absolute bottom-0 rounded-t-full border-[12px] border-b-0 min-[360px]:border-[14px] min-[360px]:border-b-0",
-              state === "empty" && "border-section",
+              state === "empty" && "border-border",
               state === "completed" && "border-primary/35",
               state === "discussed" && "border-accent",
             )}
@@ -51,10 +51,11 @@ export function FoundationVisual({ locale, layers }: { locale: Locale; layers: r
       <ol className="mt-4 space-y-2" aria-label={d["dashboard.completedTogether"]}>
         {layers.map((state, index) => {
           const Icon = icons[state];
+          const label = topicNames?.[index] ?? `${index + 1}. ${labels[state]}`;
           return (
             <li className={cn("flex min-h-11 items-center gap-3 rounded-productive border px-4 text-sm font-medium", state === "completed" && "bg-primary-soft text-primary", state === "discussed" && "border-accent bg-accent/15 text-ink", state === "empty" && "bg-background text-ink-soft")} key={`${state}-${index}`}>
               <Icon aria-hidden="true" size={17} />
-              <span>{index + 1}. {labels[state]}</span>
+              <span>{topicNames?.[index] ? <>{label} — {labels[state]}</> : label}</span>
             </li>
           );
         })}

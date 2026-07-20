@@ -44,7 +44,11 @@ export function InviteCreator({ locale, requirePolicy = true }: { locale: Locale
       <div className="mt-7 space-y-5">
         <div className="rounded-expressive border bg-card p-5 text-center shadow-soft">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["invite.codeLabel"]}</p>
-          <p className="mt-3 break-all font-mono text-xl font-semibold tracking-[0.08em] text-ink min-[360px]:text-2xl min-[360px]:tracking-[0.12em]">{invitation.formattedCode}</p>
+          <p className="mt-3 flex flex-wrap justify-center gap-x-2 gap-y-1 font-mono text-xl font-semibold tracking-[0.08em] text-ink min-[360px]:text-2xl min-[360px]:tracking-[0.12em]">
+            {invitation.formattedCode.split(" ").map((group, i) => (
+              <span className="whitespace-nowrap" key={i}>{group}</span>
+            ))}
+          </p>
           <p className="mt-3 text-xs leading-5 text-ink-soft">{d["invite.once"]}</p>
         </div>
         <figure className="rounded-expressive border bg-white p-5 text-center">

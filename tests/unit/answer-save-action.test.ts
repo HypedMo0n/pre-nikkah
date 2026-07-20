@@ -14,6 +14,7 @@ vi.mock("@/lib/logging/server-action-error", async () => {
   const actual = await vi.importActual<typeof import("@/lib/logging/server-action-error")>("@/lib/logging/server-action-error");
   return { ...actual, logServerActionError: mocks.logServerActionError };
 
+
   it("returns journey_required for waiting journeys without a current couple id", async () => {
     const supabase = supabaseFor({ connectionStatus: "waiting", coupleId: null });
     mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "user-1" } });
@@ -66,6 +67,7 @@ vi.mock("@/lib/logging/server-action-error", async () => {
       message: expect.stringContaining("trace9999"),
     });
   });
+
 });
 
 const { saveAnswerAction } = await import("@/features/answers/save-action");
@@ -193,6 +195,7 @@ describe("saveAnswerAction", () => {
     });
   });
 
+
   it("returns a traced error for active overview plus null current_couple_id", async () => {
     const supabase = supabaseFor({ connectionStatus: "active", coupleId: null });
     mocks.requireAuthenticatedUser.mockResolvedValue({ supabase, user: { id: "12345678-0000-4000-8000-000000000001" } });
@@ -220,3 +223,4 @@ describe("saveAnswerAction", () => {
     });
   });
 });
+
