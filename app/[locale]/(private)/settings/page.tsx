@@ -24,7 +24,7 @@ export default async function SettingsPage({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const { supabase, user } = await requireAuthenticatedUser(locale);
-  const [accountResult, revealedResult, coupleResult] = await Promise.all([
+  const [accountResult, revealedResult, coupleResult, connectionResult] = await Promise.all([
     supabase
       .from("private_accounts")
       .select("private_display_name")
@@ -36,6 +36,7 @@ export default async function SettingsPage({
       .eq("user_id", user.id)
       .eq("revealed", true),
     supabase.rpc("current_couple_id"),
+    supabase.rpc("get_connection_overview"),
   ]);
   const revealedIds = (revealedResult.data ?? []).map((answer) => answer.question_id);
   const revealedQuestions = revealedIds.length
@@ -47,6 +48,9 @@ export default async function SettingsPage({
           .order("order_index")
       ).data ?? []
     : [];
+  const connectionStatus = connectionResult.data && typeof connectionResult.data === "object" && "status" in connectionResult.data
+    ? connectionResult.data.status
+    : "not_connected";
   const d = getDictionary(locale);
 
   return (
@@ -103,7 +107,7 @@ export default async function SettingsPage({
         <Card className="mt-8 border-concern/30 p-5">
           <h2 className="text-xl font-semibold text-concern">{d["settings.closeTitle"]}</h2>
           <p className="mt-3 text-sm leading-6 text-body">{d["settings.closeBody"]}</p>
-          <CloseJourneyForm locale={locale} />
+          <CloseJourneyForm locale={locale} mode={connectionStatus === "waiting" ? "waiting" : "active"} />
         </Card>
       ) : null}
 
