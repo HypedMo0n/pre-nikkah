@@ -66,6 +66,8 @@ type AnswerRow = {
   user_id: string;
   couple_id: string;
   value: Json;
+  importance: "flexible" | "important" | "essential" | "non_negotiable";
+  discussion_preference: "together" | "professional" | "outside_app" | null;
   revealed: boolean;
   revealed_at: string | null;
   created_at: string;
@@ -220,6 +222,8 @@ export type Database = {
           user_id: string;
           couple_id: string;
           value: Json;
+          importance?: "flexible" | "important" | "essential" | "non_negotiable";
+          discussion_preference?: "together" | "professional" | "outside_app" | null;
           revealed?: boolean;
           revealed_at?: string | null;
           created_at?: string;
@@ -227,6 +231,8 @@ export type Database = {
         },
         {
           value?: Json;
+          importance?: "flexible" | "important" | "essential" | "non_negotiable";
+          discussion_preference?: "together" | "professional" | "outside_app" | null;
           revealed?: boolean;
           revealed_at?: string | null;
           updated_at?: string;

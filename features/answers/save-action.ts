@@ -22,7 +22,12 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
       savedValue: previous.savedValue,
     };
   };
-  const parsed = answerInputSchema.safeParse({ questionId: formData.get("questionId"), value: formData.get("value") });
+  const parsed = answerInputSchema.safeParse({
+    questionId: formData.get("questionId"),
+    value: formData.get("value"),
+    importance: formData.get("importance") || undefined,
+    discussionPreference: formData.get("discussionPreference") || undefined,
+  });
   if (!parsed.success) return fail();
   const { supabase, user } = await requireAuthenticatedUser(locale);
   const [{ data: question, error: questionError }, { data: coupleId, error: coupleError }] = await Promise.all([
@@ -97,7 +102,14 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     return fail();
   }
 
-  const { error } = await supabase.from("answers").upsert({ couple_id: coupleId, question_id: question.id, user_id: user.id, value }, { onConflict: "question_id,user_id,couple_id" });
+  const { error } = await supabase.from("answers").upsert({
+    couple_id: coupleId,
+    question_id: question.id,
+    user_id: user.id,
+    value,
+    importance: parsed.data.importance ?? "flexible",
+    discussion_preference: parsed.data.discussionPreference ?? null,
+  }, { onConflict: "question_id,user_id,couple_id" });
   if (error) {
     const traceId = logServerActionError({
       action: "answer.save",

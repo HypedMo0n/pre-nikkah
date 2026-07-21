@@ -36,7 +36,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
           </Card>
         ))}
       </div>
-      <Link className={buttonClasses({ className: "mt-8 w-full" })} href={localizedPath(locale, "/privacy")}>
+      <Link className={buttonClasses({ className: "mt-8 w-full" })} href={localizedPath(locale, "/topics-preview")}>
         {d["common.continue"]}
         <ArrowRight aria-hidden="true" size={18} />
       </Link>

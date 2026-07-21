@@ -8,7 +8,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/product")} locale={locale}>
+    <OnboardingShell backHref={localizedPath(locale, "/topics-preview")} locale={locale}>
       <PrivacySequence locale={locale} />
     </OnboardingShell>
   );
