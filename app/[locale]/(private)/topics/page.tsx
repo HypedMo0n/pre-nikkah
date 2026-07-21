@@ -45,7 +45,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
   );
   const d = getDictionary(locale);
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive>
+    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale} productive withTabBar>
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{d["topics.eyebrow"]}</p>
       <h1 className="mt-2 text-3xl font-semibold text-ink">{d["topics.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["topics.body"]}</p>

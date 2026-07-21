@@ -92,7 +92,7 @@ export default async function DashboardPage({
   const currentName = accountResult.data?.private_display_name;
 
   return (
-    <OnboardingShell locale={locale} productive>
+    <OnboardingShell locale={locale} productive withTabBar>
       {query.joined === "1" && connection.status === "active" && (
         <ConnectedSuccessCard
           currentName={currentName}
