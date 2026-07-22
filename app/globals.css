@@ -23,6 +23,7 @@
   --font-inter: ui-sans-serif;
   --font-fraunces: Georgia;
   --touch-target: 2.75rem;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -82,13 +83,27 @@ canvas {
     scroll-behavior: auto;
   }
 
+  /* Remove transform/keyframe-driven movement outright: scaling, sliding,
+     staggered entrances, and anything else that animates position. */
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+  }
+
+  /* Color and opacity feedback aid comprehension (e.g. a pressed button
+     dimming, a save-status message changing tone) and are not "motion" in
+     the sense this preference targets, so keep them, just short and gentle.
+     Restricting transition-property to this list also means anything else
+     (transform, grid-template-rows, etc.) is excluded from transitions
+     entirely, so those changes apply instantly instead of animating. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 150ms !important;
+    transition-property: color, background-color, border-color, opacity, box-shadow !important;
   }
 }
 
@@ -110,5 +125,56 @@ canvas {
   .touch-target {
     min-block-size: var(--touch-target);
     min-inline-size: var(--touch-target);
+  }
+
+  /*
+   * Animated <details>/<summary> disclosures (CSS grid-rows technique).
+   * Wrap the non-summary content in `.disclosure-content > .disclosure-inner`.
+   * Setting `display: grid` here overrides the browser's default "only
+   * rendered when open" behavior for the content, which is what lets the
+   * grid-template-rows track animate in both directions without JS.
+   * `visibility` is paired with the same transition so the content is
+   * removed from the accessibility tree once fully collapsed (per the CSS
+   * Transitions spec, a transition to a non-"visible" end value only takes
+   * effect at 100% of the duration, so this stays in sync with the height
+   * collapse instead of hiding early).
+   */
+  .disclosure-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows 200ms var(--ease-out), opacity 200ms var(--ease-out), visibility 200ms;
+  }
+
+  details[open] > .disclosure-content {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .disclosure-inner {
+    /* Grid items default to a content-based automatic minimum size, which
+       would stop the 0fr row from ever reaching zero height. `overflow:
+       hidden` resets that automatic minimum to 0, per the CSS Grid spec. */
+    overflow: hidden;
+  }
+
+  /* Short entrance stagger for repeated list screens (topics, comparisons,
+     checklist). Decorative only: opacity/transform, so items stay clickable
+     throughout, and prefers-reduced-motion above collapses the duration. */
+  .stagger-item {
+    animation: stagger-in 320ms var(--ease-out) both;
+  }
+}
+
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

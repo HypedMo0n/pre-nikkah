@@ -68,13 +68,14 @@ export default async function ChecklistPage({
         </p>
       ) : (
         <div className="mt-7 space-y-3">
-          {definitions.map((definition) => {
+          {definitions.map((definition, index) => {
             const done = state.get(definition.id)?.done ?? false;
             return (
               <form
                 action={setChecklistItemAction}
-                className="flex items-center gap-3 rounded-productive border bg-card p-3"
+                className="stagger-item flex items-center gap-3 rounded-productive border bg-card p-3"
                 key={definition.id}
+                style={{ animationDelay: `${Math.min(index, 4) * 45}ms` }}
               >
                 <input name="locale" type="hidden" value={locale} />
                 <input

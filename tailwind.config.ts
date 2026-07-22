@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -33,8 +34,23 @@ const config: Config = {
       boxShadow: {
         soft: "0 18px 44px -28px rgba(23, 35, 66, 0.42)",
       },
+      transitionTimingFunction: {
+        // Deliberate entrance/state-change curve, not a blanket ease-out
+        // replacement. Applied selectively; see app/globals.css --ease-out.
+        expressive: "var(--ease-out)",
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    // Mobile-first PWA, primarily iOS Safari: bare `:hover` triggers on tap
+    // and can leave elements looking stuck until the next tap elsewhere.
+    // Scope hover (and its group/peer variants) to pointer-fine devices.
+    plugin(({ addVariant }) => {
+      const pointerFineHover = "@media (hover: hover) and (pointer: fine)";
+      addVariant("hover", `${pointerFineHover} { &:hover }`);
+      addVariant("group-hover", `${pointerFineHover} { :merge(.group):hover & }`);
+      addVariant("peer-hover", `${pointerFineHover} { :merge(.peer):hover ~ & }`);
+    }),
+  ],
 };
 export default config;

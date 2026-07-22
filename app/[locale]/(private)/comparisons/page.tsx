@@ -47,12 +47,12 @@ export default async function ComparisonsPage({ params }: { params: Promise<{ lo
       <section className="mt-7" aria-labelledby="ready-comparisons">
         <h2 className="text-xl font-semibold text-ink" id="ready-comparisons">{d["comparison.readyTitle"]}</h2>
         {!hasReady && <EmptyComparisonCard title={hasReviewed ? d["comparison.caughtUpTitle"] : d["comparison.emptyTitle"]} body={hasReviewed ? d["comparison.caughtUpBody"] : d["comparison.emptyBody"]} />}
-        <div className="mt-4 space-y-3">{readyGroups.map((group) => <ComparisonGroup group={group} key={group.topic.id} labels={labels(d)} locale={locale} mode="ready" />)}</div>
+        <div className="mt-4 space-y-3">{readyGroups.map((group, index) => <div className="stagger-item" key={group.topic.id} style={{ animationDelay: `${Math.min(index, 4) * 45}ms` }}><ComparisonGroup group={group} labels={labels(d)} locale={locale} mode="ready" /></div>)}</div>
       </section>
       {hasReviewed && (
         <section className="mt-8" aria-labelledby="reviewed-comparisons">
           <h2 className="text-xl font-semibold text-ink" id="reviewed-comparisons">{d["comparison.reviewedTitle"]}</h2>
-          <div className="mt-4 space-y-3">{reviewedGroups.map((group) => <ComparisonGroup group={group} key={group.topic.id} labels={labels(d)} locale={locale} mode="reviewed" />)}</div>
+          <div className="mt-4 space-y-3">{reviewedGroups.map((group, index) => <div className="stagger-item" key={group.topic.id} style={{ animationDelay: `${Math.min(index, 4) * 45}ms` }}><ComparisonGroup group={group} labels={labels(d)} locale={locale} mode="reviewed" /></div>)}</div>
         </section>
       )}
     </OnboardingShell>
@@ -73,8 +73,12 @@ function ComparisonGroup({ group, labels, locale, mode }: { group: ReturnType<ty
         <span className="rounded-full bg-section px-3 py-1 text-xs font-semibold text-primary group-open:hidden">{d["comparison.expand"]}</span>
         <span className="hidden rounded-full bg-section px-3 py-1 text-xs font-semibold text-primary group-open:inline">{d["comparison.collapse"]}</span>
       </summary>
-      <div className="mt-4 space-y-3">
-        {rows.map((row) => <div className="flex items-center justify-between gap-3 rounded-productive border bg-background p-3" key={row.question.id}><div><h3 className="text-sm font-semibold leading-6 text-ink">{row.question.text}</h3><p className="mt-1 text-xs font-semibold text-ink-soft">{labels[row.bucket]}</p></div><Link aria-label={`${d["comparison.open"]}: ${row.question.text}`} className="flex min-h-11 shrink-0 items-center gap-2 rounded-productive px-3 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink" href={`${localizedPath(locale, "/conversations")}/${row.question.id}`}>{d["comparison.view"]}<ArrowRight aria-hidden="true" size={16} /></Link></div>)}
+      <div className="disclosure-content">
+        <div className="disclosure-inner">
+          <div className="mt-4 space-y-3">
+            {rows.map((row) => <div className="flex items-center justify-between gap-3 rounded-productive border bg-background p-3" key={row.question.id}><div><h3 className="text-sm font-semibold leading-6 text-ink">{row.question.text}</h3><p className="mt-1 text-xs font-semibold text-ink-soft">{labels[row.bucket]}</p></div><Link aria-label={`${d["comparison.open"]}: ${row.question.text}`} className="flex min-h-11 shrink-0 items-center gap-2 rounded-productive px-3 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink" href={`${localizedPath(locale, "/conversations")}/${row.question.id}`}>{d["comparison.view"]}<ArrowRight aria-hidden="true" size={16} /></Link></div>)}
+          </div>
+        </div>
       </div>
     </details>
   );

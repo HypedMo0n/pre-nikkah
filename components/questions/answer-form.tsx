@@ -114,7 +114,7 @@ export function AnswerForm({
             <button
               aria-pressed={importance === level}
               className={cn(
-                "min-h-11 rounded-full border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "min-h-11 rounded-full border px-3 text-xs font-semibold transition-colors duration-200 ease-expressive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 importance === level ? "border-accent bg-section text-ink" : "border-border bg-card text-ink-soft",
               )}
               key={level}
