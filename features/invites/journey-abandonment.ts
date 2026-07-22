@@ -29,6 +29,16 @@ export type AbandonEmptyWaitingJourneyOperations = {
   isSoloWaitingOwner: (coupleId: string) => Promise<DatabaseResult<boolean>>;
 };
 
+// abandon_empty_waiting_journey() is idempotent as of migration
+// 20260722000100: it returns successfully instead of raising when there is
+// nothing eligible to abandon, so this string match should no longer be
+// the load-bearing path in normal operation. It stays as a defensive
+// fallback for a deploy window where this application code has shipped
+// ahead of that migration reaching the database (nothing in this repo
+// applies migrations to the deployed database automatically — see
+// supabase/README.md) — during that window the old function may still
+// raise this exact message, and this keeps that case classified as benign
+// rather than a hard error.
 export function isExpectedAbsentError(error: DatabaseError | null | undefined) {
   return error?.code === "P0001" && error.message === EMPTY_WAITING_JOURNEY_ABSENT_MESSAGE;
 }

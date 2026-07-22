@@ -109,8 +109,14 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     importance: parsed.data.importance ?? "flexible",
   }, { onConflict: "question_id,user_id,couple_id" });
   if (error) {
+    // PGRST204 means PostgREST's schema cache has no such column — the
+    // deployed database is missing a migration the application code
+    // already expects. Retrying cannot fix this, so it gets a distinct
+    // action name (for log-based alerting) and an honest message instead
+    // of the generic retry prompt.
+    const isSchemaCacheMiss = error.code === "PGRST204";
     const traceId = logServerActionError({
-      action: "answer.save",
+      action: isSchemaCacheMiss ? "answer.save.schema_cache_miss" : "answer.save",
       context: {
         coupleId,
         questionId: question.id,
@@ -119,6 +125,13 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
       error,
       userId: user.id,
     });
+    if (isSchemaCacheMiss) {
+      return {
+        status: "error",
+        message: appendTraceId(translate(locale, "status.errorUnavailable"), traceId),
+        savedValue: previous.savedValue,
+      };
+    }
     return fail(traceId);
   }
 

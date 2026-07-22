@@ -88,7 +88,7 @@ export async function signUpAction(
     });
     return {
       status: "error",
-      message: appendTraceId(getSafeAuthError(locale, error.message), traceId),
+      message: appendTraceId(getSafeAuthError(locale, error.message, error.code), traceId),
     };
   }
   if (!data.session) {
