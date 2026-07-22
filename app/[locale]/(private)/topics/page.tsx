@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { buildTopicStages } from "@/features/topics/stages";
 import { estimateTopicMinutes } from "@/features/topics/timing";
@@ -49,6 +50,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">{d["topics.eyebrow"]}</p>
       <h1 className="mt-2 text-3xl font-semibold text-ink">{d["topics.title"]}</h1>
       <p className="mt-3 text-sm leading-6 text-body">{d["topics.body"]}</p>
+      <Link className={buttonClasses({ variant: "secondary", className: "mt-5 w-full" })} href={localizedPath(locale, "/checklist")}>{d["dashboard.checklist"]}</Link>
       <div className="mt-7 space-y-3">
         {stages.map((summary, index) => {
           const types = questions.filter((question) => question.topic_id === summary.topic.id).map((question) => question.type as QuestionType);

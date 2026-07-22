@@ -25,13 +25,11 @@ export function groupComparisons(input: {
   comparisons: ReadonlyMap<string, QuestionComparison>;
   currentTopicId?: string | null;
 }): { readyGroups: ComparisonTopicGroup[]; reviewedGroups: ComparisonTopicGroup[] } {
-  const eligibleIds = eligibleComparisonQuestionIds(input.answers);
   const reviewed = new Map(input.discussions.filter((discussion) => discussion.question_id && discussion.status === "discussed").map((discussion) => [discussion.question_id as string, discussion.updated_at ?? null]));
   const groups = input.topics.map((topic) => ({ topic, ready: [] as CompactComparisonRow[], reviewed: [] as CompactComparisonRow[] }));
   const byTopic = new Map(groups.map((group) => [group.topic.id, group]));
 
   for (const question of input.questions) {
-    if (!eligibleIds.has(question.id)) continue;
     const comparison = input.comparisons.get(question.id);
     if (!comparison || comparison.status !== "ready") continue;
     const row = { question, bucket: comparison.bucket, reviewedAt: reviewed.get(question.id) ?? null } satisfies CompactComparisonRow;

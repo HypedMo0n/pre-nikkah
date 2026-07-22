@@ -28,8 +28,8 @@ describe("invite journey routing", () => {
     await expect(getPostLoginRoute("en", supabaseWithStatus("not_connected"), "/en/dashboard")).resolves.toBe("/en/dashboard");
   });
 
-  it("routes waiting journey conflicts to the real waiting page", async () => {
-    await expect(getPostLoginRoute("en", supabaseWithStatus("waiting"), "/en/dashboard")).resolves.toBe("/en/onboarding/waiting-journey");
+  it("keeps waiting-solo users on their requested route instead of the waiting page", async () => {
+    await expect(getPostLoginRoute("en", supabaseWithStatus("waiting"), "/en/dashboard")).resolves.toBe("/en/dashboard");
   });
 
   it("keeps active journey users on the safe requested route instead of enabling invite join", async () => {

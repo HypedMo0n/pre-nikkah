@@ -30,4 +30,16 @@ describe("comparison grouping", () => {
     expect(result.reviewedGroups).toHaveLength(1);
     expect(result.reviewedGroups[0].reviewed.map((row) => row.question.id)).toEqual(["q3"]);
   });
+
+  it("trusts the privacy-preserving RPC when RLS exposes only the current user's answer", () => {
+    const result = groupComparisons({
+      topics,
+      questions,
+      answers: [{ question_id: "q1", user_id: "a" }],
+      discussions: [],
+      comparisons: new Map([["q1", ready("q1", "aligned")]]),
+      currentTopicId: "topic-1",
+    });
+    expect(result.readyGroups[0].ready.map((row) => row.question.id)).toEqual(["q1"]);
+  });
 });

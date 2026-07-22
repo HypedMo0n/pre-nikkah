@@ -85,11 +85,12 @@ export default async function ChecklistPage({
                 <input name="done" type="hidden" value={done ? "false" : "true"} />
                 <SubmitButton
                   aria-label={`${done ? d["checklist.markOpen"] : d["checklist.markDone"]}: ${definition.label}`}
-                  className="size-11 shrink-0 rounded-full p-0"
+                  aria-pressed={done}
+                  className={`size-11 shrink-0 rounded-productive border p-0 ${done ? "border-primary bg-primary text-white" : "border-border bg-card text-ink"}`}
                   pendingLabel={d["common.loading"]}
-                  variant={done ? "primary" : "secondary"}
+                  variant="ghost"
                 >
-                  <Check aria-hidden="true" size={17} />
+                  {done ? <Check aria-hidden="true" size={20} strokeWidth={3} /> : <span aria-hidden="true" className="size-5" />}
                 </SubmitButton>
                 <div className="min-w-0">
                   <p className={`text-sm font-semibold text-ink ${done ? "line-through" : ""}`}>

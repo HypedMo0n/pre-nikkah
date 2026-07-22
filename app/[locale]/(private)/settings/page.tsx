@@ -13,6 +13,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { setOwnAnswerRevealAction } from "@/features/answers/actions";
 import { signOutAction } from "@/features/auth/actions";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
+import { isTesterEnvironment } from "@/lib/env/public";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
@@ -52,6 +53,7 @@ export default async function SettingsPage({
     ? connectionResult.data.status
     : "not_connected";
   const d = getDictionary(locale);
+  const testerEnvironment = isTesterEnvironment();
 
   return (
     <OnboardingShell
@@ -60,6 +62,8 @@ export default async function SettingsPage({
       withTabBar
     >
       <h1 className="font-expressive text-3xl font-medium text-ink">{d["settings.title"]}</h1>
+
+      <h2 className="mt-7 text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["settings.accountSection"]}</h2>
 
       <Card className="mt-6 p-5">
         <h2 className="text-xl font-semibold text-ink">{d["settings.displayNameTitle"]}</h2>
@@ -71,13 +75,15 @@ export default async function SettingsPage({
       </Card>
 
       <div className="mt-6 grid gap-3">
-        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/summary")}>{d["settings.export"]}</Link>
-        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/test-complete")}>{d["settings.controlledTest"]}</Link>
+        <div className="grid grid-cols-2 gap-3" aria-label={d["settings.language"]}>
+          <Link aria-current={locale === "en" ? "page" : undefined} className={buttonClasses({ variant: locale === "en" ? "primary" : "secondary", className: "w-full" })} href="/en/settings">English</Link>
+          <Link aria-current={locale === "fr" ? "page" : undefined} className={buttonClasses({ variant: locale === "fr" ? "primary" : "secondary", className: "w-full" })} href="/fr/settings">Français</Link>
+        </div>
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/forgot-password")}>{d["auth.forgotTitle"]}</Link>
-        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/privacy")}>{d["privacy.title"]}</Link>
         <form action={signOutAction}><input name="locale" type="hidden" value={locale} /><button className={buttonClasses({ variant: "ghost", className: "w-full" })} type="submit">{d["common.signOut"]}</button></form>
       </div>
 
+      <h2 className="mt-9 text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft">{d["settings.privacySection"]}</h2>
       <Card className="mt-8 p-5">
         <h2 className="text-xl font-semibold text-ink">{d["settings.revealedTitle"]}</h2>
         <p className="mt-2 text-sm leading-6 text-body">{d["settings.revealedBody"]}</p>
@@ -102,14 +108,12 @@ export default async function SettingsPage({
         )}
       </Card>
 
+      <div className="mt-4 grid gap-3">
+        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/summary")}>{d["settings.export"]}</Link>
+        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/privacy")}>{d["privacy.title"]}</Link>
+      </div>
 
-      {coupleResult.data ? (
-        <Card className="mt-8 border-concern/30 p-5">
-          <h2 className="text-xl font-semibold text-concern">{d["settings.closeTitle"]}</h2>
-          <p className="mt-3 text-sm leading-6 text-body">{d["settings.closeBody"]}</p>
-          <CloseJourneyForm locale={locale} mode={connectionStatus === "waiting" ? "waiting" : "active"} />
-        </Card>
-      ) : null}
+      {testerEnvironment ? <section className="mt-9" aria-labelledby="beta-testing-heading"><h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft" id="beta-testing-heading">{d["settings.betaSection"]}</h2><Card className="mt-3 p-5"><p className="text-sm leading-6 text-body">{d["demo.warningBody"]}</p><Link className={buttonClasses({ variant: "secondary", className: "mt-4 w-full" })} href={localizedPath(locale, "/test-complete")}>{d["settings.controlledTest"]}</Link></Card></section> : null}
 
       <div className="mt-12">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-concern">{d["settings.dangerZone"]}</p>

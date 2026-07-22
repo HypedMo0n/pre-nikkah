@@ -26,7 +26,6 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     questionId: formData.get("questionId"),
     value: formData.get("value"),
     importance: formData.get("importance") || undefined,
-    discussionPreference: formData.get("discussionPreference") || undefined,
   });
   if (!parsed.success) return fail();
   const { supabase, user } = await requireAuthenticatedUser(locale);
@@ -108,7 +107,6 @@ export async function saveAnswerAction(previous: AnswerSaveState, formData: Form
     user_id: user.id,
     value,
     importance: parsed.data.importance ?? "flexible",
-    discussion_preference: parsed.data.discussionPreference ?? null,
   }, { onConflict: "question_id,user_id,couple_id" });
   if (error) {
     const traceId = logServerActionError({

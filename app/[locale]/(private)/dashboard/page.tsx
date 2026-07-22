@@ -3,15 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { FoundationVisual } from "@/components/dashboard/foundation-visual";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   activeDashboardTopics,
   buildTopicStages,
-  calculateJourneyMetrics,
-  foundationLayersFromStages,
   hasJourneyStarted,
   selectCurrentTopic,
   type TopicStageSummary,
@@ -55,7 +52,7 @@ export default async function DashboardPage({
 
   const query = await searchParams;
   const { supabase, user } = await requireAuthenticatedUser(locale);
-  const [connectionResult, topicResult, questionResult, progressResult, discussionResult, answerResult, accountResult] = await Promise.all([
+  const [connectionResult, topicResult, questionResult, progressResult, discussionResult, answerResult, accountResult, checklistDefinitionsResult, checklistStateResult] = await Promise.all([
     supabase.rpc("get_connection_overview"),
     supabase.from("topics").select("id,slug,name,blurb,order_index").eq("is_active", true).order("order_index"),
     supabase.from("questions").select("id,topic_id,text,type,order_index").eq("is_active", true).order("order_index"),
@@ -63,6 +60,8 @@ export default async function DashboardPage({
     supabase.from("guided_discussions").select("topic_id,question_id,status,updated_at"),
     supabase.from("answers").select("question_id,user_id,questions(topic_id)").order("updated_at", { ascending: false }),
     supabase.from("private_accounts").select("private_display_name").eq("id", user.id).maybeSingle(),
+    supabase.from("checklist_definitions").select("id", { count: "exact", head: true }).eq("is_active", true),
+    supabase.from("couple_checklist_items").select("done"),
   ]);
 
   const parsedConnection = connectionSchema.safeParse(connectionResult.data);
@@ -82,14 +81,14 @@ export default async function DashboardPage({
     topics,
   });
   const current = selectCurrentTopic(stages);
-  const metrics = calculateJourneyMetrics(stages);
-  const layers = foundationLayersFromStages(stages);
   const activeTopics = activeDashboardTopics(stages);
   const started = hasJourneyStarted(stages);
   const d = getDictionary(locale);
   const firstActionHref = current ? localizedPath(locale, `/topics/${current.topic.slug}`) : localizedPath(locale, "/topics");
   const partnerName = connection.connectedPartner?.privateDisplayName;
   const currentName = accountResult.data?.private_display_name;
+  const checklistTotal = checklistDefinitionsResult.count ?? 0;
+  const checklistDone = (checklistStateResult.data ?? []).filter((item) => item.done).length;
 
   return (
     <OnboardingShell locale={locale} productive withTabBar>
@@ -119,25 +118,17 @@ export default async function DashboardPage({
 
       {connection.status !== "active" && <ConnectionActions d={d} locale={locale} />}
 
-      {connection.status === "active" && (
-        <>
-          <section aria-label={d["dashboard.metricsTitle"]} className="mt-6 grid grid-cols-2 gap-3">
-            <Metric label={d["dashboard.metricTopics"]} value={`${metrics.topicsCompleted}/${stages.length}`} />
-            <Metric label={d["dashboard.metricQuestions"]} value={`${metrics.questionsCompletedTogether}`} />
-            <Metric label={d["dashboard.metricFoundations"]} value={`${metrics.sharedFoundationsDiscovered}`} />
-            <Metric label={d["dashboard.metricOverall"]} value={`${metrics.overallCompletionPercentage}%`} />
-          </section>
-          <PrimaryJourneyAction current={current} firstActionHref={firstActionHref} locale={locale} started={started} />
-        </>
-      )}
+      {(connection.status === "active" || connection.status === "waiting") && <PrimaryJourneyAction current={current} firstActionHref={firstActionHref} locale={locale} started={started} />}
 
-      <div className="mt-6">
-        <FoundationVisual layers={layers.length ? layers : ["empty", "empty", "empty", "empty"]} locale={locale} />
-      </div>
-
-      {connection.status === "active" && (
+      {(connection.status === "active" || connection.status === "waiting") && (
         <UpNextSection activeTopics={activeTopics} d={d} locale={locale} questions={questions} />
       )}
+
+      <Card className="mt-7 p-5">
+        <h2 className="text-lg font-semibold text-ink">{d["dashboard.checklist"]}</h2>
+        <p className="mt-2 text-sm leading-6 text-body">{checklistDone} {d["checklist.of"]} {checklistTotal} {d["checklist.complete"]}</p>
+        <Link className={buttonClasses({ variant: "secondary", className: "mt-4 w-full" })} href={localizedPath(locale, "/checklist")}>{d["common.continue"]}</Link>
+      </Card>
     </OnboardingShell>
   );
 }
@@ -185,15 +176,6 @@ function ConnectionActions({ d, locale }: { d: Dictionary; locale: Locale }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="p-4">
-      <p className="text-xs leading-5 text-ink-soft">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
-    </Card>
-  );
-}
-
 function PrimaryJourneyAction({
   current,
   firstActionHref,
@@ -228,7 +210,7 @@ function PrimaryJourneyAction({
       : current.stage === "ready_to_discuss"
         ? d["dashboard.reviewTogether"]
         : current.stage === "waiting_for_partner"
-          ? d["dashboard.waitingPartnerAction"]
+          ? d["dashboard.viewJourney"]
           : d["common.continue"];
 
   return (
@@ -238,17 +220,13 @@ function PrimaryJourneyAction({
       <p className="mt-3 text-sm text-ink-soft">
         {current.currentUserCompletedCount}/{current.totalQuestionCount} {d["dashboard.yourQuestions"]} · {current.bothCompletedCount}/{current.totalQuestionCount} {d["dashboard.togetherQuestions"]}
       </p>
-      {current.stage === "waiting_for_partner" ? (
-        <p className="mt-5 rounded-productive bg-section p-3 text-sm font-semibold text-ink-soft">{label}</p>
-      ) : (
-        <Link
-          className={buttonClasses({ className: "mt-5 w-full" })}
-          href={current.stage === "ready_to_discuss" ? localizedPath(locale, "/comparisons") : firstActionHref}
-        >
-          {label}
-          <ArrowRight aria-hidden="true" size={18} />
-        </Link>
-      )}
+      <Link
+        className={buttonClasses({ className: "mt-5 w-full" })}
+        href={current.stage === "ready_to_discuss" ? localizedPath(locale, "/comparisons") : firstActionHref}
+      >
+        {label}
+        <ArrowRight aria-hidden="true" size={18} />
+      </Link>
     </Card>
   );
 }

@@ -29,13 +29,10 @@ export default async function ComparisonsPage({ params }: { params: Promise<{ lo
   const answers = (answerResult.data ?? []).map((answer) => ({ question_id: answer.question_id, user_id: answer.user_id, questions: Array.isArray(answer.questions) ? answer.questions[0] : answer.questions }));
   const stages = buildTopicStages({ topics, questions, progress: progressResult.data ?? [], answers, discussions: discussionResult.data ?? [], currentUserId: user.id });
   const currentTopicId = selectCurrentTopic(stages)?.topic.id ?? null;
-  const answerUsers = new Map<string, Set<string>>();
-  for (const answer of answers) {
-    if (!answerUsers.has(answer.question_id)) answerUsers.set(answer.question_id, new Set());
-    answerUsers.get(answer.question_id)!.add(answer.user_id);
-  }
-  const eligibleQuestions = questions.filter((question) => (answerUsers.get(question.id)?.size ?? 0) >= 2);
-  const comparisonEntries = await Promise.all(eligibleQuestions.map(async (question) => {
+  // The answers table intentionally exposes only the current user's rows.
+  // Eligibility must therefore come from the privacy-preserving RPC rather
+  // than attempting to infer a partner answer from client-readable rows.
+  const comparisonEntries = await Promise.all(questions.map(async (question) => {
     try { return [question.id, await getQuestionComparison(locale, question.id)] as const; } catch { return null; }
   }));
   const comparisonMap = new Map(comparisonEntries.filter((entry): entry is NonNullable<typeof entry> => entry !== null));

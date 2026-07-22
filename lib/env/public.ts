@@ -25,6 +25,10 @@ export function hasPublicEnv(): boolean {
   return Boolean(input.supabaseUrl && input.supabaseAnonKey);
 }
 
+export function isTesterEnvironment(): boolean {
+  return process.env.NEXT_PUBLIC_TESTER_ENVIRONMENT === "true";
+}
+
 export function getPublicEnv(): PublicEnv {
   return publicEnvSchema.parse(readPublicEnvInput());
 }
