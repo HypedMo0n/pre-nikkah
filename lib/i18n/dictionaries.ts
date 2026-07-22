@@ -72,6 +72,7 @@ const en = {
   "auth.invalidCredentials": "The email or password was not accepted.",
   "auth.unavailable": "The private account service is not configured for this demo yet.",
   "auth.genericError": "We could not complete that request. Please try again.",
+  "auth.emailRateLimited": "Too many verification emails have been requested for this address recently. Please wait a while before trying again.",
   "account.title": "What should your connected partner see?",
   "account.body": "A private display name is optional. You can use a first name, initial, nickname, or keep it neutral.",
   "account.placeholder": "First name, initial, or nickname",
@@ -115,6 +116,7 @@ const en = {
   "invite.qrLabel": "QR code containing only the opaque private invitation link",
   "invite.solo": "Continue on your own",
   "invite.soloBody": "You can start the first topic now. Comparisons remain unavailable until both people answer the same questions.",
+  "invite.activeCoupleConflict": "You already have an active journey with a connected partner. Go to your dashboard to continue it — a new invitation can’t be created while it’s active.",
   "join.title": "Join with an invite",
   "join.body": "Enter the private code or scan the QR invitation from your partner.",
   "join.codeLabel": "Private invite code",
@@ -346,6 +348,7 @@ const en = {
   "status.saved": "Saved privately",
   "status.saving": "Saving…",
   "status.error": "Couldn’t save — Retry",
+  "status.errorUnavailable": "Saving isn’t working right now. This is on our side, not yours — please check back shortly.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -423,6 +426,7 @@ const fr: Dictionary = {
   "auth.invalidCredentials": "L’adresse e-mail ou le mot de passe n’a pas été accepté.",
   "auth.unavailable": "Le service de compte privé n’est pas encore configuré pour cette démonstration.",
   "auth.genericError": "Nous n’avons pas pu terminer cette demande. Veuillez réessayer.",
+  "auth.emailRateLimited": "Trop d’e-mails de vérification ont été demandés récemment pour cette adresse. Merci de patienter avant de réessayer.",
   "account.title": "Que doit voir votre partenaire connecté ?",
   "account.body": "Le nom d’affichage privé est facultatif. Utilisez un prénom, une initiale, un surnom ou gardez une désignation neutre.",
   "account.placeholder": "Prénom, initiale ou surnom",
@@ -466,6 +470,7 @@ const fr: Dictionary = {
   "invite.qrLabel": "Code QR contenant uniquement le lien privé opaque de l’invitation",
   "invite.solo": "Continuer seul pour le moment",
   "invite.soloBody": "Vous pouvez commencer le premier thème maintenant. Les comparaisons restent indisponibles tant que les deux personnes n’ont pas répondu aux mêmes questions.",
+  "invite.activeCoupleConflict": "Vous avez déjà un parcours actif avec un partenaire connecté. Rendez-vous sur votre tableau de bord pour le poursuivre — une nouvelle invitation ne peut pas être créée tant qu’il est actif.",
   "join.title": "Rejoindre avec une invitation",
   "join.body": "Saisissez le code privé ou scannez le QR d’invitation de votre partenaire.",
   "join.codeLabel": "Code d’invitation privé",
@@ -697,6 +702,7 @@ const fr: Dictionary = {
   "status.saved": "Enregistré en privé",
   "status.saving": "Enregistrement…",
   "status.error": "Impossible d’enregistrer — Réessayer",
+  "status.errorUnavailable": "L’enregistrement ne fonctionne pas pour le moment. Le problème vient de notre côté, pas du vôtre — merci de revenir bientôt.",
 };
 
 const dictionaries: Record<Locale, Dictionary> = { en, fr };

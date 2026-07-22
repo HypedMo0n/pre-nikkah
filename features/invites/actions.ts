@@ -29,6 +29,18 @@ function inviteError(locale: Locale, traceId?: string): InviteActionState {
   };
 }
 
+// ACTIVE_COUPLE_CONFLICT is a business-rule rejection (the user already has
+// an active journey), not a fault — it gets its own message so retrying
+// isn't presented as a plausible fix. Every other error keeps the generic
+// message and trace reference; internal error detail is never surfaced.
+function createInviteErrorMessage(locale: Locale, error: { message?: string | null } | null, traceId?: string): string {
+  if (error?.message === "ACTIVE_COUPLE_CONFLICT") {
+    return translate(locale, "invite.activeCoupleConflict");
+  }
+  const message = translate(locale, "auth.genericError");
+  return traceId ? appendTraceId(message, traceId) : message;
+}
+
 export async function createInviteAction(
   _previousState: InviteActionState,
   formData: FormData,
@@ -59,7 +71,7 @@ export async function createInviteAction(
       error,
       userId: user.id,
     });
-    return inviteError(locale, traceId);
+    return { status: "error", message: createInviteErrorMessage(locale, error, traceId) };
   }
 
   await supabase
