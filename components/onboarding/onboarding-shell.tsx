@@ -5,6 +5,7 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { PrivateTabBar } from "@/components/layout/private-tab-bar";
 import { Container } from "@/components/ui/container";
 import type { Locale } from "@/lib/i18n/config";
+import { localizedPath } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
 
 export function OnboardingShell({
@@ -35,7 +36,7 @@ export function OnboardingShell({
           ) : (
             <span className="size-11" />
           )}
-          <BrandLockup className="text-sm" />
+          <BrandLockup className="text-sm" href={localizedPath(locale, "/dashboard")} />
           <span className="size-11" />
         </header>
         <div className={productive ? "pt-7" : "pt-10 sm:pt-16"}>{children}</div>

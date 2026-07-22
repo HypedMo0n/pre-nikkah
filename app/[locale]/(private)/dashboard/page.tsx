@@ -189,42 +189,81 @@ function PrimaryJourneyAction({
 }) {
   const d = getDictionary(locale);
 
+  // Journey complete: nothing left, so this is a terminal message with no
+  // action CTA. Showing a "continue" or "check readiness" style prompt here
+  // would misrepresent a finished journey as having unfinished work.
   if (!current) {
     return (
       <Card className="mt-6 p-5">
         <h2 className="text-xl font-semibold text-ink">{d["dashboard.allCompleteTitle"]}</h2>
         <p className="mt-2 text-sm leading-6 text-body">{d["dashboard.allCompleteBody"]}</p>
-        <Link className={buttonClasses({ className: "mt-5 w-full" })} href={localizedPath(locale, "/topics")}>
-          {d["dashboard.viewJourney"]}
+      </Card>
+    );
+  }
+
+  // Never started any topic yet: name the first recommended topic directly.
+  if (!started) {
+    return (
+      <Card className="mt-6 p-5">
+        <h2 className="text-xl font-semibold text-ink">{d["dashboard.beginWithLead"]} {current.topic.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-body">{d["dashboard.readyBody"]}</p>
+        <Link className={buttonClasses({ className: "mt-5 w-full" })} href={firstActionHref}>
+          {d["dashboard.beginJourney"]}
+          <ArrowRight aria-hidden="true" size={18} />
         </Link>
       </Card>
     );
   }
 
-  const title = !started ? d["dashboard.readyTitle"] : d["dashboard.continueTitle"];
-  const body = !started ? d["dashboard.readyBody"] : `${current.topic.name} · ${d[stageLabelKeys[current.stage]]}`;
-  const label = !started
-    ? d["dashboard.beginJourney"]
-    : current.stage === "not_started"
-      ? d["dashboard.startTopic"]
-      : current.stage === "ready_to_discuss"
-        ? d["dashboard.reviewTogether"]
-        : current.stage === "waiting_for_partner"
-          ? d["dashboard.viewJourney"]
-          : d["common.continue"];
+  // A prior topic was just finished and neither partner has touched this
+  // one yet: this must read as a fresh "up next" moment, not the same
+  // generic "continue" copy the previous topic showed.
+  if (current.stage === "not_started") {
+    return (
+      <Card className="mt-6 p-5">
+        <h2 className="text-xl font-semibold text-ink">{d["dashboard.upNextLead"]} {current.topic.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-body">{current.totalQuestionCount} {d["dashboard.questionsToAnswer"]}</p>
+        <Link className={buttonClasses({ className: "mt-5 w-full" })} href={firstActionHref}>
+          {d["dashboard.startTopic"]}
+          <ArrowRight aria-hidden="true" size={18} />
+        </Link>
+      </Card>
+    );
+  }
 
+  // Mid-topic: show the real fraction answered, not just a topic name.
+  if (current.stage === "in_progress") {
+    return (
+      <Card className="mt-6 p-5">
+        <h2 className="text-xl font-semibold text-ink">{current.topic.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-body">
+          {current.currentUserCompletedCount} {d["checklist.of"]} {current.totalQuestionCount} {d["dashboard.questionsAnswered"]}
+        </p>
+        <Link className={buttonClasses({ className: "mt-5 w-full" })} href={firstActionHref}>
+          {d["common.continue"]}
+          <ArrowRight aria-hidden="true" size={18} />
+        </Link>
+      </Card>
+    );
+  }
+
+  if (current.stage === "waiting_for_partner") {
+    return (
+      <Card className="mt-6 p-5">
+        <h2 className="text-xl font-semibold text-ink">{current.topic.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-body">{d["dashboard.waitingPartnerBody"]}</p>
+        <p className="mt-5 rounded-productive bg-section p-3 text-sm font-semibold text-ink-soft">{d["dashboard.waitingPartnerAction"]}</p>
+      </Card>
+    );
+  }
+
+  // current.stage === "ready_to_discuss"
   return (
     <Card className="mt-6 p-5">
-      <h2 className="text-xl font-semibold text-ink">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-body">{body}</p>
-      <p className="mt-3 text-sm text-ink-soft">
-        {current.currentUserCompletedCount}/{current.totalQuestionCount} {d["dashboard.yourQuestions"]} · {current.bothCompletedCount}/{current.totalQuestionCount} {d["dashboard.togetherQuestions"]}
-      </p>
-      <Link
-        className={buttonClasses({ className: "mt-5 w-full" })}
-        href={current.stage === "ready_to_discuss" ? localizedPath(locale, "/comparisons") : firstActionHref}
-      >
-        {label}
+      <h2 className="text-xl font-semibold text-ink">{current.topic.name}</h2>
+      <p className="mt-2 text-sm leading-6 text-body">{d["dashboard.readyDiscussBody"]}</p>
+      <Link className={buttonClasses({ className: "mt-5 w-full" })} href={localizedPath(locale, "/comparisons")}>
+        {d["dashboard.reviewTogether"]}
         <ArrowRight aria-hidden="true" size={18} />
       </Link>
     </Card>
