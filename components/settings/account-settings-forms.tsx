@@ -91,8 +91,8 @@ function AbandonWaitingJourneySettingsForm({ locale }: { locale: Locale }) {
       <input name="locale" type="hidden" value={locale} />
       <p className="text-sm leading-6 text-body">{d["waitingJourney.body"]}</p>
       <FormMessage
-        message={state.status === "error" ? state.message : undefined}
-        status={state.status === "error" ? "error" : "idle"}
+        message={state.status === "error" || state.status === "not_eligible" ? state.message : undefined}
+        status={state.status === "error" || state.status === "not_eligible" ? "error" : "idle"}
       />
       <SubmitButton className="w-full" pendingLabel={d["common.loading"]} variant="danger">
         {d["waitingJourney.close"]}

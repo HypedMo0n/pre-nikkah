@@ -1,4 +1,4 @@
-# Together in Amanah
+# PreNikkah
 
 This repository contains a privacy-first application for two people who are
 seriously considering marriage. It helps each person answer privately, compare
@@ -47,7 +47,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_DB_URL=
 ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS=false
-NEXT_PUBLIC_APP_NAME=
+NEXT_PUBLIC_APP_NAME=PreNikkah
 NEXT_PUBLIC_FEEDBACK_FORM_URL=https://www.cognitoforms.com/PreNikah/PreNikahAlphaFeedback2
 ```
 

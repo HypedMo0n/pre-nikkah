@@ -1,5 +1,6 @@
 export type InviteActionState =
   | { status: "idle" }
+  | { status: "not_eligible"; message: string }
   | { status: "error"; message: string }
   | {
       status: "created";

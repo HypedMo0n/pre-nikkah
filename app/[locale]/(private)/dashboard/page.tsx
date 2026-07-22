@@ -6,6 +6,7 @@ import { z } from "zod";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FormMessage } from "@/components/ui/form-message";
 import {
   activeDashboardTopics,
   buildTopicStages,
@@ -45,7 +46,7 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ joined?: string }>;
+  searchParams: Promise<{ joined?: string; journeyAbandoned?: string }>;
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
@@ -92,6 +93,10 @@ export default async function DashboardPage({
 
   return (
     <OnboardingShell locale={locale} productive withTabBar>
+      <FormMessage
+        message={query.journeyAbandoned === "1" ? d["waitingJourney.abandoned"] : undefined}
+        status={query.journeyAbandoned === "1" ? "success" : "idle"}
+      />
       {query.joined === "1" && connection.status === "active" && (
         <ConnectedSuccessCard
           currentName={currentName}

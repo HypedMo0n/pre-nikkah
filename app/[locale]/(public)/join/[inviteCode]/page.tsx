@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FormMessage } from "@/components/ui/form-message";
 import {
   formatInviteCode,
   isInviteCode,
@@ -18,13 +19,16 @@ export const dynamic = "force-dynamic";
 
 export default async function InspectInvitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{
     inviteCode: string;
     locale: string;
   }>;
+  searchParams: Promise<{ journeyAbandoned?: string }>;
 }) {
   const { inviteCode: rawCode, locale } = await params;
+  const query = await searchParams;
 
   if (!isLocale(locale)) {
     notFound();
@@ -160,6 +164,10 @@ export default async function InspectInvitePage({
       locale={locale}
     >
       <Card className="p-6 shadow-soft">
+        <FormMessage
+          message={query.journeyAbandoned === "1" ? d["waitingJourney.abandoned"] : undefined}
+          status={query.journeyAbandoned === "1" ? "success" : "idle"}
+        />
         <h1 className="font-expressive text-3xl font-medium text-ink">
           {d["join.availableTitle"]}
         </h1>
