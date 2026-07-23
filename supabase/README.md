@@ -2,28 +2,34 @@
 
 The database is defined by ordered SQL migrations. Every user-facing table has
 RLS enabled in the same migration that creates it, and every exposed privilege
-is granted explicitly.
+is granted explicitly. This is the v3 ("Together in Amanah") schema — see
+`docs/product/v3-rewrite-audit.md` for how it differs from the pre-v3 schema
+it replaced.
 
 ## Migration sequence
 
-1. `20260718000100_accounts_couples_invites.sql`
-   - Private accounts and onboarding state, couples, internal memberships,
-     journey-deletion policy acceptance, invitation hashing, one-current-couple
-     enforcement, and transactional creation and redemption
-2. `20260718000200_canonical_content.sql`
-   - Topics, questions, stable options, and checklist definitions
-3. `20260718000300_answers_and_progress.sql`
-   - Owner-only answers, type-aware validation, answer-specific reveals,
-     reveal audit events, and topic completion validation
-4. `20260718000400_shared_journey_and_lifecycle.sql`
-   - Guided discussions, shared checklist state, journey closure, and the
-     server-only account-deletion preparation function
-5. `20260718000500_safe_read_functions.sql`
-   - Restricted connected-partner metadata, question comparison, and complete
-     topic aggregates
+1. `20260723000100_profiles_spaces_invites.sql`
+   - Profiles, spaces, space memberships, one-current-space-per-user
+     enforcement, and hashed opaque invitations with transactional creation
+     and redemption (kept as a full invite table rather than the prompt's
+     single static `invite_code` column, since the settings screens require
+     revoke and regenerate — see the migration's header comment)
+2. `20260723000200_topics_questions.sql`
+   - Topics and single-choice questions with clustered options; no scale or
+     free-text question types exist in this schema
+3. `20260723000300_answers_shares_comparisons.sql`
+   - Owner-only answers with an importance flag and a private note,
+     one-way irreversible answer sharing, and the comparisons table
+     computed only by a `SECURITY DEFINER` trigger path, never by a client
+4. `20260723000400_discussions_notes_events.sql`
+   - Per-question discussed markers, a real multi-entry shared-note list,
+     and the space_events/event_reads notification model
+5. `20260723000500_space_lifecycle_and_deletion.sql`
+   - Pause/resume, unlink-partner space closure, and the server-only
+     account-deletion preparation function
 
-`seed.sql` adds four active topics, 27 original questions, and 10 checklist
-definitions.
+`seed.sql` has not been authored yet (tracked separately — see the
+question-bank seeding task).
 
 ## Local setup
 
@@ -37,13 +43,13 @@ npm run db:test
 ```
 
 The SQL authorization tests run inside a transaction and roll back all fixture
-users and journey data.
+users and space data.
 
 ## Isolated cloud development project
 
-Docker is optional for Phase 2. Configure an ignored, untracked `.env.local`
-with an encoded direct or session-pooler connection URL for a separate,
-disposable Supabase cloud development project:
+Docker is optional. Configure an ignored, untracked `.env.local` with an
+encoded direct or session-pooler connection URL for a separate, disposable
+Supabase cloud development project:
 
 ```text
 SUPABASE_DB_URL=
@@ -77,40 +83,46 @@ project containing unrelated data.
 
 ## Privacy boundary
 
-- Direct `answers` access is owner-only, including after reveal.
-- A partner answer can leave PostgreSQL only through
-  `get_question_comparison`, and only when that exact answer is revealed.
-- Editing an answer automatically revokes its prior reveal.
+- Direct `answers` access is owner-only. There is no policy path, revealed or
+  not, that grants a partner direct table access — sharing never creates one.
+- A partner's answer can leave PostgreSQL only through
+  `get_partner_shared_answer()`, and only the shared `option_key` — the
+  function has no `private_note` output column at all, by construction.
+- Sharing is one-way and irreversible: `answer_shares` is insert-only, with
+  no revoke path, matching the v3 product requirement that a share cannot be
+  undone.
+- `comparisons` grants `authenticated` clients `SELECT` only. Every row is
+  written by `refresh_comparison()`, invoked by a trigger on `answers`; a
+  direct client insert/update/delete is rejected at the grant level.
 - Invitation plaintext is returned once and never stored. Only a SHA-256 hash
   is persisted.
-- Internal membership helpers that accept arbitrary user IDs are not executable
-  by authenticated clients.
-- Canonical content is readable but has no authenticated write grant.
+- Internal membership helpers that accept arbitrary user IDs are not
+  executable by authenticated clients.
+- Canonical content (`topics`, `questions`) is readable but has no
+  authenticated write grant.
 - The account-deletion preparation function is executable only by the
   `service_role` and accepts a user ID derived by trusted server code.
-- A journey cannot become active until both participants accept the current
-  journey-deletion policy version.
+- Progress functions (`get_topic_progress`) return integer counts only —
+  never a question identity or answer content.
 
-## Account-deletion data behavior
+## Account-deletion and unlink data behavior
 
-Account deletion closes and removes every shared journey containing the
-deleting account. Shared notes, checklist state, topic progress, reveal events,
-and all answers attached to those journeys are removed. A remaining partner
-receives only a content-free closure notice. The server then deletes the Auth
-user through the Supabase Admin API.
+Both account deletion and unlinking a partner close and remove the shared
+space. Answers, comparisons, discussions, shared notes, and invitations
+scoped to that space are removed. The remaining partner (if any) receives
+only a content-free `space_closed` event. For account deletion, the server
+then deletes the Auth user through the Supabase Admin API.
 
-All answers in the deleted shared journey are removed because answers are
-couple-scoped. This includes the remaining partner's answers for that closed
-journey. The deletion confirmation UI must state this clearly.
+All answers in a closed space are removed because answers are space-scoped.
+This includes the remaining partner's answers for that closed space — the
+deletion/unlink confirmation UI must state this clearly.
 
-Both users must accept this disclosure before invitation creation or redemption:
+The server first removes all active-database space content, then (for
+account deletion) deletes the requesting Auth identity through the Admin
+API. Active-database deletion does not claim immediate erasure from
+provider-managed infrastructure backups. Supabase backup retention and
+restoration behavior must be documented separately before production
+launch.
 
-> If either person permanently deletes their account, this shared journey ends.
-> Answers, comparisons, shared notes, and checklist progress connected to this
-> journey are permanently removed for both people.
-
-The server first removes all active-database journey content, then deletes the
-requesting Auth identity through the Admin API. Active-database deletion does
-not claim immediate erasure from provider-managed infrastructure backups.
-Supabase backup retention and restoration behavior must be documented separately
-before production launch.
+"Pause the space" is the one reversible lifecycle action: it does not touch
+any data, only `spaces.status`.

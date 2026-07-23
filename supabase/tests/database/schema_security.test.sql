@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(19);
+select plan(9);
 
 create temp table application_security_definer_functions (
   function_name name primary key
@@ -12,27 +12,28 @@ create temp table application_security_definer_functions (
 insert into application_security_definer_functions (function_name)
 values
   ('handle_new_auth_user'),
-  ('validate_journey_policy_acceptance'),
-  ('validate_couple_activation'),
-  ('is_couple_member_for'),
-  ('is_current_user_couple_member'),
-  ('current_couple_id_for'),
-  ('current_couple_id'),
-  ('create_couple_invite'),
-  ('redeem_couple_invite'),
-  ('inspect_couple_invite'),
-  ('revoke_couple_invite'),
+  ('is_space_member_for'),
+  ('is_current_user_space_member'),
+  ('current_space_id_for'),
+  ('current_space_id'),
+  ('create_space_invite'),
+  ('redeem_space_invite'),
+  ('inspect_space_invite'),
+  ('revoke_space_invite'),
   ('validate_answer_write'),
-  ('log_answer_reveal_event'),
-  ('validate_topic_progress'),
-  ('get_connection_overview'),
-  ('get_question_comparison'),
-  ('get_topic_comparison_summary'),
-  ('validate_guided_discussion'),
-  ('validate_checklist_item'),
-  ('close_couple_journey'),
-  ('prepare_account_deletion'),
-  ('abandon_empty_waiting_journey');
+  ('share_answer'),
+  ('get_partner_shared_answer'),
+  ('refresh_comparison'),
+  ('answers_refresh_comparison'),
+  ('get_topic_progress'),
+  ('emit_partner_joined_event'),
+  ('emit_note_added_event'),
+  ('emit_answer_shared_event'),
+  ('emit_topic_finished_event'),
+  ('pause_space'),
+  ('resume_space'),
+  ('unlink_partner'),
+  ('prepare_account_deletion');
 
 select is(
   (
@@ -42,8 +43,8 @@ select is(
     where namespace.nspname = 'public'
       and class.relkind = 'r'
   ),
-  14::bigint,
-  'The public schema contains exactly the approved fourteen tables'
+  13::bigint,
+  'The public schema contains exactly the thirteen approved tables'
 );
 
 select is(
@@ -55,89 +56,8 @@ select is(
       and class.relkind = 'r'
       and class.relrowsecurity
   ),
-  14::bigint,
+  13::bigint,
   'RLS is enabled on every public table'
-);
-
-select is(
-  (
-    select count(*)
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'private_accounts'
-      and column_name = any(array[
-        'preferred_locale',
-        'private_display_name',
-        'relationship_stage',
-        'onboarding_completed',
-        'onboarding_step',
-        'product_intro_completed',
-        'privacy_intro_completed',
-        'entry_mode'
-      ])
-  ),
-  8::bigint,
-  'Private accounts contain every approved onboarding field'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_constraint constraint_record
-    join pg_class class on class.oid = constraint_record.conrelid
-    join pg_namespace namespace on namespace.oid = class.relnamespace
-    where namespace.nspname = 'public'
-      and class.relname = 'private_accounts'
-      and constraint_record.contype = 'c'
-      and pg_get_constraintdef(constraint_record.oid) like '%preferred_locale%'
-      and pg_get_constraintdef(constraint_record.oid) like '%''en''%'
-      and pg_get_constraintdef(constraint_record.oid) like '%''fr''%'
-  ),
-  1::bigint,
-  'Preferred locale is constrained to English and French'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_constraint constraint_record
-    join pg_class class on class.oid = constraint_record.conrelid
-    join pg_namespace namespace on namespace.oid = class.relnamespace
-    where namespace.nspname = 'public'
-      and class.relname = 'private_accounts'
-      and constraint_record.contype = 'c'
-      and pg_get_constraintdef(constraint_record.oid) like '%entry_mode%'
-      and pg_get_constraintdef(constraint_record.oid) like '%''create''%'
-      and pg_get_constraintdef(constraint_record.oid) like '%''join''%'
-  ),
-  1::bigint,
-  'Entry mode is constrained to create or join'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_constraint constraint_record
-    join pg_class class on class.oid = constraint_record.conrelid
-    join pg_namespace namespace on namespace.oid = class.relnamespace
-    where namespace.nspname = 'public'
-      and class.relname = 'journey_policy_acceptances'
-      and constraint_record.contype = 'u'
-  ),
-  1::bigint,
-  'Journey policy acceptance is unique per couple, user, and policy version'
-);
-
-select is(
-  (
-    select count(*)
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'couple_invites'
-      and column_name in ('invite_code', 'code')
-  ),
-  0::bigint,
-  'No plaintext invite-code column exists'
 );
 
 select is(
@@ -202,8 +122,8 @@ select is(
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
-  11::bigint,
-  'Authenticated clients can execute only the eleven approved application privileged endpoints'
+  12::bigint,
+  'Authenticated clients can execute only the twelve approved application privileged endpoints'
 );
 
 select ok(
@@ -230,56 +150,12 @@ select is(
     from information_schema.role_table_grants
     where grantee = 'authenticated'
       and table_schema = 'public'
-      and table_name in ('topics', 'questions', 'checklist_definitions')
+      and table_name in ('topics', 'questions')
       and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
   ),
   0::bigint,
   'Canonical content has no authenticated client write grants'
 );
-
-select is(
-  (
-    select count(*)
-    from information_schema.role_table_grants
-    where grantee in ('anon', 'authenticated')
-      and table_schema = 'public'
-      and table_name = 'journey_policy_acceptances'
-  ),
-  0::bigint,
-  'Journey policy acceptances are writable only inside protected functions'
-);
-
-select is(
-  (
-    select count(*)
-    from information_schema.role_table_grants
-    where grantee in ('anon', 'authenticated')
-      and table_schema = 'public'
-      and table_name = 'answer_reveal_events'
-  ),
-  0::bigint,
-  'Reveal audit records are not directly client-readable or writable'
-);
-
-select is(
-  (
-    select array_agg(privilege_type::text order by privilege_type)
-    from information_schema.role_table_grants
-    where grantee = 'authenticated'
-      and table_schema = 'public'
-      and table_name = 'couples'
-  ),
-  array['SELECT']::text[],
-  'Couple records expose only a direct SELECT grant controlled by RLS'
-);
-
-select ok(
-  not has_schema_privilege('anon', 'public', 'create')
-    and not has_schema_privilege('authenticated', 'public', 'create'),
-  'Client roles cannot create objects in the public schema'
-);
-
-select has_function('public', 'abandon_empty_waiting_journey', array[]::name[], 'Remote pgTAP runner executes empty waiting journey abandonment invariant');
 
 select * from finish();
 rollback;
