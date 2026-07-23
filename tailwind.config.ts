@@ -10,10 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // v3 token set. No opacity-modifier (`bg-green/10`) support here —
-        // the design system provides explicit -soft variants instead of
-        // opacity mixing, so plain CSS var() references are enough; see
-        // app/globals.css for the source values.
+        // v3 token set, referenced via CSS var() rather than the old
+        // rgb-triplet trick. Tailwind 3.4+ generates opacity modifiers
+        // (e.g. bg-ink/30) for var()-based colors automatically via
+        // color-mix(), so that still works; the design system's own -soft
+        // variants are preferred over ad hoc opacity for anything that
+        // isn't a temporary overlay. See app/globals.css for the values.
         ivory: "var(--ivory)",
         hairline: "var(--hairline)",
         track: "var(--track)",
