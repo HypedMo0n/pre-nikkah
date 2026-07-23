@@ -6,8 +6,6 @@ import type { TopicProgress } from "@/components/path/topic-progress";
 import { deriveTopicState } from "@/components/path/topic-progress";
 import { Chip } from "@/components/ui/chip";
 import { ListRow } from "@/components/ui/list-row";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { signOutAction } from "@/features/auth/actions";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath, parseLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -184,13 +182,6 @@ export default async function HomePage({
           })}
         </ul>
       </div>
-
-      <form action={signOutAction} className="mt-8">
-        <input name="locale" type="hidden" value={locale} />
-        <SubmitButton className="w-full" pendingLabel={d["common.loading"]} variant="secondary">
-          {d["auth.signOut"]}
-        </SubmitButton>
-      </form>
     </main>
   );
 }

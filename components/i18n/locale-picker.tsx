@@ -20,16 +20,18 @@ function GlobeGlyph() {
   );
 }
 
-// §7.1: "Not a segmented control — the list will grow." Driven by the
-// `locales` array, and each name is rendered via Intl.DisplayNames rather
-// than a hardcoded label map, so a third locale needs no change here at
-// all — the sheet (and task #17's later audit) both hold regardless of
-// how many languages are configured.
 function endonym(locale: Locale) {
   return new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale;
 }
 
-export function LocalePicker({ locale }: { locale: Locale }) {
+// §7.1 + §7.12: "Language (same sheet as the welcome pill)" — one
+// component, two trigger shapes. "pill" is the compact top-right control
+// (Welcome); "row" matches Settings' other grouped rows. Both open the
+// identical sheet, driven by the `locales` array with each name rendered
+// via Intl.DisplayNames in its own endonym rather than a hardcoded label
+// map — "Not a segmented control — the list will grow" holds regardless
+// of how many languages are configured (see task #17's later audit).
+export function LocalePicker({ locale, variant = "pill" }: { locale: Locale; variant?: "pill" | "row" }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -44,16 +46,27 @@ export function LocalePicker({ locale }: { locale: Locale }) {
 
   return (
     <>
-      <button
-        aria-label={d["common.language"]}
-        className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/70 px-3 py-1.5 font-productive text-[13px] font-medium text-ink"
-        onClick={() => setOpen(true)}
-        type="button"
-      >
-        <GlobeGlyph />
-        <span className="uppercase">{locale}</span>
-        <span aria-hidden="true">⌄</span>
-      </button>
+      {variant === "pill" ? (
+        <button
+          aria-label={d["common.language"]}
+          className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/70 px-3 py-1.5 font-productive text-[13px] font-medium text-ink"
+          onClick={() => setOpen(true)}
+          type="button"
+        >
+          <GlobeGlyph />
+          <span className="uppercase">{locale}</span>
+          <span aria-hidden="true">⌄</span>
+        </button>
+      ) : (
+        <button
+          className="flex w-full items-center justify-between rounded-card border border-hairline bg-white px-4 py-3.5 text-left"
+          onClick={() => setOpen(true)}
+          type="button"
+        >
+          <span className="font-productive text-[15px] font-semibold text-ink">{d["common.language"]}</span>
+          <span className="font-productive text-[13px] text-muted">{endonym(locale)}</span>
+        </button>
+      )}
       <Sheet onClose={() => setOpen(false)} open={open} title={d["common.language"]}>
         <ul>
           {locales.map((option) => (
