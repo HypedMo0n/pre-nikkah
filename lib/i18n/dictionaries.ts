@@ -68,6 +68,25 @@ const en = {
   "invite.soloBody": "You can start the first conversation now. Comparisons stay unavailable until your partner joins.",
   "invite.activeSpaceConflict": "You already have an active space with a connected partner. A new invitation can't be created while it's active.",
 
+  "importance.low": "Not a big deal",
+  "importance.medium": "Matters to me",
+  "importance.high": "Non-negotiable",
+
+  "answer.eyebrow": "HOW MUCH DOES THIS MATTER?",
+  "answer.notePlaceholder": "Add a private note — only you will ever see it",
+  "answer.save": "Save privately",
+  "answer.footnote": "Saved to your side only · change it any time before comparing.",
+  "answer.invalid": "Choose an option before saving.",
+  "answer.savedWaiting": "Saved — {partner} hasn't reached this one yet.",
+  "answer.savedWaitingFallback": "Saved — your partner hasn't reached this one yet.",
+  "answer.mattersToPartner": "This one matters a lot to {partner}.",
+  "answer.mattersToMe": "This one matters a lot to you.",
+  "answer.continue": "Continue",
+  "answer.exit": "Exit",
+
+  "comparison.aligned": "Aligned",
+  "comparison.discuss": "Discuss",
+
   "footer.trust": "No profiles · No scores · No matchmaking",
 } as const;
 
@@ -136,6 +155,25 @@ const fr: Dictionary = {
   "invite.solo": "Continuer seul pour le moment",
   "invite.soloBody": "Vous pouvez commencer la première conversation dès maintenant. Les comparaisons restent indisponibles tant que votre partenaire n'a pas rejoint.",
   "invite.activeSpaceConflict": "Vous avez déjà un espace actif avec un partenaire connecté. Une nouvelle invitation ne peut pas être créée tant qu'il est actif.",
+
+  "importance.low": "Pas très important",
+  "importance.medium": "Compte pour moi",
+  "importance.high": "Non négociable",
+
+  "answer.eyebrow": "À QUEL POINT CELA COMPTE-T-IL ?",
+  "answer.notePlaceholder": "Ajouter une note privée — vous seul(e) la verrez",
+  "answer.save": "Enregistrer en privé",
+  "answer.footnote": "Enregistré de votre côté uniquement · modifiable à tout moment avant la comparaison.",
+  "answer.invalid": "Choisissez une option avant d'enregistrer.",
+  "answer.savedWaiting": "Enregistré — {partner} n'est pas encore arrivé(e) à cette question.",
+  "answer.savedWaitingFallback": "Enregistré — votre partenaire n'est pas encore arrivé(e) à cette question.",
+  "answer.mattersToPartner": "Cette question compte beaucoup pour {partner}.",
+  "answer.mattersToMe": "Cette question compte beaucoup pour vous.",
+  "answer.continue": "Continuer",
+  "answer.exit": "Quitter",
+
+  "comparison.aligned": "Alignés",
+  "comparison.discuss": "À discuter",
 
   "footer.trust": "Aucun profil · Aucun score · Aucune mise en relation",
 };

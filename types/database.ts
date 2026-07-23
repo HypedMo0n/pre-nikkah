@@ -269,6 +269,7 @@ export type Database = {
       is_current_user_space_member: { Args: { p_space_id: string }; Returns: boolean };
       current_space_id: { Args: Record<string, never>; Returns: string | null };
       get_or_create_current_space: { Args: Record<string, never>; Returns: string };
+      get_partner_display_name: { Args: Record<string, never>; Returns: string | null };
       create_space_invite: {
         Args: Record<string, never>;
         Returns: {

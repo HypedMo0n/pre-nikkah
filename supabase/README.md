@@ -33,6 +33,11 @@ it replaced.
      always mints a fresh code and invalidates the last one, so it must
      stay behind an explicit user action, never an implicit page-load
      side effect) — a gap found while building the /invite screen
+7. `20260723000700_partner_display_name.sql`
+   - `get_partner_display_name()` — profiles and space_members are both
+     zero/owner-only on direct grants, so several screens (§7.5, §7.7,
+     §7.9) had no path at all to the partner's name; a gap found while
+     building the answer screen
 
 `seed.sql` adds the 12 topics and 72 questions from the provided
 question-bank content, with deterministic `uuid5` ids (namespace

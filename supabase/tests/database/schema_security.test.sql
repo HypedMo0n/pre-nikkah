@@ -17,6 +17,7 @@ values
   ('current_space_id_for'),
   ('current_space_id'),
   ('get_or_create_current_space'),
+  ('get_partner_display_name'),
   ('create_space_invite'),
   ('redeem_space_invite'),
   ('inspect_space_invite'),
@@ -71,7 +72,7 @@ select is(
     where namespace.nspname = 'public'
       and procedure.prosecdef
   ),
-  23::bigint,
+  24::bigint,
   'The application privileged-function inventory has the expected size'
 );
 
@@ -123,8 +124,8 @@ select is(
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
-  13::bigint,
-  'Authenticated clients can execute only the thirteen approved application privileged endpoints'
+  14::bigint,
+  'Authenticated clients can execute only the fourteen approved application privileged endpoints'
 );
 
 select ok(

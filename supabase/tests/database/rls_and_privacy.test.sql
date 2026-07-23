@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(20);
+select plan(23);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -106,6 +106,32 @@ select is(
   (select status from public.spaces where id = (select value::uuid from privacy_state where key = 'space_id')),
   'active',
   'A space becomes active once a second member joins'
+);
+
+-- --- Partner display name: profiles/space_members grant nothing directly,
+-- so this SECURITY DEFINER function is the only path to a partner's name.
+update public.profiles set display_name = 'Imaan' where id = 'b1000000-0000-4000-8000-000000000002';
+
+reset role;
+select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000001', true);
+set local role authenticated;
+
+update public.profiles set display_name = 'Zayd' where id = 'a1000000-0000-4000-8000-000000000001';
+
+select is(
+  public.get_partner_display_name(),
+  'Imaan',
+  'get_partner_display_name returns the partner''s name, never the caller''s own'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', 'b1000000-0000-4000-8000-000000000002', true);
+set local role authenticated;
+
+select is(
+  public.get_partner_display_name(),
+  'Zayd',
+  'The reverse direction resolves symmetrically'
 );
 
 -- --- User A answers both fixture questions --------------------------------
@@ -331,6 +357,12 @@ select throws_ok(
   'P0001',
   'ACTIVE_SPACE_REQUIRED',
   'A user with no active space cannot read progress for any topic'
+);
+
+select is(
+  public.get_partner_display_name(),
+  null,
+  'A user with no active space resolves no partner name, and the function does not throw'
 );
 
 select * from finish();
