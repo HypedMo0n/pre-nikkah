@@ -46,6 +46,11 @@ it replaced.
    - `get_all_topic_progress()` — the same counts-only aggregate as
      `get_topic_progress()`, computed for every active topic in one call
      instead of looping it twelve times per Home/Path render
+10. `20260723001000_public_topic_titles.sql`
+    - Grants `anon` a read-only policy on `topics` — the only anon grant
+      anywhere in the schema, needed for the pre-auth "How it works"
+      onboarding screen's strip of twelve topic names; a gap found while
+      building it
 
 `seed.sql` adds the 12 topics and 72 questions from the provided
 question-bank content, with deterministic `uuid5` ids (namespace

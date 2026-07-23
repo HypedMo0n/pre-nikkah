@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(9);
+select plan(11);
 
 create temp table application_security_definer_functions (
   function_name name primary key
@@ -159,6 +159,32 @@ select is(
   ),
   0::bigint,
   'Canonical content has no authenticated client write grants'
+);
+
+-- §7.2's onboarding demo is the one screen anonymous visitors reach before
+-- sign-up, and it needs topic titles for its strip of twelve names.
+select is(
+  (
+    select array_agg(distinct privilege_type::text order by privilege_type)
+    from information_schema.role_table_grants
+    where grantee = 'anon'
+      and table_schema = 'public'
+      and table_name = 'topics'
+  ),
+  array['SELECT']::text[],
+  'Anonymous clients get exactly a read-only grant on topics, and nothing else on it'
+);
+
+select is(
+  (
+    select count(*)
+    from information_schema.role_table_grants
+    where grantee = 'anon'
+      and table_schema = 'public'
+      and table_name <> 'topics'
+  ),
+  0::bigint,
+  'Anonymous clients have no grant on any table other than topics'
 );
 
 select * from finish();

@@ -13,6 +13,7 @@ const migrationFiles = [
   "20260723000700_partner_display_name.sql",
   "20260723000800_answer_share_status.sql",
   "20260723000900_all_topic_progress.sql",
+  "20260723001000_public_topic_titles.sql",
 ];
 const migrations = migrationFiles
   .map((fileName) => readFileSync(path.join(migrationsDirectory, fileName), "utf8"))

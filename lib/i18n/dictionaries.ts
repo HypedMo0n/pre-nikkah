@@ -14,6 +14,7 @@ const en = {
   "common.copied": "Copied",
   "common.share": "Share",
   "common.retry": "Try again",
+  "common.language": "Language",
 
   "auth.signInAction": "Sign in",
   "auth.email": "Email",
@@ -144,6 +145,28 @@ const en = {
   "home.continueProgress": "You've answered {mine} of {total} · {partner} has answered {partnerCount} of {total}",
   "home.conversationsEyebrow": "YOUR CONVERSATIONS",
 
+  "welcome.headline": "Before the nikah, a conversation.",
+  "welcome.subhead": "A private space for two people preparing for marriage to talk through what matters, before the wedding day.",
+  "welcome.begin": "Begin together",
+  "welcome.haveInvite": "I have an invite from my partner",
+
+  "howItWorks.eyebrow": "HOW IT WORKS",
+  "howItWorks.headline": "You answer alone. You compare together.",
+  "howItWorks.demoQuestion": "How should big financial decisions get made?",
+  "howItWorks.demoOptionEarnerLabel": "Whoever earns it decides",
+  "howItWorks.demoOptionEarnerDescription": "The income holder has the final call.",
+  "howItWorks.demoOptionTogetherLabel": "We always decide together",
+  "howItWorks.demoOptionTogetherDescription": "Every decision, big or small, is joint.",
+  "howItWorks.demoOptionLeadLabel": "One of us leads, we talk it through",
+  "howItWorks.demoOptionLeadDescription": "A lead, but never without a conversation.",
+  "howItWorks.demoOptionSeparateLabel": "Separate finances, separate calls",
+  "howItWorks.demoOptionSeparateDescription": "Each of us manages our own share.",
+  "demo.partnerLabel": "Your partner",
+  "demo.staysPrivate": "stays private",
+  "demo.reveal": "See what happens next",
+  "demo.pattern": "Pattern: worth a conversation.",
+  "demo.caption": "Exact answers are never shown — only where you align, and where it's worth talking.",
+
   "footer.trust": "No profiles · No scores · No matchmaking",
 } as const;
 
@@ -159,6 +182,7 @@ const fr: Dictionary = {
   "common.copied": "Copié",
   "common.share": "Partager",
   "common.retry": "Réessayer",
+  "common.language": "Langue",
 
   "auth.signInAction": "Se connecter",
   "auth.email": "E-mail",
@@ -288,6 +312,28 @@ const fr: Dictionary = {
   "home.continueEyebrow": "CONTINUER",
   "home.continueProgress": "Vous avez répondu à {mine} sur {total} · {partner} a répondu à {partnerCount} sur {total}",
   "home.conversationsEyebrow": "VOS CONVERSATIONS",
+
+  "welcome.headline": "Avant le nikah, une conversation.",
+  "welcome.subhead": "Un espace privé pour que deux personnes qui se préparent au mariage parlent de ce qui compte, avant le jour du mariage.",
+  "welcome.begin": "Commencer ensemble",
+  "welcome.haveInvite": "J'ai une invitation de mon ou ma partenaire",
+
+  "howItWorks.eyebrow": "COMMENT ÇA MARCHE",
+  "howItWorks.headline": "Vous répondez seul(e). Vous comparez ensemble.",
+  "howItWorks.demoQuestion": "Comment les grandes décisions financières devraient-elles être prises ?",
+  "howItWorks.demoOptionEarnerLabel": "Celui ou celle qui gagne l'argent décide",
+  "howItWorks.demoOptionEarnerDescription": "La personne qui a le revenu a le dernier mot.",
+  "howItWorks.demoOptionTogetherLabel": "On décide toujours ensemble",
+  "howItWorks.demoOptionTogetherDescription": "Chaque décision, petite ou grande, est prise à deux.",
+  "howItWorks.demoOptionLeadLabel": "L'un de nous mène, mais on en parle",
+  "howItWorks.demoOptionLeadDescription": "Un lead, mais jamais sans en discuter.",
+  "howItWorks.demoOptionSeparateLabel": "Finances séparées, décisions séparées",
+  "howItWorks.demoOptionSeparateDescription": "Chacun gère sa propre part.",
+  "demo.partnerLabel": "Votre partenaire",
+  "demo.staysPrivate": "reste privé",
+  "demo.reveal": "Voir ce qui se passe ensuite",
+  "demo.pattern": "Tendance : à discuter ensemble.",
+  "demo.caption": "Les réponses exactes ne sont jamais montrées — seulement où vous êtes alignés, et où cela vaut la peine d'en parler.",
 
   "footer.trust": "Aucun profil · Aucun score · Aucune mise en relation",
 };
