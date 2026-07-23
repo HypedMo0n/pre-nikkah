@@ -35,6 +35,34 @@ describe("v3 seed content", () => {
     }
   });
 
+  it("applies the topic-level importance override to every question in that topic", () => {
+    // Regression coverage: topics.default_importance = 'high' for
+    // dealbreakers was stored but never actually applied to each
+    // question's own importance_default column on an earlier generation
+    // of this file — the column the answer screen actually reads.
+    const questionBlock = seed.split("insert into public.questions")[1].split("on conflict")[0];
+    const dealbreakersQuestionIds = [
+      "deal-01",
+      "deal-02",
+      "deal-03",
+      "deal-04",
+      "deal-05",
+      "deal-06",
+    ];
+    const questionRows = questionBlock.split(/\n  \(/).slice(1);
+    let dealbreakersRowCount = 0;
+    for (const row of questionRows) {
+      const isDealbreakers = dealbreakersQuestionIds.some((key) => row.includes(`'${key}'`));
+      if (isDealbreakers) {
+        dealbreakersRowCount += 1;
+        expect(row).toMatch(/\]'::jsonb, 'high',/);
+      } else {
+        expect(row).toMatch(/\]'::jsonb, 'medium',/);
+      }
+    }
+    expect(dealbreakersRowCount).toBe(6);
+  });
+
   it("gives every question three to five options with a non-empty cluster", () => {
     const optionSets = jsonbLiterals(seed).map((raw) => JSON.parse(raw) as { key: string; cluster: string }[]);
     expect(optionSets).toHaveLength(72);
