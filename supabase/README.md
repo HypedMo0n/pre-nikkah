@@ -28,8 +28,11 @@ it replaced.
    - Pause/resume, unlink-partner space closure, and the server-only
      account-deletion preparation function
 
-`seed.sql` has not been authored yet (tracked separately — see the
-question-bank seeding task).
+`seed.sql` adds the 12 topics and 72 questions from the provided
+question-bank content, with deterministic `uuid5` ids (namespace
+`6f8f7a2e-0000-4000-8000-000000000000`, name `topic:<slug>` /
+`question:<key>`) so re-running the file is idempotent and ids never
+depend on insertion order.
 
 ## Local setup
 
