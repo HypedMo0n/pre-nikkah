@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(23);
+select plan(28);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -228,14 +228,38 @@ reset role;
 select set_config('request.jwt.claim.sub', 'a1000000-0000-4000-8000-000000000001', true);
 set local role authenticated;
 
+select is(
+  public.has_shared_own_answer('90000000-0000-4000-8000-000000000001'),
+  false,
+  'has_shared_own_answer is false before the share happens'
+);
+
 select lives_ok(
   $$select public.share_answer('90000000-0000-4000-8000-000000000001')$$,
   'Sharing an answer succeeds'
 );
 
+select is(
+  public.has_shared_own_answer('90000000-0000-4000-8000-000000000001'),
+  true,
+  'has_shared_own_answer is true for the sharer immediately after sharing'
+);
+
+select is(
+  public.has_shared_own_answer('90000000-0000-4000-8000-000000000002'),
+  false,
+  'has_shared_own_answer stays false for a different, unshared question'
+);
+
 reset role;
 select set_config('request.jwt.claim.sub', 'b1000000-0000-4000-8000-000000000002', true);
 set local role authenticated;
+
+select is(
+  public.has_shared_own_answer('90000000-0000-4000-8000-000000000001'),
+  false,
+  'has_shared_own_answer reflects only the caller''s own share, never the partner''s'
+);
 
 select is(
   (select option_key from public.get_partner_shared_answer('90000000-0000-4000-8000-000000000001')),
@@ -363,6 +387,12 @@ select is(
   public.get_partner_display_name(),
   null,
   'A user with no active space resolves no partner name, and the function does not throw'
+);
+
+select is(
+  public.has_shared_own_answer('90000000-0000-4000-8000-000000000001'),
+  false,
+  'A user with no active space resolves no shared-answer status, and the function does not throw'
 );
 
 select * from finish();

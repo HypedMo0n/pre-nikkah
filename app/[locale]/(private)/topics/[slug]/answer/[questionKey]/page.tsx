@@ -9,8 +9,7 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 // §7.7 + build order step 6 ("this is the product — get it feeling right
 // before building around it"). Within-topic order comes from
 // questions.order_index; finishing the last question in a topic returns
-// to Home rather than a topic-detail screen, since that screen doesn't
-// exist yet (task #10) — revisit this fallback once it does.
+// to the topic detail screen (task #10).
 export default async function AnswerPage({
   params,
 }: {
@@ -53,8 +52,8 @@ export default async function AnswerPage({
   const next = questionList[currentIndex + 1] ?? null;
   const nextHref = next
     ? localizedPath(locale, `/topics/${slug}/answer/${next.key}`)
-    : localizedPath(locale, "/home");
-  const exitHref = localizedPath(locale, "/home");
+    : localizedPath(locale, `/topics/${slug}`);
+  const exitHref = localizedPath(locale, `/topics/${slug}`);
 
   const [{ data: existingAnswer }, { data: partnerName }] = await Promise.all([
     supabase

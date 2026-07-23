@@ -38,6 +38,10 @@ it replaced.
      zero/owner-only on direct grants, so several screens (§7.5, §7.7,
      §7.9) had no path at all to the partner's name; a gap found while
      building the answer screen
+8. `20260723000800_answer_share_status.sql`
+   - `has_shared_own_answer()` — the discuss screen's share action is
+     irreversible and must not re-prompt once already done; a gap found
+     while building it
 
 `seed.sql` adds the 12 topics and 72 questions from the provided
 question-bank content, with deterministic `uuid5` ids (namespace

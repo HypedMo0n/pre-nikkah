@@ -270,6 +270,7 @@ export type Database = {
       current_space_id: { Args: Record<string, never>; Returns: string | null };
       get_or_create_current_space: { Args: Record<string, never>; Returns: string };
       get_partner_display_name: { Args: Record<string, never>; Returns: string | null };
+      has_shared_own_answer: { Args: { p_question_id: string }; Returns: boolean };
       create_space_invite: {
         Args: Record<string, never>;
         Returns: {
