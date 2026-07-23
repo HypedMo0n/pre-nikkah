@@ -37,6 +37,7 @@ const en = {
   "auth.unavailable": "The account service is not configured for this demo yet.",
   "auth.genericError": "We could not complete that request. Please try again.",
   "auth.emailRateLimited": "Too many verification emails have been requested for this address recently. Please wait a while before trying again.",
+  "auth.signOut": "Sign out",
 
   "createSpace.eyebrow": "STEP 1 OF 2",
   "createSpace.title": "Create your private space.",
@@ -103,6 +104,8 @@ const en = {
   "topics.continueAnswering": "Continue answering",
   "topics.seePattern": "See your pattern",
   "topics.partnerFallback": "your partner",
+  "topics.notStarted": "Not started",
+  "topics.discussedStatus": "Discussed",
 
   "discuss.chipDiscuss": "Worth discussing",
   "discuss.chipAligned": "Aligned",
@@ -133,6 +136,13 @@ const en = {
   "record.alignedCount": "{count} aligned",
   "record.inProgress": "In progress",
   "record.noNotes": "No shared notes kept for this conversation.",
+
+  "home.greeting": "Salaam, {name}",
+  "home.greetingFallback": "Salaam",
+  "home.pairPill": "{you} & {partner}",
+  "home.continueEyebrow": "CONTINUE",
+  "home.continueProgress": "You've answered {mine} of {total} · {partner} has answered {partnerCount} of {total}",
+  "home.conversationsEyebrow": "YOUR CONVERSATIONS",
 
   "footer.trust": "No profiles · No scores · No matchmaking",
 } as const;
@@ -172,6 +182,7 @@ const fr: Dictionary = {
   "auth.unavailable": "Le service de compte n'est pas encore configuré pour cette démonstration.",
   "auth.genericError": "Nous n'avons pas pu terminer cette demande. Veuillez réessayer.",
   "auth.emailRateLimited": "Trop d'e-mails de vérification ont été demandés récemment pour cette adresse. Merci de patienter avant de réessayer.",
+  "auth.signOut": "Se déconnecter",
 
   "createSpace.eyebrow": "ÉTAPE 1 SUR 2",
   "createSpace.title": "Créez votre espace privé.",
@@ -238,6 +249,8 @@ const fr: Dictionary = {
   "topics.continueAnswering": "Continuer à répondre",
   "topics.seePattern": "Voir votre schéma",
   "topics.partnerFallback": "votre partenaire",
+  "topics.notStarted": "Pas encore commencé",
+  "topics.discussedStatus": "Discuté",
 
   "discuss.chipDiscuss": "À discuter",
   "discuss.chipAligned": "Alignés",
@@ -268,6 +281,13 @@ const fr: Dictionary = {
   "record.alignedCount": "{count} alignées",
   "record.inProgress": "En cours",
   "record.noNotes": "Aucune note partagée conservée pour cette conversation.",
+
+  "home.greeting": "Salam, {name}",
+  "home.greetingFallback": "Salam",
+  "home.pairPill": "{you} & {partner}",
+  "home.continueEyebrow": "CONTINUER",
+  "home.continueProgress": "Vous avez répondu à {mine} sur {total} · {partner} a répondu à {partnerCount} sur {total}",
+  "home.conversationsEyebrow": "VOS CONVERSATIONS",
 
   "footer.trust": "Aucun profil · Aucun score · Aucune mise en relation",
 };
