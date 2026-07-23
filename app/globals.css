@@ -2,46 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* v3 ("Together in Amanah") design tokens — see docs/product/v3-rewrite-audit.md
+   for how this replaces the pre-v3 palette. --font-fraunces/--font-inter are
+   set by next/font's className on <html> (app/layout.tsx), not declared here,
+   so the real loaded font stack — not a fallback — is what these resolve to. */
 :root {
-  --color-background: 255 253 248;
-  --color-section: 245 239 228;
-  --color-border: 222 213 198;
-  --color-card: 255 255 252;
-  --color-ink-soft: 111 113 128;
-  --color-body: 65 70 87;
-  --color-ink: 23 35 66;
-  --color-primary: 94 103 69;
-  --color-primary-soft: 237 240 229;
-  --color-accent: 196 154 74;
-  --color-aligned: 94 103 69;
-  --color-aligned-soft: 237 240 229;
-  --color-discuss: 153 113 38;
-  --color-discuss-soft: 250 243 225;
-  --color-concern: 165 65 62;
-  --color-concern-soft: 249 235 232;
-  --color-focus: 23 35 66;
-  --font-inter: ui-sans-serif;
-  --font-fraunces: Georgia;
+  --ivory: #faf8f4;
+  --white: #ffffff;
+  --hairline: #e9e4dc;
+  --track: #efece6;
+
+  --ink: #23201c;
+  --muted: #7a736a;
+
+  --green: #34594a;
+  --green-soft: #e8efe9;
+
+  --amber: #c9923e;
+  --amber-soft: #f9f0e1;
+  --amber-ink: #6b4c1f;
+
+  --danger: #b8473d;
+
+  --radius-card: 20px;
+  --radius-option: 16px;
+  --radius-input: 14px;
+
   --touch-target: 2.75rem;
+
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
-  border-color: rgb(var(--color-border));
+  border-color: var(--hairline);
 }
 
 html {
-  background: rgb(var(--color-background));
+  background: var(--ivory);
   color-scheme: light;
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
-  background: rgb(var(--color-background));
-  color: rgb(var(--color-body));
+  background: var(--ivory);
+  color: var(--ink);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   overflow-wrap: anywhere;
   text-rendering: optimizeLegibility;
@@ -62,12 +72,12 @@ canvas {
 }
 
 ::selection {
-  background: rgb(var(--color-primary-soft));
-  color: rgb(var(--color-primary));
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 :focus-visible {
-  outline: 2px solid rgb(var(--color-focus));
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -160,9 +170,9 @@ canvas {
     overflow: hidden;
   }
 
-  /* Short entrance stagger for repeated list screens (topics, comparisons,
-     checklist). Decorative only: opacity/transform, so items stay clickable
-     throughout, and prefers-reduced-motion above collapses the duration. */
+  /* Short entrance stagger for repeated list screens (topics, comparisons).
+     Decorative only: opacity/transform, so items stay clickable throughout,
+     and prefers-reduced-motion above collapses the duration. */
   .stagger-item {
     animation: stagger-in 320ms var(--ease-out) both;
   }
