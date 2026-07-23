@@ -1,10 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "motion/react";
 
-import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/lib/motion/use-reduced-motion";
 
-// §7.7's top bar: "✕", a thin progress track, and "5 / 6". The track fills
-// left-to-right by index/total — no animation here, that belongs to the
-// §9 motion pass.
+// §7.7's top bar: "✕", a thin progress track, and "5 / 6".
+//
+// §9 #8: progress tracks animate via `transform: scaleX()` from a fixed
+// left origin, never `width` — this fills in on mount rather than sitting
+// static, since each question is its own page load (no persistent client
+// instance to diff a "previous" value against). Reduced motion renders
+// straight at the target value, no fill-in.
 export function AnswerTopBar({
   exitHref,
   exitLabel,
@@ -17,6 +24,8 @@ export function AnswerTopBar({
   total: number;
 }) {
   const progress = total > 0 ? Math.min(1, index / total) : 0;
+  const reduced = usePrefersReducedMotion();
+
   return (
     <div className="flex items-center gap-4">
       <Link
@@ -29,7 +38,12 @@ export function AnswerTopBar({
         </span>
       </Link>
       <div className="h-1 flex-1 overflow-hidden rounded-full bg-track">
-        <div className={cn("h-full rounded-full bg-green")} style={{ width: `${progress * 100}%` }} />
+        <motion.div
+          animate={{ scaleX: progress }}
+          className="h-full origin-left rounded-full bg-green"
+          initial={{ scaleX: reduced ? progress : 0 }}
+          transition={reduced ? { duration: 0 } : { type: "spring", bounce: 0.15, duration: 0.5 }}
+        />
       </div>
       <span className="shrink-0 font-productive text-[13px] font-medium text-muted">
         {index} / {total}

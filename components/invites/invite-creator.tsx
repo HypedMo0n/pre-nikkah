@@ -76,7 +76,7 @@ export function InviteCreator({
       </figure>
 
       <Chip variant="neutral">
-        <span aria-hidden="true" className="size-1.5 animate-pulse rounded-full bg-amber" />
+        <span aria-hidden="true" className="size-1.5 animate-waiting-pulse rounded-full bg-amber" />
         {d["invite.waiting"]}
       </Chip>
 
