@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(28);
+select plan(30);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -359,6 +359,16 @@ select is(
   'get_topic_progress returns exactly three integer counts and nothing else'
 );
 
+select is(
+  (
+    select row(mine, partner, total, discussed)
+    from public.get_all_topic_progress()
+    where topic_id = '00000000-0000-4000-8000-000000000901'
+  ),
+  row(2, 2, 2, 0),
+  'get_all_topic_progress reports the same counts as get_topic_progress for every topic in one call, undiscussed so far'
+);
+
 -- --- An outsider is not a space member and reads nothing -----------------
 reset role;
 select set_config('request.jwt.claim.sub', 'c1000000-0000-4000-8000-000000000003', true);
@@ -381,6 +391,13 @@ select throws_ok(
   'P0001',
   'ACTIVE_SPACE_REQUIRED',
   'A user with no active space cannot read progress for any topic'
+);
+
+select throws_ok(
+  $$select public.get_all_topic_progress()$$,
+  'P0001',
+  'ACTIVE_SPACE_REQUIRED',
+  'A user with no active space cannot read progress for any topic via the all-topics aggregate either'
 );
 
 select is(

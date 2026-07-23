@@ -29,6 +29,7 @@ values
   ('refresh_comparison'),
   ('answers_refresh_comparison'),
   ('get_topic_progress'),
+  ('get_all_topic_progress'),
   ('emit_partner_joined_event'),
   ('emit_note_added_event'),
   ('emit_answer_shared_event'),
@@ -73,7 +74,7 @@ select is(
     where namespace.nspname = 'public'
       and procedure.prosecdef
   ),
-  25::bigint,
+  26::bigint,
   'The application privileged-function inventory has the expected size'
 );
 
@@ -125,8 +126,8 @@ select is(
       and procedure.prosecdef
       and has_function_privilege('authenticated', procedure.oid, 'execute')
   ),
-  15::bigint,
-  'Authenticated clients can execute only the fifteen approved application privileged endpoints'
+  16::bigint,
+  'Authenticated clients can execute only the sixteen approved application privileged endpoints'
 );
 
 select ok(

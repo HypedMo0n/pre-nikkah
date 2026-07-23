@@ -122,6 +122,18 @@ const en = {
   "discuss.discussed": "Marked as discussed",
   "discuss.footnote": "Sharing is one-way and always your choice.",
 
+  "path.header": "Your path · {count} of {total}",
+  "path.expandedTitle": "Your path",
+  "path.next": "Next: {topic}",
+  "path.waitingOnYou": "{partner} is waiting on you for one",
+  "path.upToDate": "You're both up to date",
+
+  "record.title": "Your record",
+  "record.subtitle": "A record of the conversations you've had — not a verdict.",
+  "record.alignedCount": "{count} aligned",
+  "record.inProgress": "In progress",
+  "record.noNotes": "No shared notes kept for this conversation.",
+
   "footer.trust": "No profiles · No scores · No matchmaking",
 } as const;
 
@@ -244,6 +256,18 @@ const fr: Dictionary = {
   "discuss.markDiscussed": "Marquer comme discuté",
   "discuss.discussed": "Marqué comme discuté",
   "discuss.footnote": "Le partage est à sens unique et toujours votre choix.",
+
+  "path.header": "Votre parcours · {count} sur {total}",
+  "path.expandedTitle": "Votre parcours",
+  "path.next": "Suivant : {topic}",
+  "path.waitingOnYou": "{partner} attend votre réponse pour une conversation",
+  "path.upToDate": "Vous êtes tous les deux à jour",
+
+  "record.title": "Votre bilan",
+  "record.subtitle": "Un compte-rendu des conversations que vous avez eues — pas un verdict.",
+  "record.alignedCount": "{count} alignées",
+  "record.inProgress": "En cours",
+  "record.noNotes": "Aucune note partagée conservée pour cette conversation.",
 
   "footer.trust": "Aucun profil · Aucun score · Aucune mise en relation",
 };

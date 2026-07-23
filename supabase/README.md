@@ -42,6 +42,10 @@ it replaced.
    - `has_shared_own_answer()` — the discuss screen's share action is
      irreversible and must not re-prompt once already done; a gap found
      while building it
+9. `20260723000900_all_topic_progress.sql`
+   - `get_all_topic_progress()` — the same counts-only aggregate as
+     `get_topic_progress()`, computed for every active topic in one call
+     instead of looping it twelve times per Home/Path render
 
 `seed.sql` adds the 12 topics and 72 questions from the provided
 question-bank content, with deterministic `uuid5` ids (namespace

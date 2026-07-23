@@ -292,6 +292,10 @@ export type Database = {
         Args: { p_topic_id: string };
         Returns: { mine: number; partner: number; total: number }[];
       };
+      get_all_topic_progress: {
+        Args: Record<string, never>;
+        Returns: { topic_id: string; mine: number; partner: number; total: number; discussed: number }[];
+      };
       pause_space: { Args: Record<string, never>; Returns: undefined };
       resume_space: { Args: Record<string, never>; Returns: undefined };
       unlink_partner: { Args: Record<string, never>; Returns: undefined };
