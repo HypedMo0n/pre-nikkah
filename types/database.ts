@@ -268,6 +268,7 @@ export type Database = {
     Functions: {
       is_current_user_space_member: { Args: { p_space_id: string }; Returns: boolean };
       current_space_id: { Args: Record<string, never>; Returns: string | null };
+      get_or_create_current_space: { Args: Record<string, never>; Returns: string };
       create_space_invite: {
         Args: Record<string, never>;
         Returns: {

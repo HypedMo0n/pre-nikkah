@@ -27,6 +27,12 @@ it replaced.
 5. `20260723000500_space_lifecycle_and_deletion.sql`
    - Pause/resume, unlink-partner space closure, and the server-only
      account-deletion preparation function
+6. `20260723000600_space_creation_without_invite.sql`
+   - Splits "ensure the caller has a space" (`get_or_create_current_space`,
+     safe to call on every page load) out of `create_space_invite` (which
+     always mints a fresh code and invalidates the last one, so it must
+     stay behind an explicit user action, never an implicit page-load
+     side effect) — a gap found while building the /invite screen
 
 `seed.sql` adds the 12 topics and 72 questions from the provided
 question-bank content, with deterministic `uuid5` ids (namespace

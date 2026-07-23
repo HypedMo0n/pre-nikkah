@@ -9,6 +9,7 @@ const migrationFiles = [
   "20260723000300_answers_shares_comparisons.sql",
   "20260723000400_discussions_notes_events.sql",
   "20260723000500_space_lifecycle_and_deletion.sql",
+  "20260723000600_space_creation_without_invite.sql",
 ];
 const migrations = migrationFiles
   .map((fileName) => readFileSync(path.join(migrationsDirectory, fileName), "utf8"))
