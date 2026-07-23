@@ -64,43 +64,51 @@ async function verifySchemaAndSeed() {
   process.stdout.write("Verifying schema, RLS, functions, and seed inventory\n");
   const sql = postgres(context.dbUrl, { max: 1, prepare: false });
   try {
+    // Kept in sync by hand with the inventory asserted in
+    // supabase/tests/database/schema_security.test.sql — update both
+    // together when a migration adds or removes an application function.
     const applicationSecurityDefinerFunctions = [
-      "close_couple_journey",
-      "create_couple_invite",
-      "current_couple_id",
-      "current_couple_id_for",
-      "get_connection_overview",
-      "get_question_comparison",
-      "get_topic_comparison_summary",
+      "answers_refresh_comparison",
+      "create_space_invite",
+      "current_space_id",
+      "current_space_id_for",
+      "emit_answer_shared_event",
+      "emit_note_added_event",
+      "emit_partner_joined_event",
+      "emit_topic_finished_event",
+      "get_all_topic_progress",
+      "get_or_create_current_space",
+      "get_partner_display_name",
+      "get_partner_shared_answer",
+      "get_topic_progress",
       "handle_new_auth_user",
-      "inspect_couple_invite",
-      "is_couple_member_for",
-      "is_current_user_couple_member",
-      "log_answer_reveal_event",
+      "has_shared_own_answer",
+      "inspect_space_invite",
+      "is_current_user_space_member",
+      "is_space_member_for",
+      "pause_space",
       "prepare_account_deletion",
-      "redeem_couple_invite",
-      "revoke_couple_invite",
+      "redeem_space_invite",
+      "refresh_comparison",
+      "resume_space",
+      "revoke_space_invite",
+      "share_answer",
+      "unlink_partner",
       "validate_answer_write",
-      "validate_checklist_item",
-      "validate_couple_activation",
-      "validate_guided_discussion",
-      "validate_journey_policy_acceptance",
-      "validate_topic_progress",
     ];
     const expectedTables = [
-      "answer_reveal_events",
+      "answer_shares",
       "answers",
-      "checklist_definitions",
-      "couple_checklist_items",
-      "couple_invites",
-      "couple_memberships",
-      "couples",
-      "guided_discussions",
-      "journey_closure_notices",
-      "journey_policy_acceptances",
-      "private_accounts",
+      "comparisons",
+      "discussions",
+      "event_reads",
+      "profiles",
       "questions",
-      "topic_progress",
+      "shared_notes",
+      "space_events",
+      "space_invites",
+      "space_members",
+      "spaces",
       "topics",
     ];
     const tables = await sql`
@@ -153,8 +161,8 @@ async function verifySchemaAndSeed() {
         (select count(*)::integer from public.topics where is_active) as topic_count,
         (select count(*)::integer from public.questions where is_active) as question_count
     `;
-    if (topicCount !== 8 || questionCount !== 34) {
-      throw new Error("Seed inventory does not match the approved eight-topic library.");
+    if (topicCount !== 12 || questionCount !== 72) {
+      throw new Error("Seed inventory does not match the approved twelve-topic library.");
     }
   } finally {
     await sql.end();
