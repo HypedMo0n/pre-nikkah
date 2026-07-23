@@ -60,7 +60,7 @@ export function Sheet({
             animate={reduced ? { opacity: 1 } : { y: 0 }}
             aria-label={title}
             aria-modal="true"
-            className="safe-screen fixed inset-x-0 bottom-0 z-50 rounded-t-card border-t border-hairline bg-white px-6 pb-8 pt-3"
+            className="safe-screen fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-card border-t border-hairline bg-white px-6 pb-8 pt-3"
             drag={reduced ? false : "y"}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0.15, bottom: 0.5 }}
@@ -72,11 +72,16 @@ export function Sheet({
             role="dialog"
             transition={reduced ? { duration: 0.2 } : { duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
           >
-            <div aria-hidden="true" className="mx-auto mb-4 h-1 w-10 rounded-full bg-hairline" />
+            <div aria-hidden="true" className="mx-auto mb-4 h-1 w-10 shrink-0 rounded-full bg-hairline" />
             {title ? (
-              <h2 className="font-expressive text-xl font-normal text-ink">{title}</h2>
+              <h2 className="font-expressive shrink-0 text-xl font-normal text-ink">{title}</h2>
             ) : null}
-            <div className={title ? "mt-4" : undefined}>{children}</div>
+            {/* Scrolls independently once content exceeds max-h-[85vh] — the
+                locale sheet must hold well past six languages (§9's
+                verification checklist), and confirmation/note-list sheets
+                shouldn't be able to push their primary action off-screen
+                either. */}
+            <div className={title ? "mt-4 overflow-y-auto" : "overflow-y-auto"}>{children}</div>
           </motion.div>
         </>
       ) : null}
