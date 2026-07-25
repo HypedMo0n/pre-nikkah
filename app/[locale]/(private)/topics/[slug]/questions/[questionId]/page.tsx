@@ -1,4 +1,5 @@
 import { LockKeyhole } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
@@ -85,6 +86,14 @@ export default async function QuestionPage({
         <LockKeyhole aria-hidden="true" size={14} />
         {d.privacyPromise}
       </p>
+      {/* v3 has no sensitivity tier, so the off-ramp sits on every question
+          screen rather than only the sensitive ones the scope names. */}
+      <Link
+        className="mt-3 inline-block text-xs font-semibold text-green underline underline-offset-4"
+        href={localizedPath(locale, "/resources")}
+      >
+        {d.safetyLink}
+      </Link>
       <V3AnswerForm
         initialImportance={
           (ownAnswer?.importance ??

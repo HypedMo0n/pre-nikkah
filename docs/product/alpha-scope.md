@@ -135,6 +135,39 @@ introduce.
   carries the "do not include abuse/trauma detail" copy), the onboarding
   privacy explanation, and a persistent link from settings.
 
+**Status: closed, against the v3 model.**
+`app/[locale]/(public)/resources/page.tsx` is a static, locale-aware surface
+carrying an "if something doesn't feel safe" framing, signs worth taking
+seriously, what a person can do, and what this app does and does not do. It is
+outside `protectedPrefixes` and makes no Supabase call, so it renders with no
+session. It reads no answer, topic, or per-user state.
+
+Content is deliberately jurisdiction-agnostic: it points at local emergency
+services and local organisations rather than naming a hotline that would be
+wrong for most readers.
+
+`components/safety/quick-exit.tsx` leaves via `location.replace` so the current
+history entry is overwritten rather than stacked, and also fires on Escape. A
+browser cannot erase the entries before it, so the page says plainly that this
+does not clear browsing history and explains what to check.
+
+One deviation from the wording above. The v3 rewrite removed the sensitivity
+tiers — `20260723000200_topics_questions.sql` states "No comparison_mode, no
+sensitivity tier" — so "every `sensitive` and `professional_discussion` question
+screen" has no v3 equivalent. The link is therefore on **every** question
+screen, a superset of what this section asks for. The onboarding entry point is
+`/product`, since `/privacy` now redirects there. Settings carries the
+persistent link.
+
+Beyond the written requirement, opening the off-ramp recorded an analytics
+pageview. Vercel Analytics is cookieless and does not identify a visitor, but
+this surface exists for people whose activity may be watched, so
+`components/analytics/site-analytics.tsx` drops the event for `/resources`.
+
+Proven by `tests/e2e/safety-resources.spec.ts`. The signed-out cases run
+anywhere; the settings and question-screen cases follow the repository's
+existing convention of skipping without `E2E_BASE_URL`.
+
 ### c) Seed content gaps
 
 **Gap — mahr / marriage-contract.** `checklist_definitions` has a
@@ -181,6 +214,30 @@ whole-journey "partner is progressing" indicator, or restricting
 implementation decision for the follow-up task; the fixed requirement here
 is that no topic-level partner-completion signal reaches the client for
 topics outside the couple's current shared one.
+
+**Status: closed, against the v3 model.** The second option was taken. Note
+that this section describes `features/topics/stages.ts`, which the v3 rewrite
+deleted; the same leak existed in `features/v3/progress.ts`, across a wider
+surface than v2 had:
+
+- `getVisibleTopicStage` collapses `waiting` and `ready` — both disclose
+  whether the partner has finished — to a new self-only `your_part_done` for
+  any topic that is not the current shared one, and otherwise derives the stage
+  from this user's own answers. That last part matters because the previous
+  rule returned `in_progress` when only the partner had started, revealing a
+  topic they had gone to alone. `discussed` survives, since it means both
+  people worked through the topic together.
+- `getCurrentTopicId` is the single definition of "current" behind every
+  partner-visibility decision, so the rule cannot drift between screens.
+- Four render surfaces were disclosing per-topic partner state: the topic list
+  ("together" count and stage), the topic detail page (a chip naming the
+  partner and their count for whichever topic was opened), the journey path (a
+  partner mark on every node), and the summary export, which wrote
+  `partnerAnswered` per topic into a downloadable file.
+
+Proven by `tests/unit/topic-progress-visibility.test.ts`, including a case that
+no non-current topic can emit a partner-revealing stage. The file this section
+names as the place to extend was deleted by the rewrite.
 
 ## 3. Phase 2 verification gate
 

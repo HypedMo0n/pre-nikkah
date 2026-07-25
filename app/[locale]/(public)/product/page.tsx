@@ -37,6 +37,13 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
         {d.continueSetup}
         <ArrowRight aria-hidden="true" size={18} />
       </Link>
+      {/* Off-ramp from onboarding: reachable before an account exists. */}
+      <Link
+        className="mt-5 block text-center text-sm font-semibold text-green underline underline-offset-4"
+        href={localizedPath(locale, "/resources")}
+      >
+        {d.safetyLink}
+      </Link>
     </OnboardingShell>
   );
 }

@@ -45,6 +45,33 @@ const copy = {
     unanswered: "Not started",
     inProgress: "In progress",
     yourPartDone: "Your part is done",
+    safetyLink: "Feeling unsafe or pressured?",
+    safetyEyebrow: "Support",
+    safetyTitle: "If something doesn't feel safe",
+    safetyIntro:
+      "This page is for anyone who feels pressured, controlled, or unsafe, before a marriage or during one. It is general information, not advice about your situation.",
+    safetyQuickExit: "Leave this site now",
+    safetyQuickExitHint: "Opens a neutral page. You can also press Esc.",
+    safetySignsTitle: "Worth taking seriously",
+    safetySigns: [
+      "Being pressured, threatened, or made to feel guilty about marrying someone, or about staying.",
+      "Someone controlling your money, your phone, your documents, or who you are allowed to see.",
+      "Feeling afraid of how another person will react to what you say or do.",
+      "Being hurt physically or sexually, or being humiliated, isolated, or constantly monitored.",
+    ],
+    safetyStepsTitle: "What you can do",
+    safetySteps: [
+      "If you are in immediate danger, contact your local emergency number.",
+      "Tell someone you trust. Being believed by one person changes what is possible.",
+      "Look for a local support service. Most countries have organisations for domestic abuse and for forced marriage, and many are free and confidential.",
+      "Speak to a qualified counsellor, or to a scholar or imam who treats your safety as the priority. A marriage requires consent, and pressure is not consent.",
+    ],
+    safetyAppNoteTitle: "What this app does and does not do",
+    safetyAppNoteBody:
+      "This app is not a crisis service and no one monitors it. It never reads your answers to decide what to show you, so it cannot tell whether you are safe. Please do not put abuse, trauma, or medical detail into an answer. Bring it to a person who can help instead.",
+    safetyDeviceTitle: "If someone else uses your device",
+    safetyDeviceBody:
+      "Leaving this page does not erase your browsing history. If that is a risk, open this page in a private or incognito window, and check your browser history and saved passwords when it is safe to do so.",
     waiting: "Waiting for partner",
     ready: "Ready to discuss",
     discussed: "Discussed",
@@ -251,6 +278,34 @@ const copy = {
     unanswered: "Non commencé",
     inProgress: "En cours",
     yourPartDone: "Votre part est terminée",
+    safetyLink: "Vous vous sentez en danger ou sous pression ?",
+    safetyEyebrow: "Soutien",
+    safetyTitle: "Si quelque chose ne vous semble pas sûr",
+    safetyIntro:
+      "Cette page s'adresse à toute personne qui se sent sous pression, contrôlée ou en danger, avant un mariage ou pendant celui-ci. Il s'agit d'informations générales, pas de conseils sur votre situation.",
+    safetyQuickExit: "Quitter ce site maintenant",
+    safetyQuickExitHint:
+      "Ouvre une page neutre. Vous pouvez aussi appuyer sur Échap.",
+    safetySignsTitle: "À prendre au sérieux",
+    safetySigns: [
+      "Être poussé, menacé ou culpabilisé pour épouser quelqu'un, ou pour rester.",
+      "Quelqu'un qui contrôle votre argent, votre téléphone, vos documents ou les personnes que vous pouvez voir.",
+      "Avoir peur de la réaction d'une autre personne à ce que vous dites ou faites.",
+      "Subir des violences physiques ou sexuelles, ou être humilié, isolé ou surveillé en permanence.",
+    ],
+    safetyStepsTitle: "Ce que vous pouvez faire",
+    safetySteps: [
+      "En cas de danger immédiat, contactez le numéro d'urgence local.",
+      "Parlez-en à une personne de confiance. Être cru par une seule personne change ce qui devient possible.",
+      "Cherchez un service d'aide local. La plupart des pays disposent d'organisations contre les violences conjugales et les mariages forcés, souvent gratuites et confidentielles.",
+      "Parlez à un professionnel qualifié, ou à un imam ou un savant qui fait de votre sécurité la priorité. Un mariage exige le consentement, et la pression n'est pas un consentement.",
+    ],
+    safetyAppNoteTitle: "Ce que cette application fait et ne fait pas",
+    safetyAppNoteBody:
+      "Cette application n'est pas un service d'urgence et personne ne la surveille. Elle ne lit jamais vos réponses pour décider quoi vous montrer, elle ne peut donc pas savoir si vous êtes en sécurité. N'inscrivez pas de détails sur des violences, un traumatisme ou votre santé dans une réponse. Adressez-vous plutôt à une personne qui peut vous aider.",
+    safetyDeviceTitle: "Si quelqu'un d'autre utilise votre appareil",
+    safetyDeviceBody:
+      "Quitter cette page n'efface pas votre historique de navigation. Si cela représente un risque, ouvrez cette page dans une fenêtre privée, et vérifiez votre historique et vos mots de passe enregistrés lorsque ce sera sans danger.",
     waiting: "En attente du partenaire",
     ready: "Prêt à échanger",
     discussed: "Échangé",
