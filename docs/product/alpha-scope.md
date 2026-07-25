@@ -109,6 +109,40 @@ required disclosure category has or has not been attested to" — never a
 summary, category label, or partial content. No schema is written in this
 task; this section fixes the requirement that a future schema must satisfy.
 
+**Status: closed at the database layer, against the v3 model.**
+`20260725000100_disclosure_attestations.sql` adds `disclosure_categories`,
+`disclosure_category_translations`, `disclosure_attestations`, and
+`disclosure_reveals`, with the four fixed categories this section names:
+previous marriage, children and dependents, health relevant to marriage, and
+financial obligations.
+
+- **No comparison is possible, not merely declined.** `comparisons` keys on
+  `question_id` and an attestation has no question, so there is no path by
+  which one could be bucketed. Asserted structurally rather than by policy.
+- **A direct read is owner-only, including after a reveal.** This is stricter
+  than `answers`, where an explicit recipient may read the row itself. Revealed
+  content reaches a partner only through `get_revealed_disclosures()`.
+- **Reveal is per attestation and explicit.** It lives in its own table behind
+  `reveal_disclosure_attestation()`, which rejects the call without a
+  confirmation argument, so revealing an answer cannot reveal an attestation
+  and revealing one attestation cannot reveal another.
+
+One reading had to be fixed. "A required disclosure category has or has not
+been attested to" and "never a category label" pull in opposite directions,
+since a per-category signal necessarily names the category. The conservative
+reading was taken: `get_disclosure_overview()` returns counts only —
+`requiredTotal`, `ownAttested`, `partnerAttested` — with no category id, key,
+or title, so a partner learns that disclosures exist without learning which.
+A test asserts those are the only three keys.
+
+Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 19
+assertions. Verified against PostgreSQL across two clean migrate-and-test
+passes: 70 assertions across the whole suite, no failures.
+
+Not included: the UI for recording and revealing an attestation, including the
+reveal confirmation screen. The database refuses an unconfirmed reveal, so the
+invariant holds regardless, but the surface a person uses is separate work.
+
 ### b) Safety/off-ramp layer
 
 **Gap.** No routing exists anywhere in the app for coercion or safety
