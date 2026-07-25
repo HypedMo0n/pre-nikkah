@@ -152,8 +152,8 @@ browser cannot erase the entries before it, so the page says plainly that this
 does not clear browsing history and explains what to check.
 
 One deviation from the wording above. The v3 rewrite removed the sensitivity
-tiers — `20260723000200_topics_questions.sql` states "No comparison_mode, no
-sensitivity tier" — so "every `sensitive` and `professional_discussion` question
+tiers — `20260724000100_together_in_amanah.sql` carries no `comparison_mode`
+and no sensitivity column — so "every `sensitive` and `professional_discussion` question
 screen" has no v3 equivalent. The link is therefore on **every** question
 screen, a superset of what this section asks for. The onboarding entry point is
 `/product`, since `/privacy` now redirects there. Settings carries the

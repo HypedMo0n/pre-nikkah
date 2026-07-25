@@ -8,55 +8,37 @@ it replaced.
 
 ## Migration sequence
 
-1. `20260723000100_profiles_spaces_invites.sql`
-   - Profiles, spaces, space memberships, one-current-space-per-user
-     enforcement, and hashed opaque invitations with transactional creation
-     and redemption (kept as a full invite table rather than the prompt's
-     single static `invite_code` column, since the settings screens require
-     revoke and regenerate — see the migration's header comment)
-2. `20260723000200_topics_questions.sql`
-   - Topics and single-choice questions with clustered options; no scale or
-     free-text question types exist in this schema
-3. `20260723000300_answers_shares_comparisons.sql`
-   - Owner-only answers with an importance flag and a private note,
-     one-way irreversible answer sharing, and the comparisons table
-     computed only by a `SECURITY DEFINER` trigger path, never by a client
-4. `20260723000400_discussions_notes_events.sql`
-   - Per-question discussed markers, a real multi-entry shared-note list,
-     and the space_events/event_reads notification model
-5. `20260723000500_space_lifecycle_and_deletion.sql`
-   - Pause/resume, unlink-partner space closure, and the server-only
-     account-deletion preparation function
-6. `20260723000600_space_creation_without_invite.sql`
-   - Splits "ensure the caller has a space" (`get_or_create_current_space`,
-     safe to call on every page load) out of `create_space_invite` (which
-     always mints a fresh code and invalidates the last one, so it must
-     stay behind an explicit user action, never an implicit page-load
-     side effect) — a gap found while building the /invite screen
-7. `20260723000700_partner_display_name.sql`
-   - `get_partner_display_name()` — profiles and space_members are both
-     zero/owner-only on direct grants, so several screens (§7.5, §7.7,
-     §7.9) had no path at all to the partner's name; a gap found while
-     building the answer screen
-8. `20260723000800_answer_share_status.sql`
-   - `has_shared_own_answer()` — the discuss screen's share action is
-     irreversible and must not re-prompt once already done; a gap found
-     while building it
-9. `20260723000900_all_topic_progress.sql`
-   - `get_all_topic_progress()` — the same counts-only aggregate as
-     `get_topic_progress()`, computed for every active topic in one call
-     instead of looping it twelve times per Home/Path render
-10. `20260723001000_public_topic_titles.sql`
-    - Grants `anon` a read-only policy on `topics` — the only anon grant
-      anywhere in the schema, needed for the pre-auth "How it works"
-      onboarding screen's strip of twelve topic names; a gap found while
-      building it
+1. `20260724000100_together_in_amanah.sql`
+   - The whole v3 schema in one migration: profiles, spaces, space
+     memberships with one-current-space-per-user enforcement, hashed opaque
+     invitations with transactional creation and redemption, localized
+     topics and single-choice questions with clustered options, owner-only
+     answers carrying an importance flag and a private note, one-way
+     irreversible answer sharing, comparisons written only by a
+     `SECURITY DEFINER` trigger path and never by a client, per-question
+     discussed markers, a multi-entry shared-note list, the
+     space_events/event_reads notification model, pause/resume and
+     unlink-partner lifecycle, and the server-only account-deletion
+     preparation function
+   - Every table has RLS enabled in this migration, and `anon` is granted
+     no table access at all: the pre-auth onboarding screens render from
+     static copy rather than reading the database
+2. `20260724000200_question_bank_en.sql`
+   - The English question bank: 12 topics and 72 questions with their
+     options, generated deterministically from the approved content
+3. `20260724000300_topic_bank_fr.sql`
+   - French translations for the same topics and questions
 
-`seed.sql` adds the 12 topics and 72 questions from the provided
-question-bank content, with deterministic `uuid5` ids (namespace
-`6f8f7a2e-0000-4000-8000-000000000000`, name `topic:<slug>` /
-`question:<key>`) so re-running the file is idempotent and ids never
-depend on insertion order.
+Canonical content lives in migrations, not in `seed.sql`, so a fresh
+database is complete after migrating. `seed.sql` is development-only
+fixtures and is empty by default.
+
+An earlier `20260723*` series of ten migrations built up the same schema
+incrementally. `20260724000100` supersedes it wholesale rather than
+extending it, so both sets could not coexist: applying them in order failed
+at `create table public.profiles` with `relation "profiles" already
+exists`, which meant no database could be created from this repository at
+all. The superseded ten were removed.
 
 ## Local setup
 
