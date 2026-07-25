@@ -42,7 +42,10 @@ export async function GET(
   );
 
   const record = {
-    version: 1,
+    // 2: partnerAnswered and readyTogether are null rather than a number for
+    // every topic except the current shared one, so a version-1 importer doing
+    // arithmetic on them would break. The shape change gets its own version.
+    version: 2,
     generatedAt: new Date().toISOString(),
     disclaimer:
       "Private reflection record. Not religious, legal, medical, psychological, or compatibility advice.",

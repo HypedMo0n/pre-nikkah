@@ -150,11 +150,16 @@ begin
     raise exception using errcode = 'P0001', message = 'CATEGORY_NOT_FOUND';
   end if;
 
+  -- Locked because reveal_disclosure_attestation() locks the same row. Without
+  -- it, a reveal could read the pre-edit row, this edit could then update the
+  -- body and delete the reveals, and the reveal could still insert afterwards,
+  -- publishing the revised fact without a confirmation for that revision.
   select * into v_existing
   from public.disclosure_attestations
   where space_id = v_space_id
     and category_id = p_category_id
-    and user_id = v_user_id;
+    and user_id = v_user_id
+  for update;
 
   if not found then
     insert into public.disclosure_attestations (
@@ -209,9 +214,13 @@ begin
     raise exception using errcode = 'P0001', message = 'REVEAL_NOT_CONFIRMED';
   end if;
 
+  -- Locked for the same reason save_disclosure_attestation() locks: the two
+  -- must not interleave, or a reveal can attach to a body that was edited
+  -- after this row was read.
   select * into v_attestation
   from public.disclosure_attestations
-  where id = p_attestation_id and user_id = v_user_id;
+  where id = p_attestation_id and user_id = v_user_id
+  for update;
 
   if not found then
     raise exception using errcode = 'P0001', message = 'ATTESTATION_NOT_FOUND';
