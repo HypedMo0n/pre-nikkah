@@ -195,6 +195,19 @@ begin
     raise exception using errcode = 'P0001', message = 'ATTESTATION_NOT_FOUND';
   end if;
 
+  -- Pausing leaves memberships open and only changes spaces.status, so a
+  -- membership check alone would let a paused journey keep disclosing. This
+  -- mirrors share_answer(), which refuses to share an answer while paused;
+  -- an attestation is more sensitive, not less.
+  if not exists (
+    select 1
+    from public.spaces space
+    where space.id = v_attestation.space_id
+      and space.status = 'active'
+  ) then
+    raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
+  end if;
+
   select member.user_id into v_partner_id
   from public.space_members member
   where member.space_id = v_attestation.space_id

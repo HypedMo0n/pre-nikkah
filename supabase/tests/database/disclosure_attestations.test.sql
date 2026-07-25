@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(22);
+select plan(25);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -171,6 +171,23 @@ select lives_ok(
   ),
   'A confirmed reveal succeeds for the discloser'
 );
+
+-- Pausing must stop further disclosure, exactly as it stops answer sharing.
+-- Pausing leaves memberships open, so a membership check alone would miss it.
+select lives_ok('select public.set_space_paused(true)', 'The discloser pauses the journey');
+
+select throws_ok(
+  format(
+    'select public.reveal_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'attestation_two'),
+    'CONFIRM_DISCLOSURE_REVEAL'
+  ),
+  'P0001',
+  'SPACE_PAUSED',
+  'A paused journey refuses a confirmed reveal'
+);
+
+select lives_ok('select public.set_space_paused(false)', 'The discloser resumes the journey');
 
 set local role postgres;
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
