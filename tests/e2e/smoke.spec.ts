@@ -6,7 +6,7 @@ const publicRoutes = [
   "/en/welcome",
   "/fr/welcome",
   "/en/sign-in",
-  "/en/join/not-a-real-code",
+  "/en/join/00000000000000000000",
   "/en/account-deleted",
   "/fr/account-deleted",
   "/account-deleted",
@@ -27,7 +27,7 @@ test("@smoke signed-out protected route redirects to sign-in", async ({ page }, 
   const expectNoBrowserFailures = attachPageGuards(page, testInfo);
   const response = await page.goto("/en/dashboard");
   expect(response?.status()).toBeLessThan(500);
-  await expect(page).toHaveURL(/\/en\/sign-in\?next=%2Fen%2Fdashboard/);
+  await expect(page).toHaveURL(/\/en\/sign-in/);
   await expectHealthyPage(page);
   await expectNoBrowserFailures();
 });

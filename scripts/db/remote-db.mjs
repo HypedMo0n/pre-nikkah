@@ -64,37 +64,27 @@ async function verifySchemaAndSeed() {
   process.stdout.write("Verifying schema, RLS, functions, and seed inventory\n");
   const sql = postgres(context.dbUrl, { max: 1, prepare: false });
   try {
-    // Kept in sync by hand with the inventory asserted in
-    // supabase/tests/database/schema_security.test.sql — update both
-    // together when a migration adds or removes an application function.
     const applicationSecurityDefinerFunctions = [
-      "answers_refresh_comparison",
-      "create_space_invite",
+      "add_shared_note",
+      "can_current_user_read_answer",
+      "close_space",
+      "create_space",
       "current_space_id",
-      "current_space_id_for",
-      "emit_answer_shared_event",
-      "emit_note_added_event",
-      "emit_partner_joined_event",
-      "emit_topic_finished_event",
-      "get_all_topic_progress",
-      "get_or_create_current_space",
-      "get_partner_display_name",
-      "get_partner_shared_answer",
+      "get_space_overview",
       "get_topic_progress",
       "handle_new_auth_user",
-      "has_shared_own_answer",
       "inspect_space_invite",
-      "is_current_user_space_member",
-      "is_space_member_for",
-      "pause_space",
+      "is_current_space_member",
+      "is_current_user_answer_owner",
+      "mark_question_discussed",
+      "mark_space_event_read",
       "prepare_account_deletion",
+      "recompute_comparison_internal",
       "redeem_space_invite",
-      "refresh_comparison",
-      "resume_space",
-      "revoke_space_invite",
+      "regenerate_space_invite",
+      "save_answer",
+      "set_space_paused",
       "share_answer",
-      "unlink_partner",
-      "validate_answer_write",
     ];
     const expectedTables = [
       "answer_shares",
@@ -102,13 +92,17 @@ async function verifySchemaAndSeed() {
       "comparisons",
       "discussions",
       "event_reads",
+      "private_answer_notes",
       "profiles",
+      "question_option_translations",
+      "question_options",
+      "question_translations",
       "questions",
       "shared_notes",
       "space_events",
-      "space_invites",
       "space_members",
       "spaces",
+      "topic_translations",
       "topics",
     ];
     const tables = await sql`
@@ -158,11 +152,11 @@ async function verifySchemaAndSeed() {
 
     const [{ topic_count: topicCount, question_count: questionCount }] = await sql`
       select
-        (select count(*)::integer from public.topics where is_active) as topic_count,
-        (select count(*)::integer from public.questions where is_active) as question_count
+        (select count(*)::integer from public.topics) as topic_count,
+        (select count(*)::integer from public.questions) as question_count
     `;
     if (topicCount !== 12 || questionCount !== 72) {
-      throw new Error("Seed inventory does not match the approved twelve-topic library.");
+      throw new Error("Seed inventory does not match the approved 12-topic, 72-question library.");
     }
   } finally {
     await sql.end();

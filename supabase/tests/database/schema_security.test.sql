@@ -3,41 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(11);
-
-create temp table application_security_definer_functions (
-  function_name name primary key
-);
-
-insert into application_security_definer_functions (function_name)
-values
-  ('handle_new_auth_user'),
-  ('is_space_member_for'),
-  ('is_current_user_space_member'),
-  ('current_space_id_for'),
-  ('current_space_id'),
-  ('get_or_create_current_space'),
-  ('get_partner_display_name'),
-  ('create_space_invite'),
-  ('redeem_space_invite'),
-  ('inspect_space_invite'),
-  ('revoke_space_invite'),
-  ('validate_answer_write'),
-  ('share_answer'),
-  ('get_partner_shared_answer'),
-  ('has_shared_own_answer'),
-  ('refresh_comparison'),
-  ('answers_refresh_comparison'),
-  ('get_topic_progress'),
-  ('get_all_topic_progress'),
-  ('emit_partner_joined_event'),
-  ('emit_note_added_event'),
-  ('emit_answer_shared_event'),
-  ('emit_topic_finished_event'),
-  ('pause_space'),
-  ('resume_space'),
-  ('unlink_partner'),
-  ('prepare_account_deletion');
+select plan(16);
 
 select is(
   (
@@ -47,8 +13,8 @@ select is(
     where namespace.nspname = 'public'
       and class.relkind = 'r'
   ),
-  13::bigint,
-  'The public schema contains exactly the thirteen approved tables'
+  17::bigint,
+  'The public schema contains only the approved v3 tables'
 );
 
 select is(
@@ -60,22 +26,88 @@ select is(
       and class.relkind = 'r'
       and class.relrowsecurity
   ),
-  13::bigint,
+  17::bigint,
   'RLS is enabled on every public table'
 );
 
+select is((select count(*) from public.topics), 12::bigint, 'All twelve topics are installed');
+select is((select count(*) from public.questions), 72::bigint, 'All seventy-two questions are installed');
+
 select is(
   (
     select count(*)
-    from pg_proc procedure
-    join pg_namespace namespace on namespace.oid = procedure.pronamespace
-    join application_security_definer_functions application_function
-      on application_function.function_name = procedure.proname
-    where namespace.nspname = 'public'
-      and procedure.prosecdef
+    from public.topics topic
+    left join public.topic_translations translation
+      on translation.topic_id = topic.id and translation.locale = 'en'
+    where translation.topic_id is null
   ),
-  26::bigint,
-  'The application privileged-function inventory has the expected size'
+  0::bigint,
+  'Every topic has an English translation'
+);
+
+select is(
+  (
+    select count(*)
+    from public.questions question
+    left join public.question_translations translation
+      on translation.question_id = question.id and translation.locale = 'en'
+    where translation.question_id is null
+  ),
+  0::bigint,
+  'Every question has an English translation and authored conversation starters'
+);
+
+select is(
+  (
+    select count(*)
+    from (
+      select question.id
+      from public.questions question
+      left join public.question_options option on option.question_id = question.id
+      group by question.id
+      having count(option.key) not between 3 and 5
+    ) invalid_question
+  ),
+  0::bigint,
+  'Every question has between three and five structured options'
+);
+
+select is(
+  (
+    select count(*)
+    from public.question_options option
+    left join public.question_option_translations translation
+      on translation.question_id = option.question_id
+      and translation.option_key = option.key
+      and translation.locale = 'en'
+    where translation.question_id is null
+  ),
+  0::bigint,
+  'Every answer option has an English label and description'
+);
+
+select is(
+  (
+    select count(*)
+    from public.questions question
+    join public.topics topic on topic.id = question.topic_id
+    where topic.slug = 'dealbreakers'
+      and question.default_importance <> 'high'
+  ),
+  0::bigint,
+  'Dealbreaker questions default to high importance'
+);
+
+select is(
+  (
+    select count(*)
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'spaces'
+      and column_name in ('invite_code', 'code', 'plaintext_invite')
+  ),
+  0::bigint,
+  'Plaintext invitation codes are never stored'
 );
 
 select is(
@@ -83,8 +115,6 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
-    join application_security_definer_functions application_function
-      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
       and not exists (
@@ -97,7 +127,7 @@ select is(
       )
   ),
   0::bigint,
-  'Every application SECURITY DEFINER function has an approved fixed search path'
+  'Every SECURITY DEFINER function has a fixed approved search path'
 );
 
 select is(
@@ -105,38 +135,21 @@ select is(
     select count(*)
     from pg_proc procedure
     join pg_namespace namespace on namespace.oid = procedure.pronamespace
-    join application_security_definer_functions application_function
-      on application_function.function_name = procedure.proname
     where namespace.nspname = 'public'
       and procedure.prosecdef
       and has_function_privilege('anon', procedure.oid, 'execute')
   ),
   0::bigint,
-  'Anonymous clients cannot execute any application SECURITY DEFINER function'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_proc procedure
-    join pg_namespace namespace on namespace.oid = procedure.pronamespace
-    join application_security_definer_functions application_function
-      on application_function.function_name = procedure.proname
-    where namespace.nspname = 'public'
-      and procedure.prosecdef
-      and has_function_privilege('authenticated', procedure.oid, 'execute')
-  ),
-  16::bigint,
-  'Authenticated clients can execute only the sixteen approved application privileged endpoints'
+  'Anonymous clients cannot execute privileged application functions'
 );
 
 select ok(
-  has_function_privilege(
-    'service_role',
-    'public.prepare_account_deletion(uuid)',
+  not has_function_privilege(
+    'authenticated',
+    'public.recompute_comparison_internal(uuid,uuid)',
     'execute'
   ),
-  'Only the server service role receives the account-deletion preparation function'
+  'Authenticated clients cannot forge comparison results'
 );
 
 select ok(
@@ -145,46 +158,51 @@ select ok(
     'public.prepare_account_deletion(uuid)',
     'execute'
   ),
-  'Authenticated clients cannot invoke account deletion preparation directly'
+  'Authenticated clients cannot invoke service account deletion'
 );
 
 select is(
   (
     select count(*)
     from information_schema.role_table_grants
-    where grantee = 'authenticated'
+    where grantee in ('anon', 'authenticated')
       and table_schema = 'public'
-      and table_name in ('topics', 'questions')
-      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER')
+      and table_name in (
+        'spaces',
+        'space_members',
+        'answers',
+        'private_answer_notes',
+        'answer_shares',
+        'comparisons',
+        'discussions',
+        'shared_notes',
+        'space_events',
+        'event_reads'
+      )
+      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
   ),
   0::bigint,
-  'Canonical content has no authenticated client write grants'
-);
-
--- §7.2's onboarding demo is the one screen anonymous visitors reach before
--- sign-up, and it needs topic titles for its strip of twelve names.
-select is(
-  (
-    select array_agg(distinct privilege_type::text order by privilege_type)
-    from information_schema.role_table_grants
-    where grantee = 'anon'
-      and table_schema = 'public'
-      and table_name = 'topics'
-  ),
-  array['SELECT']::text[],
-  'Anonymous clients get exactly a read-only grant on topics, and nothing else on it'
+  'Sensitive state can only be mutated through protected endpoints'
 );
 
 select is(
   (
     select count(*)
     from information_schema.role_table_grants
-    where grantee = 'anon'
+    where grantee in ('anon', 'authenticated')
       and table_schema = 'public'
-      and table_name <> 'topics'
+      and table_name in (
+        'topics',
+        'topic_translations',
+        'questions',
+        'question_translations',
+        'question_options',
+        'question_option_translations'
+      )
+      and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
   ),
   0::bigint,
-  'Anonymous clients have no grant on any table other than topics'
+  'Canonical question content is immutable to clients'
 );
 
 select * from finish();

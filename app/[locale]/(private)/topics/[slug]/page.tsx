@@ -1,121 +1,161 @@
+import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { buttonClasses } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
-import { ListRow } from "@/components/ui/list-row";
+import { getV3Copy } from "@/features/v3/copy";
+import { getJourneyState } from "@/features/v3/data";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
-import { isLocale, localizedPath, parseLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import { isLocale, localizedPath } from "@/lib/i18n/config";
 
-type QuestionStatus = "ready" | "yourTurn" | "waiting";
-
-const statusDotClass: Record<QuestionStatus, string> = {
-  ready: "bg-green",
-  waiting: "bg-hairline",
-  yourTurn: "bg-amber",
-};
-
-// §7.6. Status per question is derived, not stored: "your turn" from
-// whether my own answer row exists, "ready to compare" / "answered ·
-// waiting" from whether the comparisons row (written only by
-// refresh_comparison()) has moved past 'pending' — never from reading the
-// partner's answer directly.
-export default async function TopicDetailPage({
+export default async function TopicPage({
   params,
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { locale: rawLocale, slug } = await params;
-  if (!isLocale(rawLocale)) notFound();
-  const locale = parseLocale(rawLocale);
-  const d = getDictionary(locale);
-  const { supabase, user } = await requireAuthenticatedUser(locale, `/${locale}/topics/${slug}`);
-
-  const { data: spaceId } = await supabase.rpc("current_space_id");
-  if (!spaceId) redirect(localizedPath(locale, "/create-space"));
-  const { data: space } = await supabase.from("spaces").select("status").eq("id", spaceId).maybeSingle();
-  if (space?.status === "waiting") redirect(localizedPath(locale, "/invite"));
-
-  const { data: topic } = await supabase
-    .from("topics")
-    .select("id, slug, order_index, title, subtitle")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
+  const { locale, slug } = await params;
+  if (!isLocale(locale)) notFound();
+  const { supabase, user } = await requireAuthenticatedUser(locale);
+  const data = await getJourneyState(supabase, locale, user.id);
+  const topic = data.content.topics.find((item) => item.slug === slug);
   if (!topic) notFound();
-
-  const { data: questions } = await supabase
-    .from("questions")
-    .select("id, key, order_index, text")
-    .eq("topic_id", topic.id)
-    .eq("is_active", true)
-    .order("order_index");
-  const questionList = questions ?? [];
-  const questionIds = questionList.map((question) => question.id);
-
-  const [{ data: myAnswers }, { data: comparisons }, { data: progressRows }, { data: partnerName }] = await Promise.all([
-    supabase.from("answers").select("question_id").eq("space_id", spaceId).eq("user_id", user.id).in("question_id", questionIds),
-    supabase.from("comparisons").select("question_id, state").eq("space_id", spaceId).in("question_id", questionIds),
-    supabase.rpc("get_topic_progress", { p_topic_id: topic.id }),
-    supabase.rpc("get_partner_display_name"),
-  ]);
-
-  const myAnswerSet = new Set((myAnswers ?? []).map((answer) => answer.question_id));
-  const comparisonStateByQuestion = new Map((comparisons ?? []).map((row) => [row.question_id, row.state]));
-  const progress = progressRows?.[0] ?? { mine: 0, partner: 0, total: questionList.length };
-  const partnerLabel = partnerName ?? d["topics.partnerFallback"];
-
-  const firstUnanswered = questionList.find((question) => !myAnswerSet.has(question.id));
-  const continueHref = firstUnanswered
-    ? localizedPath(locale, `/topics/${slug}/answer/${firstUnanswered.key}`)
-    : localizedPath(locale, `/topics/${slug}/compare`);
-  const continueLabel = firstUnanswered ? d["topics.continueAnswering"] : d["topics.seePattern"];
+  const questions = data.content.questions.filter(
+    (question) => question.topicId === topic.id,
+  );
+  const ownIds = new Set(
+    data.answers
+      .filter((answer) => answer.userId === user.id)
+      .map((answer) => answer.questionId),
+  );
+  const nextQuestion =
+    questions.find((question) => !ownIds.has(question.id)) ?? questions[0];
+  if (!nextQuestion) notFound();
+  const d = getV3Copy(locale);
+  const topicProgress = data.progress.find(
+    (progress) => progress.topicId === topic.id,
+  );
+  const comparisons = new Map(
+    data.comparisons.map((comparison) => [
+      comparison.questionId,
+      comparison,
+    ]),
+  );
+  const discussedIds = new Set(
+    data.discussions.map((discussion) => discussion.question_id),
+  );
 
   return (
-    <main className="mx-auto w-full max-w-md px-7 py-8">
-      <Link className="font-productive text-[13px] font-medium text-muted" href={localizedPath(locale, "/home")}>
-        {d["topics.back"]}
-      </Link>
-      <p className="mt-4 font-productive text-[11px] font-semibold uppercase tracking-[0.12em] text-green">
-        {d["topics.eyebrow"].replace("{number}", String(topic.order_index).padStart(2, "0"))}
+    <OnboardingShell
+      backHref={localizedPath(locale, "/topics")}
+      locale={locale}
+    >
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-amber-ink">
+        {questions.length} {d.topicQuestions}
       </p>
-      <h1 className="font-expressive mt-2 text-3xl font-light text-ink">{topic.title}</h1>
-      <p className="mt-2 font-productive text-[15px] leading-6 text-muted">{topic.subtitle}</p>
+      <h1 className="font-expressive mt-3 text-4xl font-medium leading-tight text-ink">
+        {topic.title}
+      </h1>
+      <p className="mt-5 text-lg leading-8 text-muted">{topic.subtitle}</p>
 
-      <div className="mt-5 flex gap-2">
-        <Chip variant="aligned">
-          {d["topics.you"]} · {d["topics.progress"].replace("{count}", String(progress.mine)).replace("{total}", String(progress.total))}
+      <div className="mt-7 flex flex-wrap gap-2">
+        <Chip tone="aligned">
+          {d.yourProgress} · {topicProgress?.own ?? 0} / {questions.length}
         </Chip>
-        <Chip variant="discuss">
-          {partnerLabel} · {d["topics.progress"].replace("{count}", String(progress.partner)).replace("{total}", String(progress.total))}
+        <Chip tone="discuss">
+          {data.overview.partner?.displayName ?? d.togetherProgress} ·{" "}
+          {topicProgress?.partner ?? 0} / {questions.length}
         </Chip>
       </div>
 
-      <ul className="mt-6 space-y-2.5">
-        {questionList.map((question) => {
-          const myAnswered = myAnswerSet.has(question.id);
-          const comparisonState = comparisonStateByQuestion.get(question.id);
-          const status: QuestionStatus = !myAnswered ? "yourTurn" : comparisonState && comparisonState !== "pending" ? "ready" : "waiting";
-          const statusLabel =
-            status === "ready" ? d["topics.statusReady"] : status === "yourTurn" ? d["topics.statusYourTurn"] : d["topics.statusWaiting"];
+      <Card className="mt-5 flex items-start gap-3 border-green/20 bg-green-soft">
+        <LockKeyhole
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-green"
+          size={19}
+        />
+        <p className="text-sm leading-6 text-green">{d.topicIntroPrivacy}</p>
+      </Card>
+
+      <section aria-label={d.topicQuestions} className="mt-7 space-y-2">
+        {questions.map((question, index) => {
+          const ownAnswered = ownIds.has(question.id);
+          const comparison = comparisons.get(question.id);
+          const discussed = discussedIds.has(question.id);
+          const ready = comparison && comparison.state !== "pending";
+          const label = discussed
+            ? d.discussed
+            : ready
+              ? d.readyToCompare
+              : ownAnswered
+                ? d.answeredWaiting
+                : d.yourTurn;
+          const href = ready
+            ? localizedPath(locale, `/conversations/${question.id}`)
+            : localizedPath(
+                locale,
+                `/topics/${slug}/questions/${question.id}`,
+              );
           return (
-            <ListRow
-              as={Link}
-              href={localizedPath(locale, `/topics/${slug}/answer/${question.key}`)}
-              interactive
+            <Link
+              className="flex min-h-20 items-center gap-3 rounded-card border border-hairline bg-white p-4 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green"
+              href={href}
               key={question.id}
-              leading={<span aria-hidden="true" className={`size-2 rounded-full ${statusDotClass[status]}`} />}
-              subtitle={statusLabel}
-              title={question.text}
-            />
+            >
+              <span
+                aria-hidden="true"
+                className={`size-2.5 shrink-0 rounded-full ${
+                  discussed
+                    ? "bg-green"
+                    : ready
+                      ? "bg-amber"
+                      : ownAnswered
+                        ? "bg-green"
+                        : "bg-hairline"
+                }`}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-6 text-ink">
+                  {index + 1}. {question.text}
+                </span>
+                <span className="mt-1 flex items-center gap-1 text-xs text-muted">
+                  {discussed ? (
+                    <CheckCircle2 aria-hidden="true" size={13} />
+                  ) : null}
+                  {label}
+                </span>
+              </span>
+              <ArrowRight
+                aria-hidden="true"
+                className="shrink-0 text-muted"
+                size={17}
+              />
+            </Link>
           );
         })}
-      </ul>
+      </section>
 
-      <Link className={buttonClasses({ className: "mt-7 w-full" })} href={continueHref}>
-        {continueLabel}
-      </Link>
-    </main>
+      {!data.overview.spaceId ? (
+        <Link
+          className={buttonClasses({ className: "mt-7 w-full" })}
+          href={localizedPath(locale, "/invite")}
+        >
+          {d.createSpace}
+        </Link>
+      ) : (
+        <Link
+          className={buttonClasses({ className: "mt-8 w-full" })}
+          href={localizedPath(
+            locale,
+            `/topics/${slug}/questions/${nextQuestion.id}`,
+          )}
+        >
+          {ownIds.size ? d.continueAnswering : d.startTopic}
+          <ArrowRight aria-hidden="true" size={18} />
+        </Link>
+      )}
+    </OnboardingShell>
   );
 }

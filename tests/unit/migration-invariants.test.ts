@@ -2,78 +2,66 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const migrationsDirectory = path.join(process.cwd(), "supabase", "migrations");
-const migrationFiles = [
-  "20260723000100_profiles_spaces_invites.sql",
-  "20260723000200_topics_questions.sql",
-  "20260723000300_answers_shares_comparisons.sql",
-  "20260723000400_discussions_notes_events.sql",
-  "20260723000500_space_lifecycle_and_deletion.sql",
-  "20260723000600_space_creation_without_invite.sql",
-  "20260723000700_partner_display_name.sql",
-  "20260723000800_answer_share_status.sql",
-  "20260723000900_all_topic_progress.sql",
-  "20260723001000_public_topic_titles.sql",
-];
-const migrations = migrationFiles
-  .map((fileName) => readFileSync(path.join(migrationsDirectory, fileName), "utf8"))
-  .join("\n");
+const migration = (name: string) =>
+  readFileSync(
+    path.join(process.cwd(), "supabase", "migrations", name),
+    "utf8",
+  );
+const schema = migration("20260724000100_together_in_amanah.sql");
+const content = migration("20260724000200_question_bank_en.sql");
+const frenchTopics = migration("20260724000300_topic_bank_fr.sql");
 
-describe("migration source invariants", () => {
-  it("enables RLS for every public table in the migration that creates it", () => {
-    const createdTables = Array.from(
-      migrations.matchAll(/create table public\.(\w+)/gi),
-      (match) => match[1],
-    );
-
-    expect(createdTables).toHaveLength(13);
-    for (const tableName of createdTables) {
-      expect(migrations).toMatch(
-        new RegExp(`alter table public\\.${tableName} enable row level security`, "i"),
-      );
+describe("v3 migration invariants", () => {
+  it("installs the privacy-first state model", () => {
+    for (const table of [
+      "profiles",
+      "spaces",
+      "space_members",
+      "answers",
+      "private_answer_notes",
+      "answer_shares",
+      "comparisons",
+      "discussions",
+      "shared_notes",
+    ]) {
+      expect(schema).toContain(`create table public.${table}`);
+      expect(schema).toContain(`alter table public.${table} enable row level security`);
     }
   });
 
-  it("fixes the search path on every SECURITY DEFINER function", () => {
-    const functions = migrations.split(/create or replace function/i).slice(1);
-    const definers = functions.filter((definition) => /security definer/i.test(definition));
-
-    expect(definers.length).toBeGreaterThan(0);
-    for (const definition of definers) {
-      expect(definition).toMatch(/set search_path = public,(?: extensions,)? pg_temp/i);
-    }
-  });
-
-  it("stores only invitation hashes and never defines a plaintext code column", () => {
-    const inviteTable = migrations.match(
-      /create table public\.space_invites \(([\s\S]*?)\n\);/i,
+  it("keeps exact answers and private notes out of shared comparison rows", () => {
+    const comparisonTable = schema.match(
+      /create table public\.comparisons \(([\s\S]*?)\n\);/,
     )?.[1];
-
-    expect(inviteTable).toBeDefined();
-    expect(inviteTable).toContain("code_hash text unique not null");
-    expect(inviteTable).not.toMatch(/\binvite_code\s+text\b/i);
+    expect(comparisonTable).toContain("state text");
+    expect(comparisonTable).toContain("priority text");
+    expect(comparisonTable).not.toMatch(/option_key|private_note|answer_value/);
   });
 
-  it("never grants a client a direct write path onto comparisons", () => {
-    expect(migrations).toContain("grant select on table public.comparisons to authenticated;");
-    expect(migrations).not.toMatch(
-      /grant\s+(?:insert|update|delete)[^;]*\btable public\.comparisons\b/i,
+  it("permits mutations only through the approved functions", () => {
+    expect(schema).toContain(
+      "revoke all on all tables in schema public from public, anon, authenticated",
+    );
+    expect(schema).toContain(
+      "revoke all on all functions in schema public from public, anon, authenticated",
+    );
+    expect(schema).toContain("public.save_answer(uuid, uuid, text, text, text)");
+    expect(schema).toContain("public.share_answer(uuid)");
+    expect(schema).toContain(
+      "grant execute on function public.prepare_account_deletion(uuid) to service_role",
     );
   });
 
-  it("never grants a policy path for a partner to read another user's answer directly", () => {
-    expect(migrations).toContain('create policy "answer owner can read"');
-    expect(migrations).toMatch(/answer owner can read"[\s\S]*?using \(user_id = \(select auth\.uid\(\)\)\)/);
-    expect(migrations).not.toMatch(/create policy[^;]+answers[^;]+shared[^;]+for select/i);
+  it("ships the complete English bank and localized French topic labels", () => {
+    expect(content.match(/insert into public\.topics /g)).toHaveLength(12);
+    expect(content.match(/insert into public\.questions /g)).toHaveLength(72);
+    expect(content.match(/insert into public\.question_translations /g)).toHaveLength(72);
+    expect(frenchTopics.match(/'fr'/g)).toHaveLength(12);
   });
 
-  it("keeps answer_shares insert-only — no delete/unshare path exists", () => {
-    const shareFunctions = migrations.match(
-      /create or replace function public\.share_answer[\s\S]*?\$\$;/,
-    )?.[0];
-
-    expect(shareFunctions).toBeDefined();
-    expect(shareFunctions).not.toMatch(/delete from public\.answer_shares/);
-    expect(migrations).not.toMatch(/delete from public\.answer_shares/);
+  it("contains no legacy table model", () => {
+    expect(schema).not.toMatch(
+      /create table public\.(?:private_accounts|couples|couple_invites|topic_progress|guided_discussions|checklist_definitions)\b/,
+    );
   });
 });

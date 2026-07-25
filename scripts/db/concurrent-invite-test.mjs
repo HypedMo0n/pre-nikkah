@@ -27,7 +27,7 @@ async function createFixtureUser(sql, userId, displayName) {
       extensions.crypt('temporary-test-password', extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      ${sql.json({ display_name: displayName })},
+      ${sql.json({ display_name: displayName, locale: "en" })},
       now(),
       now()
     )
@@ -52,15 +52,6 @@ async function redeem(sql, userId, inviteCode) {
   });
 }
 
-// v3 rewrite: create_couple_invite/redeem_couple_invite/couples/
-// couple_memberships (pre-v3 schema) → create_space_invite/
-// redeem_space_invite/spaces/space_members. redeem_space_invite() takes
-// only the invite code (the pre-v3 policy-acceptance-gate was dropped
-// entirely in the rewrite, so there is no policyVersion argument anymore).
-// The concurrency property under test is unchanged: redeem_space_invite's
-// `select ... for update` locks on both the invite row and the space row
-// serialize two simultaneous redemptions of the same code, so exactly one
-// must succeed.
 export async function runConcurrentInviteTest(dbUrl) {
   const admin = postgres(dbUrl, { max: 4, prepare: false });
   const firstClient = postgres(dbUrl, { max: 1, prepare: false });
@@ -77,8 +68,8 @@ export async function runConcurrentInviteTest(dbUrl) {
 
     const invitation = await asAuthenticated(admin, ownerId, async (transaction) => {
       const [created] = await transaction`
-        select invite_code, space_id
-        from public.create_space_invite()
+        select space_id, invite_code
+        from public.create_space()
       `;
       return created;
     });
@@ -95,7 +86,7 @@ export async function runConcurrentInviteTest(dbUrl) {
     }
 
     const [space] = await admin`
-      select status
+      select status, invite_redeemed_at
       from public.spaces
       where id = ${invitation.space_id}::uuid
     `;
@@ -106,15 +97,14 @@ export async function runConcurrentInviteTest(dbUrl) {
         and ended_at is null
     `;
 
-    if (space?.status !== "active" || membershipCount !== 2) {
+    if (space?.status !== "active" || !space.invite_redeemed_at || membershipCount !== 2) {
       throw new Error("Concurrent redemption left an invalid space membership state.");
     }
   } finally {
-    // spaces.created_by references profiles(id) on delete restrict, so the
-    // space has to go before the fixture auth.users rows can be deleted;
-    // space_members/space_invites cascade from spaces.id, and
-    // profiles/space_members cascade from auth.users.id.
-    await admin`delete from public.spaces where created_by = any(${fixtureIds}::uuid[])`;
+    await admin`
+      delete from public.spaces
+      where created_by = any(${fixtureIds}::uuid[])
+    `;
     await admin`delete from auth.users where id = any(${fixtureIds}::uuid[])`;
     await Promise.all([admin.end(), firstClient.end(), secondClient.end()]);
   }

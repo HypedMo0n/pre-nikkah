@@ -5,7 +5,12 @@ import { attachPageGuards, expectHealthyPage } from "./utils/observers";
 import { getE2ECredentials } from "./utils/secrets";
 
 test("@smoke authenticated private-alpha journey read-only smoke", async ({ page }, testInfo) => {
-  test.skip(!process.env.E2E_BASE_URL, "Authenticated smoke requires E2E_BASE_URL plus E2E_TEST_EMAIL/E2E_TEST_PASSWORD.");
+  test.skip(
+    !process.env.E2E_BASE_URL ||
+      !process.env.E2E_TEST_EMAIL ||
+      !process.env.E2E_TEST_PASSWORD,
+    "Authenticated smoke requires E2E_BASE_URL plus E2E_TEST_EMAIL/E2E_TEST_PASSWORD.",
+  );
   const credentials = getE2ECredentials();
   const expectNoBrowserFailures = attachPageGuards(page, testInfo);
 

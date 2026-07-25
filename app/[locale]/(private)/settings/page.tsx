@@ -1,114 +1,173 @@
+import {
+  Mail,
+  PauseCircle,
+  PlayCircle,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { LocalePicker } from "@/components/i18n/locale-picker";
-import { DeleteAccountSheet } from "@/components/settings/delete-account-sheet";
-import { InfoRowSheet } from "@/components/settings/info-row-sheet";
-import { PauseResumeForm } from "@/components/settings/pause-resume-form";
-import { UnlinkPartnerButton } from "@/components/settings/unlink-partner-button";
-import { ListRow } from "@/components/ui/list-row";
+import { DeleteAccountForm } from "@/components/settings/delete-account-form";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
+import { buttonClasses } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
+import {
+  CloseSpaceForm,
+  ProfileForm,
+} from "@/components/v3/settings-forms";
+import { SettingsLanguageSheet } from "@/components/v3/settings-language-sheet";
 import { signOutAction } from "@/features/auth/actions";
+import { setPausedAction } from "@/features/v3/actions";
+import { getV3Copy } from "@/features/v3/copy";
+import { getSpaceOverview } from "@/features/v3/data";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
-import { isLocale, parseLocale } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import { isLocale, localizedPath } from "@/lib/i18n/config";
 
-function GroupHeader({ children }: { children: string }) {
-  return <p className="mb-2 font-productive text-[11px] font-semibold uppercase tracking-[0.10em] text-muted">{children}</p>;
-}
-
-// §7.12. Grouped rows: ACCOUNT, PREFERENCES, YOUR SPACE (only shown once
-// a space exists), PRIVACY & DATA, then sign out. Reachable regardless of
-// space status — unlike every other private screen, it never redirects
-// on 'waiting' or 'paused', since resuming or unlinking both happen here.
 export default async function SettingsPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const { locale: rawLocale } = await params;
-  if (!isLocale(rawLocale)) notFound();
-  const locale = parseLocale(rawLocale);
-  const d = getDictionary(locale);
-  const returnPath = `/${locale}/settings`;
-  const { supabase, user } = await requireAuthenticatedUser(locale, returnPath);
-
-  const [{ data: profile }, { data: spaceId }] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
-    supabase.rpc("current_space_id"),
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+  const { supabase, user } = await requireAuthenticatedUser(locale);
+  const [profileResult, overview] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name,locale")
+      .eq("id", user.id)
+      .single(),
+    getSpaceOverview(supabase),
   ]);
-
-  let spaceStatus: "waiting" | "active" | "paused" | "closed" | null = null;
-  let partnerName: string | null = null;
-  if (spaceId) {
-    const [{ data: space }, { data: partner }] = await Promise.all([
-      supabase.from("spaces").select("status").eq("id", spaceId).maybeSingle(),
-      supabase.rpc("get_partner_display_name"),
-    ]);
-    spaceStatus = space?.status ?? null;
-    partnerName = partner ?? null;
-  }
-  const hasPartner = spaceStatus === "active" || spaceStatus === "paused";
+  const d = getV3Copy(locale);
 
   return (
-    <main className="mx-auto w-full max-w-md px-7 py-8">
-      <h1 className="font-expressive text-3xl font-light text-ink">{d["settings.title"]}</h1>
+    <OnboardingShell locale={locale} productive withTabBar>
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-amber-ink">
+        {d.settings}
+      </p>
+      <h1 className="font-expressive mt-3 text-4xl font-medium text-ink">
+        {d.profile}
+      </h1>
 
-      <div className="mt-8">
-        <GroupHeader>{d["settings.accountGroup"]}</GroupHeader>
-        <div className="space-y-2.5">
-          <ListRow subtitle={profile?.display_name ?? "—"} title={d["settings.name"]} />
-          <ListRow subtitle={user.email ?? "—"} title={d["settings.email"]} />
-        </div>
-      </div>
+      <p className="mt-7 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+        {d.account}
+      </p>
+      <Card className="mt-3">
+        <p className="flex items-center gap-2 border-b border-hairline pb-4 text-sm text-muted">
+          <Mail aria-hidden="true" size={16} />
+          {user.email}
+        </p>
+        <ProfileForm
+          displayName={profileResult.data?.display_name ?? d.member}
+          locale={locale}
+        />
+      </Card>
 
-      <div className="mt-7">
-        <GroupHeader>{d["settings.preferencesGroup"]}</GroupHeader>
-        <div className="space-y-2.5">
-          <LocalePicker locale={locale} variant="row" />
-          <InfoRowSheet title={d["settings.notifications"]}>
-            <p className="font-productive text-[14px] leading-6 text-muted">{d["settings.notificationsBody"]}</p>
-          </InfoRowSheet>
+      <section aria-labelledby="preferences-controls" className="mt-9">
+        <h2
+          className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted"
+          id="preferences-controls"
+        >
+          {d.preferences}
+        </h2>
+        <div className="mt-3">
+          <SettingsLanguageSheet d={d} locale={locale} />
         </div>
-      </div>
+      </section>
 
-      {spaceId ? (
-        <div className="mt-7">
-          <GroupHeader>{d["settings.yourSpaceGroup"]}</GroupHeader>
-          <div className="space-y-2.5">
-            <ListRow subtitle={hasPartner ? (partnerName ?? d["topics.partnerFallback"]) : d["settings.notYetPaired"]} title={d["settings.pairedWith"]} />
-            {hasPartner ? (
-              <>
-                <PauseResumeForm locale={locale} paused={spaceStatus === "paused"} returnPath={returnPath} />
-                <UnlinkPartnerButton locale={locale} returnPath={returnPath} />
-              </>
-            ) : null}
-          </div>
-        </div>
+      {overview.partner ? (
+        <section aria-labelledby="space-controls" className="mt-9">
+          <h2
+            className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted"
+            id="space-controls"
+          >
+            {d.yourSpace}
+          </h2>
+          <Card className="mt-3">
+            <p className="flex items-center gap-3 text-sm text-muted">
+              <Users aria-hidden="true" className="text-green" size={18} />
+              {d.pairedWith}
+              <strong className="text-ink">
+                {overview.partner.displayName}
+              </strong>
+            </p>
+          </Card>
+        </section>
       ) : null}
 
-      <div className="mt-7">
-        <GroupHeader>{d["settings.privacyGroup"]}</GroupHeader>
-        <div className="space-y-2.5">
-          <InfoRowSheet title={d["settings.whatPartnerSees"]}>
-            <p className="font-productive text-[14px] leading-6 text-muted">{d["settings.whatPartnerSeesBody"]}</p>
-          </InfoRowSheet>
-          <a
-            className="flex w-full items-center justify-between rounded-card border border-hairline bg-white px-4 py-3.5 text-left font-productive text-[15px] font-semibold text-ink"
-            download
-            href="/api/export-answers"
+      <section aria-labelledby="data-controls" className="mt-9">
+        <h2
+          className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted"
+          id="data-controls"
+        >
+          {d.privacyAndData}
+        </h2>
+        <div className="mt-3 grid gap-3">
+          <Card className="border-green/20 bg-green-soft">
+            <p className="flex items-center gap-2 font-semibold text-green">
+              <ShieldCheck aria-hidden="true" size={18} />
+              {d.partnerVisibility}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-ink">
+              {d.partnerVisibilityBody}
+            </p>
+          </Card>
+          <Link
+            className={buttonClasses({ className: "w-full", variant: "secondary" })}
+            href={localizedPath(locale, "/summary")}
           >
-            {d["settings.exportAnswers"]}
-          </a>
-          <DeleteAccountSheet locale={locale} />
+            {d.export}
+          </Link>
+          {overview.status === "active" || overview.status === "paused" ? (
+            <form action={setPausedAction}>
+              <input name="locale" type="hidden" value={locale} />
+              <input
+                name="paused"
+                type="hidden"
+                value={overview.status === "active" ? "true" : "false"}
+              />
+              <SubmitButton
+                className="w-full"
+                pendingLabel={d.saving}
+                variant="secondary"
+              >
+                {overview.status === "active" ? (
+                  <PauseCircle aria-hidden="true" size={18} />
+                ) : (
+                  <PlayCircle aria-hidden="true" size={18} />
+                )}
+                {overview.status === "active" ? d.pause : d.resume}
+              </SubmitButton>
+            </form>
+          ) : null}
+          <form action={signOutAction}>
+            <input name="locale" type="hidden" value={locale} />
+            <button
+              className={buttonClasses({ className: "w-full", variant: "ghost" })}
+              type="submit"
+            >
+              {d.signOut}
+            </button>
+          </form>
         </div>
-      </div>
+      </section>
 
-      <form action={signOutAction} className="mt-8">
-        <input name="locale" type="hidden" value={locale} />
-        <SubmitButton className="w-full" pendingLabel={d["common.loading"]} variant="secondary">
-          {d["auth.signOut"]}
-        </SubmitButton>
-      </form>
-    </main>
+      {overview.spaceId ? (
+        <Card className="mt-10 border-danger/30 bg-white">
+          <h2 className="text-xl font-semibold text-danger">{d.unlinkPartner}</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">{d.closeBody}</p>
+          <CloseSpaceForm locale={locale} />
+        </Card>
+      ) : null}
+
+      <Card className="mt-4 border-danger/30 bg-white">
+        <h2 className="text-xl font-semibold text-danger">{d.deleteAccount}</h2>
+        <p className="mt-3 text-sm leading-6 text-muted">{d.deleteBody}</p>
+        <DeleteAccountForm locale={locale} />
+      </Card>
+    </OnboardingShell>
   );
 }

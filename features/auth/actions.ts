@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getAuthRedirectOrigin } from "@/lib/auth/origin";
+import { setInviteIntent } from "@/lib/auth/invite-intent";
 import { safeReturnPath } from "@/lib/auth/paths";
 import { hasPublicEnv } from "@/lib/env/public";
 import type { Locale } from "@/lib/i18n/config";
@@ -37,7 +38,7 @@ export async function signUpAction(
     locale,
     email: formData.get("email"),
     password: formData.get("password"),
-    displayName: formData.get("displayName"),
+    privateDisplayName: formData.get("privateDisplayName"),
     entryMode: formData.get("entryMode"),
     next: formData.get("next"),
   });
@@ -52,14 +53,15 @@ export async function signUpAction(
     return unavailable(locale);
   }
 
-  // entryMode only decides the fallback redirect (create a space vs. land
-  // wherever an already-set invite intent points); it is never persisted —
-  // profiles has no durable entry-mode field in this schema.
-  const fallback = localizedPath(
+  const next = safeReturnPath(
     locale,
-    parsed.data.entryMode === "join" ? "/home" : "/create-space",
+    parsed.data.next,
+    localizedPath(locale, parsed.data.entryMode === "join" ? "/join" : "/invite"),
   );
-  const next = safeReturnPath(locale, parsed.data.next, fallback);
+  if (parsed.data.entryMode === "join") {
+    const code = new URL(next, "http://internal.local").searchParams.get("code");
+    if (code) await setInviteIntent(code);
+  }
   const origin = getAuthRedirectOrigin();
   const emailRedirectTo = origin
     ? `${origin}${localizedPath(locale, "/auth/callback")}?next=${encodeURIComponent(next)}`
@@ -70,7 +72,7 @@ export async function signUpAction(
     password: parsed.data.password,
     options: {
       data: {
-        display_name: parsed.data.displayName,
+        display_name: parsed.data.privateDisplayName,
         locale,
       },
       emailRedirectTo,
@@ -85,7 +87,7 @@ export async function signUpAction(
     });
     return {
       status: "error",
-      message: appendTraceId(getSafeAuthError(locale, error.message, error.code), traceId),
+      message: appendTraceId(getSafeAuthError(locale, error.message), traceId),
     };
   }
   if (!data.session) {
@@ -122,7 +124,7 @@ export async function signInAction(
     password: parsed.data.password,
   });
   if (error) {
-    return { status: "error", message: getSafeAuthError(locale, error.message, error.code) };
+    return { status: "error", message: getSafeAuthError(locale, error.message) };
   }
 
   redirect(await getPostLoginRoute(locale, supabase, parsed.data.next));
@@ -180,9 +182,9 @@ export async function resetPasswordAction(
   }
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
-    return { status: "error", message: getSafeAuthError(locale, error.message, error.code) };
+    return { status: "error", message: getSafeAuthError(locale, error.message) };
   }
-  redirect(localizedPath(locale, "/home"));
+  redirect(localizedPath(locale, "/dashboard"));
 }
 
 export async function signOutAction(formData: FormData) {

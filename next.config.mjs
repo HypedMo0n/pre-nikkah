@@ -14,12 +14,12 @@ const publicSupabaseEnvironment =
     : {};
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com${isDevelopment ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
   "media-src 'self' blob:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDevelopment ? " http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" : ""}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com${isDevelopment ? " http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -43,6 +43,7 @@ const nextConfig = {
   // Supabase's modern Vercel integration uses server-scoped variable names.
   // Only the URL and publishable key are intentionally inlined for browsers.
   // The elevated secret key is resolved exclusively by lib/env/server.ts.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   env: publicSupabaseEnvironment,
   images: {
     unoptimized: true,
