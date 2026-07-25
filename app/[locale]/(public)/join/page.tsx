@@ -1,19 +1,33 @@
 import { notFound } from "next/navigation";
 
 import { JoinCodeForm } from "@/components/invites/join-code-form";
-import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
-import { isLocale, localizedPath } from "@/lib/i18n/config";
+import { Card } from "@/components/ui/card";
+import { Container } from "@/components/ui/container";
+import { isLocale, parseLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
-export default async function JoinPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+export default async function JoinPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale: rawLocale } = await params;
+  if (!isLocale(rawLocale)) notFound();
+  const locale = parseLocale(rawLocale);
   const d = getDictionary(locale);
+
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/journey")} locale={locale}>
-      <h1 className="font-expressive text-4xl font-medium text-ink">{d["join.title"]}</h1>
-      <p className="mt-4 leading-7 text-body">{d["join.body"]}</p>
-      <JoinCodeForm locale={locale} />
-    </OnboardingShell>
+    <main>
+      <Container className="flex min-h-screen items-center py-10">
+        <Card className="w-full p-6 shadow-soft sm:p-8">
+          <p className="font-productive text-[11px] font-semibold uppercase tracking-[0.12em] text-green">
+            {d["join.eyebrow"]}
+          </p>
+          <h1 className="font-expressive mt-2 text-3xl font-light text-ink">{d["join.title"]}</h1>
+          <p className="mt-2 font-productive text-[15px] text-muted">{d["join.body"]}</p>
+          <JoinCodeForm locale={locale} />
+        </Card>
+      </Container>
+    </main>
   );
 }

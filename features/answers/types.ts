@@ -1,32 +1,27 @@
-export type AnswerSaveState =
+import type { ImportanceLevel } from "@/components/ui/importance-row";
+
+export type QuestionOption = {
+  key: string;
+  label: string;
+  description: string;
+  cluster: string;
+};
+
+// §5's "core loop, restated": the whole point of the reveal step is that it
+// only ever carries state/priority/who — never an option key, never either
+// side's private note.
+export type ComparisonReveal =
+  | { kind: "waiting" }
   | {
-      status: "idle";
-      message?: string;
-      savedAt?: string;
-      savedValue?: string;
-    }
-  | {
-      status: "saved";
-      message?: string;
-      savedAt: string;
-      savedValue: string;
-    }
-  | {
-      status: "error";
-      message?: string;
-      savedValue?: string;
-    }
-  | {
-      status: "journey_required";
-      message: string;
-      redirectTo: string;
-      savedValue?: string;
-    }
-  | {
-      status: "question_unavailable";
-      message: string;
-      redirectTo: string;
-      savedValue?: string;
+      kind: "pattern";
+      state: "aligned" | "discuss";
+      priority: ImportanceLevel | null;
+      drivenBy: "me" | "partner" | null;
     };
 
-export const initialAnswerSaveState = { status: "idle" } satisfies AnswerSaveState;
+export type SaveAnswerState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "success"; reveal: ComparisonReveal };
+
+export const initialSaveAnswerState: SaveAnswerState = { status: "idle" };

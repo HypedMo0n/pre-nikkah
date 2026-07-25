@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 
 import { getAuthRedirectOrigin } from "@/lib/auth/origin";
-import { setInviteIntent } from "@/lib/auth/invite-intent";
 import { safeReturnPath } from "@/lib/auth/paths";
 import { hasPublicEnv } from "@/lib/env/public";
 import type { Locale } from "@/lib/i18n/config";
@@ -38,7 +37,7 @@ export async function signUpAction(
     locale,
     email: formData.get("email"),
     password: formData.get("password"),
-    privateDisplayName: formData.get("privateDisplayName"),
+    displayName: formData.get("displayName"),
     entryMode: formData.get("entryMode"),
     next: formData.get("next"),
   });
@@ -53,15 +52,14 @@ export async function signUpAction(
     return unavailable(locale);
   }
 
-  const next = safeReturnPath(
+  // entryMode only decides the fallback redirect (create a space vs. land
+  // wherever an already-set invite intent points); it is never persisted —
+  // profiles has no durable entry-mode field in this schema.
+  const fallback = localizedPath(
     locale,
-    parsed.data.next,
-    localizedPath(locale, `/onboarding/account?mode=${parsed.data.entryMode}`),
+    parsed.data.entryMode === "join" ? "/home" : "/create-space",
   );
-  if (parsed.data.entryMode === "join") {
-    const code = new URL(next, "http://internal.local").searchParams.get("code");
-    if (code) await setInviteIntent(code);
-  }
+  const next = safeReturnPath(locale, parsed.data.next, fallback);
   const origin = getAuthRedirectOrigin();
   const emailRedirectTo = origin
     ? `${origin}${localizedPath(locale, "/auth/callback")}?next=${encodeURIComponent(next)}`
@@ -72,9 +70,8 @@ export async function signUpAction(
     password: parsed.data.password,
     options: {
       data: {
-        entry_mode: parsed.data.entryMode,
-        preferred_locale: locale,
-        private_display_name: parsed.data.privateDisplayName || null,
+        display_name: parsed.data.displayName,
+        locale,
       },
       emailRedirectTo,
     },
@@ -125,7 +122,7 @@ export async function signInAction(
     password: parsed.data.password,
   });
   if (error) {
-    return { status: "error", message: getSafeAuthError(locale, error.message) };
+    return { status: "error", message: getSafeAuthError(locale, error.message, error.code) };
   }
 
   redirect(await getPostLoginRoute(locale, supabase, parsed.data.next));
@@ -183,9 +180,9 @@ export async function resetPasswordAction(
   }
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
-    return { status: "error", message: getSafeAuthError(locale, error.message) };
+    return { status: "error", message: getSafeAuthError(locale, error.message, error.code) };
   }
-  redirect(localizedPath(locale, "/dashboard"));
+  redirect(localizedPath(locale, "/home"));
 }
 
 export async function signOutAction(formData: FormData) {

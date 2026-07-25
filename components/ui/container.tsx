@@ -1,15 +1,21 @@
-import type { HTMLAttributes } from "react";
+import type { ElementType, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+// §8: "page padding 28px horizontal ... centered max-width column on
+// desktop. No separate desktop layout."
 export function Container({
+  as: As = "div",
+  children,
   className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+}: {
+  as?: ElementType;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div
-      className={cn("mx-auto w-full min-w-0 max-w-6xl px-4 min-[360px]:px-5 sm:px-8", className)}
-      {...props}
-    />
+    <As className={cn("mx-auto w-full max-w-md px-7", className)}>
+      {children}
+    </As>
   );
 }

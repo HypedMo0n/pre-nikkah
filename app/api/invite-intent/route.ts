@@ -5,13 +5,14 @@ import {
   normalizeInviteCode,
 } from "@/features/invites/invite-code";
 import { inviteIntentCookieName } from "@/lib/auth/invite-intent";
-import { isLocale } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n/config";
+import { defaultLocale, isLocale } from "@/lib/i18n/config";
 
 const maxAgeSeconds = 60 * 60 * 24 * 7;
 
 function isSafeDestination(
   destination: string,
-  locale: "en" | "fr",
+  locale: Locale,
 ) {
   if (!destination.startsWith(`/${locale}/`)) {
     return false;
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     !isSafeDestination(destination, locale)
   ) {
     return NextResponse.redirect(
-      new URL("/en/join", request.url),
+      new URL(`/${defaultLocale}/join`, request.url),
     );
   }
 

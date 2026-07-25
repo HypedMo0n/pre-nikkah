@@ -10,34 +10,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "rgb(var(--color-background) / <alpha-value>)",
-        section: "rgb(var(--color-section) / <alpha-value>)",
-        border: "rgb(var(--color-border) / <alpha-value>)",
-        card: "rgb(var(--color-card) / <alpha-value>)",
-        "ink-soft": "rgb(var(--color-ink-soft) / <alpha-value>)",
-        body: "rgb(var(--color-body) / <alpha-value>)",
-        ink: "rgb(var(--color-ink) / <alpha-value>)",
-        primary: "rgb(var(--color-primary) / <alpha-value>)",
-        "primary-soft": "rgb(var(--color-primary-soft) / <alpha-value>)",
-        accent: "rgb(var(--color-accent) / <alpha-value>)",
-        aligned: "rgb(var(--color-aligned) / <alpha-value>)",
-        "aligned-soft": "rgb(var(--color-aligned-soft) / <alpha-value>)",
-        discuss: "rgb(var(--color-discuss) / <alpha-value>)",
-        "discuss-soft": "rgb(var(--color-discuss-soft) / <alpha-value>)",
-        concern: "rgb(var(--color-concern) / <alpha-value>)",
-        "concern-soft": "rgb(var(--color-concern-soft) / <alpha-value>)",
+        // v3 token set, referenced via CSS var() rather than the old
+        // rgb-triplet trick. Tailwind 3.4+ generates opacity modifiers
+        // (e.g. bg-ink/30) for var()-based colors automatically via
+        // color-mix(), so that still works; the design system's own -soft
+        // variants are preferred over ad hoc opacity for anything that
+        // isn't a temporary overlay. See app/globals.css for the values.
+        ivory: "var(--ivory)",
+        hairline: "var(--hairline)",
+        track: "var(--track)",
+        ink: "var(--ink)",
+        muted: "var(--muted)",
+        green: "var(--green)",
+        "green-soft": "var(--green-soft)",
+        amber: "var(--amber)",
+        "amber-soft": "var(--amber-soft)",
+        "amber-ink": "var(--amber-ink)",
+        danger: "var(--danger)",
       },
       borderRadius: {
-        expressive: "1.125rem",
-        productive: "0.75rem",
+        card: "var(--radius-card)",
+        option: "var(--radius-option)",
+        input: "var(--radius-input)",
       },
       boxShadow: {
-        soft: "0 18px 44px -28px rgba(23, 35, 66, 0.42)",
+        soft: "0 18px 44px -28px rgba(35, 32, 28, 0.42)",
       },
       transitionTimingFunction: {
-        // Deliberate entrance/state-change curve, not a blanket ease-out
-        // replacement. Applied selectively; see app/globals.css --ease-out.
-        expressive: "var(--ease-out)",
+        // Distinctly named rather than overriding Tailwind's built-in
+        // ease-out/ease-in-out utility classes — these three curves are
+        // applied selectively (see §9), not as a blanket easing swap.
+        "app-out": "var(--ease-out)",
+        "app-in-out": "var(--ease-in-out)",
+        "app-drawer": "var(--ease-drawer)",
       },
     },
   },

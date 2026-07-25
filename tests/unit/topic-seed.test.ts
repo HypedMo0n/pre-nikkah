@@ -3,83 +3,90 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const seed = readFileSync(path.join(process.cwd(), "supabase", "seed.sql"), "utf8");
-const topicInsert = seed
-  .split("insert into public.topics")[1]
-  .split("on conflict (id) do update")[0];
-const questionInsert = seed
-  .split("insert into public.questions")[1]
-  .split("on conflict (id) do update")[0];
 
-const expectedTopics = [
-  ["communication-and-conflict", 1, "00000000-0000-4000-8000-000000000105", 2],
-  ["faith-and-religious-practice", 2, "00000000-0000-4000-8000-000000000101", 6],
-  ["family-boundaries-and-involvement", 3, "00000000-0000-4000-8000-000000000103", 7],
-  ["living-arrangements", 4, "00000000-0000-4000-8000-000000000106", 2],
-  ["household-roles", 5, "00000000-0000-4000-8000-000000000107", 2],
-  ["finances-and-debt", 6, "00000000-0000-4000-8000-000000000102", 7],
-  ["children-and-parenting", 7, "00000000-0000-4000-8000-000000000104", 7],
-  ["dealbreakers", 8, "00000000-0000-4000-8000-000000000108", 1],
-] as const;
+function jsonbLiterals(source: string) {
+  return Array.from(source.matchAll(/'(\[[\s\S]*?\])'::jsonb/g), (match) => match[1]);
+}
 
-describe("canonical topic seed", () => {
-  it("contains the approved eight-topic sequence exactly once", () => {
-    const topicRows = Array.from(
-      topicInsert.matchAll(
-        /\(\s*'[^']+',\s*'([^']+)',\s*'[^']+',\s*'[^']+',\s*\d+,\s*(\d+),\s*true\s*\)/g,
-      ),
-      (match) => [match[1], Number(match[2])],
-    );
-
-    expect(topicRows).toEqual(expectedTopics.map(([slug, order]) => [slug, order]));
+describe("v3 seed content", () => {
+  it("seeds exactly twelve topics", () => {
+    const topicBlock = seed.split("insert into public.topics")[1].split("values")[1].split("on conflict")[0];
+    const topicRows = topicBlock.match(/^\s{2}\('/gm) ?? [];
+    expect(topicRows).toHaveLength(12);
   });
 
-  it("seeds the expected question count for every topic", () => {
-    const counts = Object.fromEntries(
-      expectedTopics.map(([slug, , topicId, expectedCount]) => [
-        slug,
-        {
-          actual: questionInsert.split(`'${topicId}'`).length - 1,
-          expected: expectedCount,
-        },
-      ]),
-    );
-
-    expect(counts).toEqual(
-      Object.fromEntries(
-        expectedTopics.map(([slug, , , expected]) => [slug, { actual: expected, expected }]),
-      ),
-    );
-    expect(Object.values(counts).reduce((total, count) => total + count.actual, 0)).toBe(34);
+  it("seeds exactly seventy-two questions", () => {
+    const questionBlock = seed.split("insert into public.questions")[1].split("on conflict")[0];
+    const questionRows = questionBlock.match(/^\s{2}\('/gm) ?? [];
+    expect(questionRows).toHaveLength(72);
   });
 
-  it("keeps the opener low sensitivity and the final prompt private and never compared", () => {
-    const communicationRows = questionInsert.match(
-      /'10000000-0000-4000-8000-000000000501'[\s\S]*?'10000000-0000-4000-8000-000000000502'[\s\S]*?true\s*\n\s*\)/,
-    )?.[0];
-    expect(communicationRows).toBeDefined();
-    expect(communicationRows?.match(/'standard'/g)).toHaveLength(2);
+  it("defaults dealbreakers to high importance and every other topic to null", () => {
+    const topicBlock = seed.split("insert into public.topics")[1].split("values")[1].split("on conflict")[0];
+    const dealbreakersRow = topicBlock.split("\n").find((line) => line.includes("'dealbreakers'"));
+    expect(dealbreakersRow).toContain("'high'");
 
-    const dealbreakersRow = questionInsert.match(
-      /'10000000-0000-4000-8000-000000000801'[\s\S]*?'professional_discussion',\s*'never_compare',\s*false,\s*1,\s*true/,
-    )?.[0];
-    expect(dealbreakersRow).toBeDefined();
-    expect(dealbreakersRow).toContain("This answer is never compared or revealed.");
-  });
-
-  it("uses stable option IDs and role-neutral household choices", () => {
-    for (const optionId of [
-      "talk_right_away",
-      "space_then_talk",
-      "write_first",
-      "depends_on_situation",
-      "own_place_right_away",
-      "family_then_own_place",
-      "shared_evenly",
-      "by_strengths",
-      "by_availability",
-      "agree_and_revisit",
-    ]) {
-      expect(questionInsert).toContain(`"id":"${optionId}"`);
+    const otherTopicRows = topicBlock
+      .split("\n")
+      .filter((line) => line.trim().startsWith("(") && !line.includes("'dealbreakers'"));
+    expect(otherTopicRows.length).toBe(11);
+    for (const row of otherTopicRows) {
+      expect(row).toMatch(/,\s*null\)/);
     }
+  });
+
+  it("applies the topic-level importance override to every question in that topic", () => {
+    // Regression coverage: topics.default_importance = 'high' for
+    // dealbreakers was stored but never actually applied to each
+    // question's own importance_default column on an earlier generation
+    // of this file — the column the answer screen actually reads.
+    const questionBlock = seed.split("insert into public.questions")[1].split("on conflict")[0];
+    const dealbreakersQuestionIds = [
+      "deal-01",
+      "deal-02",
+      "deal-03",
+      "deal-04",
+      "deal-05",
+      "deal-06",
+    ];
+    const questionRows = questionBlock.split(/\n  \(/).slice(1);
+    let dealbreakersRowCount = 0;
+    for (const row of questionRows) {
+      const isDealbreakers = dealbreakersQuestionIds.some((key) => row.includes(`'${key}'`));
+      if (isDealbreakers) {
+        dealbreakersRowCount += 1;
+        expect(row).toMatch(/\]'::jsonb, 'high',/);
+      } else {
+        expect(row).toMatch(/\]'::jsonb, 'medium',/);
+      }
+    }
+    expect(dealbreakersRowCount).toBe(6);
+  });
+
+  it("gives every question three to five options with a non-empty cluster", () => {
+    const optionSets = jsonbLiterals(seed).map((raw) => JSON.parse(raw) as { key: string; cluster: string }[]);
+    expect(optionSets).toHaveLength(72);
+    for (const options of optionSets) {
+      expect(options.length).toBeGreaterThanOrEqual(3);
+      expect(options.length).toBeLessThanOrEqual(5);
+      const keys = new Set(options.map((option) => option.key));
+      expect(keys.size).toBe(options.length);
+      for (const option of options) {
+        expect(option.cluster.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("never asks the answerer to rate their own religiosity", () => {
+    // §6.1: "Never ask anyone to rate their own religiosity."
+    expect(seed).not.toMatch(/how practising are you/i);
+    expect(seed).not.toMatch(/rate your (?:religious practice|religiosity)/i);
+  });
+
+  it("stays within the twelve seeded topics — intimacy and divorce are deferred", () => {
+    // §6: those two topics are explicitly out of scope for this version.
+    const topicBlock = seed.split("insert into public.topics")[1].split("values")[1].split("on conflict")[0];
+    expect(topicBlock).not.toMatch(/'intimacy/i);
+    expect(topicBlock).not.toMatch(/'divorce/i);
   });
 });

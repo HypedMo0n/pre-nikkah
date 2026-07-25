@@ -1,19 +1,20 @@
-import * as React from "react";
+import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+// §8 primary/secondary spec. Press feedback uses CSS :active rather than a
+// pointer-down JS handler — :active engages at pointer-down and releases at
+// pointer-up, which is exactly the "feedback on pointer-down, not release"
+// requirement, without extra state or a listener per button.
+const base =
+  "touch-target inline-flex items-center justify-center gap-2 rounded-full px-6 py-[17px] font-productive text-base font-semibold transition-transform duration-150 ease-app-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
 
-const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    "border-transparent bg-primary text-white shadow-soft hover:bg-primary/95 active:scale-[0.97] active:opacity-90",
-  secondary:
-    "border-border bg-card text-primary hover:border-primary/30 hover:bg-primary-soft active:opacity-85",
-  ghost:
-    "border-transparent bg-transparent text-primary hover:bg-primary-soft active:opacity-85",
-  danger:
-    "border-concern bg-concern text-white hover:bg-concern/95 active:scale-[0.97] active:opacity-90",
-};
+const variants = {
+  primary: "bg-green text-white",
+  secondary: "border-[1.2px] border-green bg-transparent text-green",
+} as const;
+
+export type ButtonVariant = keyof typeof variants;
 
 export function buttonClasses({
   variant = "primary",
@@ -22,27 +23,13 @@ export function buttonClasses({
   variant?: ButtonVariant;
   className?: string;
 } = {}) {
-  return cn(
-    "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-productive border px-5 py-3 text-sm font-semibold transition-[color,background-color,border-color,opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:border-border disabled:bg-section disabled:text-ink-soft motion-reduce:transition-none",
-    variantClasses[variant],
-    className,
-  );
+  return cn(base, variants[variant], className);
 }
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
+export function Button({
+  variant = "primary",
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+  return <button className={buttonClasses({ variant, className })} {...props} />;
 }
-
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", type = "button", ...props }, ref) => (
-    <button
-      ref={ref}
-      type={type}
-      className={buttonClasses({ variant, className })}
-      {...props}
-    />
-  ),
-);
-
-Button.displayName = "Button";

@@ -2,46 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/* v3 ("Together in Amanah") design tokens — see docs/product/v3-rewrite-audit.md
+   for how this replaces the pre-v3 palette. --font-fraunces/--font-inter are
+   set by next/font's className on <html> (app/layout.tsx), not declared here,
+   so the real loaded font stack — not a fallback — is what these resolve to. */
 :root {
-  --color-background: 255 253 248;
-  --color-section: 245 239 228;
-  --color-border: 222 213 198;
-  --color-card: 255 255 252;
-  --color-ink-soft: 111 113 128;
-  --color-body: 65 70 87;
-  --color-ink: 23 35 66;
-  --color-primary: 94 103 69;
-  --color-primary-soft: 237 240 229;
-  --color-accent: 196 154 74;
-  --color-aligned: 94 103 69;
-  --color-aligned-soft: 237 240 229;
-  --color-discuss: 153 113 38;
-  --color-discuss-soft: 250 243 225;
-  --color-concern: 165 65 62;
-  --color-concern-soft: 249 235 232;
-  --color-focus: 23 35 66;
-  --font-inter: ui-sans-serif;
-  --font-fraunces: Georgia;
+  --ivory: #faf8f4;
+  --white: #ffffff;
+  --hairline: #e9e4dc;
+  --track: #efece6;
+
+  --ink: #23201c;
+  --muted: #7a736a;
+
+  --green: #34594a;
+  --green-soft: #e8efe9;
+
+  --amber: #c9923e;
+  --amber-soft: #f9f0e1;
+  --amber-ink: #6b4c1f;
+
+  --danger: #b8473d;
+
+  --radius-card: 20px;
+  --radius-option: 16px;
+  --radius-input: 14px;
+
   --touch-target: 2.75rem;
+
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
-  border-color: rgb(var(--color-border));
+  border-color: var(--hairline);
 }
 
 html {
-  background: rgb(var(--color-background));
+  background: var(--ivory);
   color-scheme: light;
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
-  background: rgb(var(--color-background));
-  color: rgb(var(--color-body));
+  background: var(--ivory);
+  color: var(--ink);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   overflow-wrap: anywhere;
   text-rendering: optimizeLegibility;
@@ -62,12 +72,12 @@ canvas {
 }
 
 ::selection {
-  background: rgb(var(--color-primary-soft));
-  color: rgb(var(--color-primary));
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 :focus-visible {
-  outline: 2px solid rgb(var(--color-focus));
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -98,13 +108,57 @@ canvas {
      the sense this preference targets, so keep them, just short and gentle.
      Restricting transition-property to this list also means anything else
      (transform, grid-template-rows, etc.) is excluded from transitions
-     entirely, so those changes apply instantly instead of animating. */
+     entirely, so those changes apply instantly instead of animating. This
+     covers plain CSS transitions/animations only — every Motion-driven
+     (WAAPI) animation checks lib/motion/use-reduced-motion.ts itself and
+     substitutes its own 200ms opacity crossfade instead. */
   *,
   *::before,
   *::after {
     transition-duration: 150ms !important;
     transition-property: color, background-color, border-color, opacity, box-shadow !important;
   }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  /* The only translucent surfaces in the product: the Welcome/Settings
+     language pill's frosted fill and the invite screen's dark scrim
+     behind a sheet. Both go fully opaque. */
+  .bg-white\/70 {
+    background-color: var(--white);
+  }
+
+  .bg-ink\/30 {
+    background-color: var(--ink);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --hairline: #b8b0a4;
+    --muted: #5c564e;
+  }
+}
+
+/* OptionCard's nested has-[:checked]:[&_[data-role=x]]:utility classes
+   never actually compiled — Tailwind's candidate scanner does not
+   generate CSS for an arbitrary variant this deeply bracketed (a named
+   variant chained with an arbitrary one containing a nested, `=`-bearing
+   attribute selector), so the ring border, dot, and title never picked
+   up their selected-state color at all; only the label's own direct
+   has-[:checked]:border-green/bg-green-soft classes were ever live.
+   Written as plain CSS instead of fighting the scanner further. */
+.option-card:has(:checked) [data-role="ring"] {
+  border-color: var(--green);
+}
+
+.option-card:has(:checked) [data-role="dot"] {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.option-card:has(:checked) [data-role="title"] {
+  color: var(--green);
 }
 
 @layer utilities {
@@ -126,55 +180,22 @@ canvas {
     min-block-size: var(--touch-target);
     min-inline-size: var(--touch-target);
   }
+}
 
-  /*
-   * Animated <details>/<summary> disclosures (CSS grid-rows technique).
-   * Wrap the non-summary content in `.disclosure-content > .disclosure-inner`.
-   * Setting `display: grid` here overrides the browser's default "only
-   * rendered when open" behavior for the content, which is what lets the
-   * grid-template-rows track animate in both directions without JS.
-   * `visibility` is paired with the same transition so the content is
-   * removed from the accessibility tree once fully collapsed (per the CSS
-   * Transitions spec, a transition to a non-"visible" end value only takes
-   * effect at 100% of the duration, so this stays in sync with the height
-   * collapse instead of hiding early).
-   */
-  .disclosure-content {
-    display: grid;
-    grid-template-rows: 0fr;
-    opacity: 0;
-    visibility: hidden;
-    transition: grid-template-rows 200ms var(--ease-out), opacity 200ms var(--ease-out), visibility 200ms;
-  }
-
-  details[open] > .disclosure-content {
-    grid-template-rows: 1fr;
+/* §7.4/§9 #10: the "waiting for your partner" dot. 1.8s is deliberate —
+   spec calls out that cycles near 5s sit in the band that triggers
+   vestibular discomfort — so this doesn't reuse Tailwind's animate-pulse
+   (2s, 1→0.5). Reduced-motion above caps its duration to near-zero. */
+@keyframes waiting-pulse {
+  0%,
+  100% {
     opacity: 1;
-    visibility: visible;
   }
-
-  .disclosure-inner {
-    /* Grid items default to a content-based automatic minimum size, which
-       would stop the 0fr row from ever reaching zero height. `overflow:
-       hidden` resets that automatic minimum to 0, per the CSS Grid spec. */
-    overflow: hidden;
-  }
-
-  /* Short entrance stagger for repeated list screens (topics, comparisons,
-     checklist). Decorative only: opacity/transform, so items stay clickable
-     throughout, and prefers-reduced-motion above collapses the duration. */
-  .stagger-item {
-    animation: stagger-in 320ms var(--ease-out) both;
+  50% {
+    opacity: 0.4;
   }
 }
 
-@keyframes stagger-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.animate-waiting-pulse {
+  animation: waiting-pulse 1.8s ease-in-out infinite;
 }

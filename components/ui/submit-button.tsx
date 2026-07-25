@@ -1,17 +1,22 @@
 "use client";
 
+import type { ButtonHTMLAttributes } from "react";
 import { useFormStatus } from "react-dom";
 
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button, type ButtonVariant } from "./button";
 
 export function SubmitButton({
-  children,
   pendingLabel,
+  children,
+  variant,
   ...props
-}: ButtonProps & { pendingLabel: string }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  pendingLabel: string;
+  variant?: ButtonVariant;
+}) {
   const { pending } = useFormStatus();
   return (
-    <Button aria-disabled={pending} disabled={pending} type="submit" {...props}>
+    <Button disabled={pending} type="submit" variant={variant} {...props}>
       {pending ? pendingLabel : children}
     </Button>
   );

@@ -3,8 +3,6 @@ import { pathToFileURL } from "node:url";
 import postgres from "postgres";
 import { requireRemoteDevelopmentDatabase } from "./remote-safety.mjs";
 
-const policyVersion = "2026-07-18-v1";
-
 async function createFixtureUser(sql, userId, displayName) {
   await sql`
     insert into auth.users (
@@ -29,7 +27,7 @@ async function createFixtureUser(sql, userId, displayName) {
       extensions.crypt('temporary-test-password', extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      ${sql.json({ private_display_name: displayName })},
+      ${sql.json({ display_name: displayName })},
       now(),
       now()
     )
@@ -48,15 +46,21 @@ async function asAuthenticated(sql, userId, callback) {
 async function redeem(sql, userId, inviteCode) {
   return asAuthenticated(sql, userId, async (transaction) => {
     const [result] = await transaction`
-      select public.redeem_couple_invite(
-        ${inviteCode},
-        ${policyVersion}
-      ) as couple_id
+      select public.redeem_space_invite(${inviteCode}) as space_id
     `;
-    return result.couple_id;
+    return result.space_id;
   });
 }
 
+// v3 rewrite: create_couple_invite/redeem_couple_invite/couples/
+// couple_memberships (pre-v3 schema) → create_space_invite/
+// redeem_space_invite/spaces/space_members. redeem_space_invite() takes
+// only the invite code (the pre-v3 policy-acceptance-gate was dropped
+// entirely in the rewrite, so there is no policyVersion argument anymore).
+// The concurrency property under test is unchanged: redeem_space_invite's
+// `select ... for update` locks on both the invite row and the space row
+// serialize two simultaneous redemptions of the same code, so exactly one
+// must succeed.
 export async function runConcurrentInviteTest(dbUrl) {
   const admin = postgres(dbUrl, { max: 4, prepare: false });
   const firstClient = postgres(dbUrl, { max: 1, prepare: false });
@@ -73,8 +77,8 @@ export async function runConcurrentInviteTest(dbUrl) {
 
     const invitation = await asAuthenticated(admin, ownerId, async (transaction) => {
       const [created] = await transaction`
-        select invite_code, couple_id
-        from public.create_couple_invite(${policyVersion})
+        select invite_code, space_id
+        from public.create_space_invite()
       `;
       return created;
     });
@@ -90,27 +94,27 @@ export async function runConcurrentInviteTest(dbUrl) {
       throw new Error("Concurrent redemption did not produce exactly one success.");
     }
 
-    const [couple] = await admin`
-      select status, user_b_id
-      from public.couples
-      where id = ${invitation.couple_id}::uuid
+    const [space] = await admin`
+      select status
+      from public.spaces
+      where id = ${invitation.space_id}::uuid
     `;
     const [{ membership_count: membershipCount }] = await admin`
       select count(*)::integer as membership_count
-      from public.couple_memberships
-      where couple_id = ${invitation.couple_id}::uuid
+      from public.space_members
+      where space_id = ${invitation.space_id}::uuid
         and ended_at is null
     `;
 
-    if (couple?.status !== "active" || !couple.user_b_id || membershipCount !== 2) {
-      throw new Error("Concurrent redemption left an invalid couple membership state.");
+    if (space?.status !== "active" || membershipCount !== 2) {
+      throw new Error("Concurrent redemption left an invalid space membership state.");
     }
   } finally {
-    await admin`
-      delete from public.couples
-      where user_a_id = any(${fixtureIds}::uuid[])
-         or user_b_id = any(${fixtureIds}::uuid[])
-    `;
+    // spaces.created_by references profiles(id) on delete restrict, so the
+    // space has to go before the fixture auth.users rows can be deleted;
+    // space_members/space_invites cascade from spaces.id, and
+    // profiles/space_members cascade from auth.users.id.
+    await admin`delete from public.spaces where created_by = any(${fixtureIds}::uuid[])`;
     await admin`delete from auth.users where id = any(${fixtureIds}::uuid[])`;
     await Promise.all([admin.end(), firstClient.end(), secondClient.end()]);
   }

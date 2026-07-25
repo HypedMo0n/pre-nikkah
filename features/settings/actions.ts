@@ -1,68 +1,38 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAuthenticatedUser } from "@/lib/auth/require-user";
-import { localizedPath, parseLocale } from "@/lib/i18n/config";
+
+import { safeReturnPath } from "@/lib/auth/paths";
+import { parseLocale } from "@/lib/i18n/config";
 import { translate } from "@/lib/i18n/dictionaries";
-import {
-  appendTraceId,
-  logServerActionError,
-} from "@/lib/logging/server-action-error";
+import { appendTraceId, logServerActionError } from "@/lib/logging/server-action-error";
+import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 
 import type { SettingsActionState } from "./types";
-import { closeJourneySchema, displayNameSchema } from "./validation";
 
-export async function updatePrivateDisplayNameAction(
-  _previousState: SettingsActionState,
+async function callSpaceLifecycleRpc(
+  rpcName: "pause_space" | "resume_space" | "unlink_partner",
+  action: string,
   formData: FormData,
 ): Promise<SettingsActionState> {
   const locale = parseLocale(formData.get("locale"));
-  const parsed = displayNameSchema.safeParse({
-    privateDisplayName: formData.get("privateDisplayName") ?? "",
-  });
-  if (!parsed.success) {
-    return { status: "error", message: translate(locale, "auth.genericError") };
-  }
-
   const { supabase, user } = await requireAuthenticatedUser(locale);
-  const { error } = await supabase
-    .from("private_accounts")
-    .update({ private_display_name: parsed.data.privateDisplayName || null })
-    .eq("id", user.id);
+  const { error } = await supabase.rpc(rpcName);
   if (error) {
-    return { status: "error", message: translate(locale, "auth.genericError") };
+    const traceId = logServerActionError({ action, error, userId: user.id });
+    return { status: "error", message: appendTraceId(translate(locale, "auth.genericError"), traceId) };
   }
-
-  revalidatePath(localizedPath(locale, "/settings"));
-  return { status: "saved", message: translate(locale, "status.saved") };
+  redirect(safeReturnPath(locale, formData.get("returnPath")));
 }
 
-export async function closeJourneyAction(
-  _previousState: SettingsActionState,
-  formData: FormData,
-): Promise<SettingsActionState> {
-  const locale = parseLocale(formData.get("locale"));
-  const parsed = closeJourneySchema.safeParse({
-    confirmation: formData.get("confirmation"),
-  });
-  if (!parsed.success) {
-    return { status: "error", message: translate(locale, "settings.closeInvalid") };
-  }
+export async function pauseSpaceAction(_previousState: SettingsActionState, formData: FormData): Promise<SettingsActionState> {
+  return callSpaceLifecycleRpc("pause_space", "settings.pause_space", formData);
+}
 
-  const { supabase, user } = await requireAuthenticatedUser(locale);
-  const { error } = await supabase.rpc("close_couple_journey");
-  if (error) {
-    const traceId = logServerActionError({
-      action: "journey.close",
-      error,
-      userId: user.id,
-    });
-    return {
-      status: "error",
-      message: appendTraceId(translate(locale, "auth.genericError"), traceId),
-    };
-  }
+export async function resumeSpaceAction(_previousState: SettingsActionState, formData: FormData): Promise<SettingsActionState> {
+  return callSpaceLifecycleRpc("resume_space", "settings.resume_space", formData);
+}
 
-  redirect(localizedPath(locale, "/dashboard"));
+export async function unlinkPartnerAction(_previousState: SettingsActionState, formData: FormData): Promise<SettingsActionState> {
+  return callSpaceLifecycleRpc("unlink_partner", "settings.unlink_partner", formData);
 }

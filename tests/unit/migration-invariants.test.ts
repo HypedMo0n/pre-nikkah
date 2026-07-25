@@ -4,12 +4,16 @@ import { describe, expect, it } from "vitest";
 
 const migrationsDirectory = path.join(process.cwd(), "supabase", "migrations");
 const migrationFiles = [
-  "20260718000100_accounts_couples_invites.sql",
-  "20260718000200_canonical_content.sql",
-  "20260718000300_answers_and_progress.sql",
-  "20260718000400_shared_journey_and_lifecycle.sql",
-  "20260718000500_safe_read_functions.sql",
-  "20260719000100_fix_invite_policy_upsert.sql",
+  "20260723000100_profiles_spaces_invites.sql",
+  "20260723000200_topics_questions.sql",
+  "20260723000300_answers_shares_comparisons.sql",
+  "20260723000400_discussions_notes_events.sql",
+  "20260723000500_space_lifecycle_and_deletion.sql",
+  "20260723000600_space_creation_without_invite.sql",
+  "20260723000700_partner_display_name.sql",
+  "20260723000800_answer_share_status.sql",
+  "20260723000900_all_topic_progress.sql",
+  "20260723001000_public_topic_titles.sql",
 ];
 const migrations = migrationFiles
   .map((fileName) => readFileSync(path.join(migrationsDirectory, fileName), "utf8"))
@@ -22,7 +26,7 @@ describe("migration source invariants", () => {
       (match) => match[1],
     );
 
-    expect(createdTables).toHaveLength(14);
+    expect(createdTables).toHaveLength(13);
     for (const tableName of createdTables) {
       expect(migrations).toMatch(
         new RegExp(`alter table public\\.${tableName} enable row level security`, "i"),
@@ -42,7 +46,7 @@ describe("migration source invariants", () => {
 
   it("stores only invitation hashes and never defines a plaintext code column", () => {
     const inviteTable = migrations.match(
-      /create table public\.couple_invites \(([\s\S]*?)\n\);/i,
+      /create table public\.space_invites \(([\s\S]*?)\n\);/i,
     )?.[1];
 
     expect(inviteTable).toBeDefined();
@@ -50,51 +54,26 @@ describe("migration source invariants", () => {
     expect(inviteTable).not.toMatch(/\binvite_code\s+text\b/i);
   });
 
-  it("avoids an ambiguous conflict target in the invite policy acceptance upsert", () => {
-    const repair = readFileSync(
-      path.join(
-        migrationsDirectory,
-        "20260719000100_fix_invite_policy_upsert.sql",
-      ),
-      "utf8",
-    );
-
-    expect(repair).toContain("on conflict do nothing");
-    expect(repair).not.toContain(
-      "on conflict (couple_id, user_id, policy_version)",
-    );
-    expect(repair).toContain(
-      "update public.journey_policy_acceptances acceptance",
+  it("never grants a client a direct write path onto comparisons", () => {
+    expect(migrations).toContain("grant select on table public.comparisons to authenticated;");
+    expect(migrations).not.toMatch(
+      /grant\s+(?:insert|update|delete)[^;]*\btable public\.comparisons\b/i,
     );
   });
 
-  it("contains the approved onboarding and journey-policy schema", () => {
-    expect(migrations).toContain("preferred_locale text not null default 'en'");
-    expect(migrations).toContain("onboarding_completed boolean not null default false");
-    expect(migrations).toContain("privacy_intro_completed boolean not null default false");
-    expect(migrations).toContain("entry_mode text null");
-    expect(migrations).toContain("preferred_pace text not null default 'flexible'");
-    expect(migrations).toContain("create table public.journey_policy_acceptances");
-    expect(migrations).toContain("JOURNEY_POLICY_ACCEPTANCE_REQUIRED");
-  });
-
-  it("uses explicit safe comparison modes for every seeded question", () => {
-    const seed = readFileSync(path.join(process.cwd(), "supabase", "seed.sql"), "utf8");
-    const questionRows = seed
-      .split("insert into public.questions")[1]
-      .split("on conflict (id) do update")[0]
-      .split(/\n\s*\),\s*\n\s*\(/);
-    const textRows = questionRows.filter((row) => /\n\s*'text',/.test(row));
-    expect(textRows.length).toBeGreaterThan(0);
-    for (const row of textRows) expect(row).toMatch(/'(?:discussion_only|never_compare)'/);
-    expect(seed).toContain("'discussion_only'");
-    expect(migrations).toContain("when 'scale_distance' then");
-    expect(migrations).toContain("when 'discussion_only' then");
-    expect(migrations).toContain("when 'never_compare' then");
-  });
-
-  it("never grants direct partner-answer reads after reveal", () => {
+  it("never grants a policy path for a partner to read another user's answer directly", () => {
     expect(migrations).toContain('create policy "answer owner can read"');
-    expect(migrations).not.toMatch(/create policy[^;]+answers[^;]+revealed[^;]+for select/i);
+    expect(migrations).toMatch(/answer owner can read"[\s\S]*?using \(user_id = \(select auth\.uid\(\)\)\)/);
+    expect(migrations).not.toMatch(/create policy[^;]+answers[^;]+shared[^;]+for select/i);
+  });
+
+  it("keeps answer_shares insert-only — no delete/unshare path exists", () => {
+    const shareFunctions = migrations.match(
+      /create or replace function public\.share_answer[\s\S]*?\$\$;/,
+    )?.[0];
+
+    expect(shareFunctions).toBeDefined();
+    expect(shareFunctions).not.toMatch(/delete from public\.answer_shares/);
+    expect(migrations).not.toMatch(/delete from public\.answer_shares/);
   });
 });

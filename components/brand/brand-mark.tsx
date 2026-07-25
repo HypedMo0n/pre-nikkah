@@ -1,32 +1,25 @@
-import { cn } from "@/lib/utils";
+// §7.1: "two overlapping outlined circles (44px each, 1.5px stroke, second
+// at 0.45 opacity, overlapping by 16px)". §7.10's hard constraint ties this
+// to the Path node glyph — both read as the same idea at different scales,
+// so this stays a plain two-circle ring pair, nothing more.
+const SIZE = 44;
+const OVERLAP = 16;
+const STROKE_WIDTH = 1.5;
 
-type BrandMarkProps = {
-  className?: string;
-  size?: number;
-};
-
-export function BrandMark({ className, size = 32 }: BrandMarkProps) {
+export function BrandMark() {
+  const radius = SIZE / 2 - STROKE_WIDTH / 2;
+  const totalWidth = SIZE * 2 - OVERLAP;
   return (
-    <svg
-      aria-hidden="true"
-      className={cn("shrink-0", className)}
-      fill="none"
-      height={size}
-      viewBox="0 0 40 40"
-      width={size}
-    >
-      <path
-        d="M6 30C6 17 14 8 24 8"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="3.5"
-      />
-      <path
-        className="text-accent"
-        d="M34 10C34 23 26 32 16 32"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="3.5"
+    <svg aria-hidden="true" height={SIZE} viewBox={`0 0 ${totalWidth} ${SIZE}`} width={totalWidth}>
+      <circle cx={SIZE / 2} cy={SIZE / 2} fill="none" r={radius} stroke="var(--green)" strokeWidth={STROKE_WIDTH} />
+      <circle
+        cx={totalWidth - SIZE / 2}
+        cy={SIZE / 2}
+        fill="none"
+        opacity={0.45}
+        r={radius}
+        stroke="var(--green)"
+        strokeWidth={STROKE_WIDTH}
       />
     </svg>
   );
