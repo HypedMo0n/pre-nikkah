@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { getV3Copy } from "@/features/v3/copy";
 import { getJourneyState } from "@/features/v3/data";
+import { getCurrentTopicId } from "@/features/v3/progress";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 
@@ -46,6 +47,16 @@ export default async function TopicPage({
   const discussedIds = new Set(
     data.discussions.map((discussion) => discussion.question_id),
   );
+  // This page is reachable for any topic, so the partner's count on it is only
+  // safe when the topic is the one the couple is currently working through.
+  const isCurrentTopic =
+    topic.id ===
+    getCurrentTopicId(
+      data.content.topics,
+      data.progress,
+      data.content.questions,
+      discussedIds,
+    );
 
   return (
     <OnboardingShell
@@ -64,10 +75,12 @@ export default async function TopicPage({
         <Chip tone="aligned">
           {d.yourProgress} · {topicProgress?.own ?? 0} / {questions.length}
         </Chip>
-        <Chip tone="discuss">
-          {data.overview.partner?.displayName ?? d.togetherProgress} ·{" "}
-          {topicProgress?.partner ?? 0} / {questions.length}
-        </Chip>
+        {isCurrentTopic ? (
+          <Chip tone="discuss">
+            {data.overview.partner?.displayName ?? d.togetherProgress} ·{" "}
+            {topicProgress?.partner ?? 0} / {questions.length}
+          </Chip>
+        ) : null}
       </div>
 
       <Card className="mt-5 flex items-start gap-3 border-green/20 bg-green-soft">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getJourneyState } from "@/features/v3/data";
+import { getCurrentTopicId, toVisibleProgress } from "@/features/v3/progress";
 import { getAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale } from "@/lib/i18n/config";
 
@@ -33,6 +34,12 @@ export async function GET(
   const noteMap = new Map(
     (privateNotes ?? []).map((note) => [note.answer_id, note]),
   );
+  const currentTopicId = getCurrentTopicId(
+    data.content.topics,
+    data.progress,
+    data.content.questions,
+    new Set(data.discussions.map((discussion) => discussion.question_id)),
+  );
 
   const record = {
     version: 1,
@@ -47,12 +54,18 @@ export async function GET(
     },
     topics: data.content.topics.map((topic) => {
       const progress = data.progress.find((item) => item.topicId === topic.id);
+      // Per-topic partner counts would show which subjects the partner has not
+      // finished, and an export persists that in a file. Only the current
+      // shared topic carries them, matching what the screens show.
+      const visible = progress
+        ? toVisibleProgress(progress, topic.id === currentTopicId)
+        : null;
       return {
         title: topic.title,
-        ownAnswered: progress?.own ?? 0,
-        partnerAnswered: progress?.partner ?? 0,
-        readyTogether: progress?.together ?? 0,
-        totalQuestions: progress?.total ?? 0,
+        ownAnswered: visible?.own ?? 0,
+        partnerAnswered: visible?.partner ?? null,
+        readyTogether: visible?.together ?? null,
+        totalQuestions: visible?.total ?? 0,
       };
     }),
     ownAnswers: ownAnswers.map((answer) => {

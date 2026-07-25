@@ -62,11 +62,14 @@ export function JourneyPath({
         {topics.map((topic, index) => {
           const item = progress.find((row) => row.topicId === topic.id);
           const ownDone = Boolean(item && item.own >= item.total && item.total);
-          const partnerDone = Boolean(
-            item && item.partner >= item.total && item.total,
-          );
           const discussed = discussedTopicIds.has(topic.id);
           const currentNode = topic.id === currentTopicId;
+          // A per-node partner mark would show, topic by topic, exactly which
+          // subject the partner has not finished. Only the current shared topic
+          // may carry that; a discussed topic is mutual knowledge already.
+          const partnerDone =
+            currentNode &&
+            Boolean(item && item.partner >= item.total && item.total);
           return (
             <Link
               aria-label={`${index + 1}. ${topic.title}`}

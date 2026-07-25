@@ -9,7 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { JourneyPath } from "@/components/v3/journey-path";
 import { getV3Copy } from "@/features/v3/copy";
 import { getJourneyState } from "@/features/v3/data";
-import { getTopicStage } from "@/features/v3/progress";
+import { getTopicStage, getVisibleTopicStage } from "@/features/v3/progress";
 import { markEventReadAction } from "@/features/v3/actions";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
@@ -65,11 +65,23 @@ export default async function DashboardPage({
     return {
       topic,
       progress,
+      questionIds,
       stage: getTopicStage(progress, discussedIds, questionIds),
     };
   });
   const current =
     topicRows.find((row) => row.stage !== "discussed") ?? topicRows[0];
+  // The list below names every topic, so its stages must not disclose whether
+  // the partner has finished any topic other than the current shared one.
+  const visibleRows = topicRows.map((row) => ({
+    ...row,
+    stage: getVisibleTopicStage(
+      row.progress,
+      discussedIds,
+      row.questionIds,
+      row.topic.id === current?.topic.id,
+    ),
+  }));
   const together = data.comparisons.filter(
     (comparison) => comparison.state !== "pending",
   ).length;
@@ -187,7 +199,7 @@ export default async function DashboardPage({
           </Link>
         </div>
         <div className="mt-4 space-y-2">
-          {topicRows.slice(0, 4).map(({ progress, stage, topic }, index) => (
+          {visibleRows.slice(0, 4).map(({ progress, stage, topic }, index) => (
             <Link
               className="stagger-item flex items-center justify-between gap-4 rounded-card border border-hairline bg-white p-4"
               href={localizedPath(locale, `/topics/${topic.slug}`)}
@@ -254,6 +266,7 @@ function stageLabel(
   return {
     not_started: d.unanswered,
     in_progress: d.inProgress,
+    your_part_done: d.yourPartDone,
     waiting: d.waiting,
     ready: d.ready,
     discussed: d.discussed,
