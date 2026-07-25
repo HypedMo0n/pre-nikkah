@@ -1,7 +1,27 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices, type Project } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const isExternal = Boolean(process.env.E2E_BASE_URL);
+const includeWebKit = process.env.ENABLE_WEBKIT_E2E === "true";
+const projects: Project[] = [
+  {
+    name: "chromium-desktop",
+    use: { ...devices["Desktop Chrome"], browserName: "chromium" },
+  },
+  {
+    name: "mobile-chrome",
+    testMatch: /(?:mobile-device|smoke|authenticated-smoke)\.spec\.ts/,
+    use: { ...devices["Pixel 7"], browserName: "chromium" },
+  },
+];
+
+if (includeWebKit) {
+  projects.push({
+    name: "mobile-webkit",
+    testMatch: /(?:mobile-device|smoke)\.spec\.ts/,
+    use: { ...devices["iPhone 13"], browserName: "webkit" },
+  });
+}
 
 export default defineConfig({
   expect: { timeout: 8_000 },
@@ -27,20 +47,5 @@ export default defineConfig({
         timeout: 120_000,
         url: baseURL,
       },
-  projects: [
-    {
-      name: "chromium-desktop",
-      use: { ...devices["Desktop Chrome"], browserName: "chromium" },
-    },
-    {
-      name: "mobile-chrome",
-      testMatch: /(?:mobile-device|smoke|authenticated-smoke)\.spec\.ts/,
-      use: { ...devices["Pixel 7"], browserName: "chromium" },
-    },
-    {
-      name: "mobile-webkit",
-      testMatch: /(?:mobile-device|smoke)\.spec\.ts/,
-      use: { ...devices["iPhone 13"], browserName: "webkit" },
-    },
-  ],
+  projects,
 });

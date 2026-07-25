@@ -56,7 +56,7 @@ export async function signUpAction(
   const next = safeReturnPath(
     locale,
     parsed.data.next,
-    localizedPath(locale, `/onboarding/account?mode=${parsed.data.entryMode}`),
+    localizedPath(locale, parsed.data.entryMode === "join" ? "/join" : "/invite"),
   );
   if (parsed.data.entryMode === "join") {
     const code = new URL(next, "http://internal.local").searchParams.get("code");
@@ -72,9 +72,8 @@ export async function signUpAction(
     password: parsed.data.password,
     options: {
       data: {
-        entry_mode: parsed.data.entryMode,
-        preferred_locale: locale,
-        private_display_name: parsed.data.privateDisplayName || null,
+        display_name: parsed.data.privateDisplayName,
+        locale,
       },
       emailRedirectTo,
     },
@@ -88,7 +87,7 @@ export async function signUpAction(
     });
     return {
       status: "error",
-      message: appendTraceId(getSafeAuthError(locale, error.message, error.code), traceId),
+      message: appendTraceId(getSafeAuthError(locale, error.message), traceId),
     };
   }
   if (!data.session) {

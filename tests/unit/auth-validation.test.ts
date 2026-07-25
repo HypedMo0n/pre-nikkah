@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { forgotPasswordSchema, resetPasswordSchema, signInSchema, signUpSchema } from "../../features/auth/validation";
 
-const valid = { locale: "en", email: "fictional@example.test", password: "fictional-demo-password" };
+const valid = {
+  locale: "en",
+  email: "fictional@example.test",
+  password: "fictional-demo-password",
+  privateDisplayName: "Amina",
+};
 
 describe("private account validation", () => {
   it("validates signup and preserves the start or join entry mode", () => {

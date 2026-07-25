@@ -6,20 +6,21 @@ import { usePathname } from "next/navigation";
 
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/config";
-import { translate } from "@/lib/i18n/dictionaries";
+import { getV3Copy } from "@/features/v3/copy";
 import { cn } from "@/lib/utils";
 
 export function PrivateTabBar({ locale }: { locale: Locale }) {
   const pathname = usePathname();
+  const d = getV3Copy(locale);
   const tabs = [
-    { href: localizedPath(locale, "/dashboard"), icon: Home, label: translate(locale, "nav.home") },
-    { href: localizedPath(locale, "/topics"), icon: ListChecks, label: translate(locale, "nav.journey") },
-    { href: localizedPath(locale, "/comparisons"), icon: GitCompareArrows, label: translate(locale, "nav.discuss") },
-    { href: localizedPath(locale, "/settings"), icon: Settings, label: translate(locale, "nav.settings") },
+    { href: localizedPath(locale, "/dashboard"), icon: Home, label: d.home },
+    { href: localizedPath(locale, "/topics"), icon: ListChecks, label: d.journey },
+    { href: localizedPath(locale, "/comparisons"), icon: GitCompareArrows, label: d.discuss },
+    { href: localizedPath(locale, "/settings"), icon: Settings, label: d.settings },
   ];
   return (
     <nav
-      aria-label={translate(locale, "nav.private")}
+      aria-label={`${d.appName} navigation`}
       className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[max(env(safe-area-inset-bottom,0px),8px)]"
     >
       <div className="mx-auto flex max-w-xl items-stretch justify-around">

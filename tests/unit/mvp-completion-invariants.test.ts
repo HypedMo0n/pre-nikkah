@@ -2,38 +2,36 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-function source(...segments: string[]) {
-  return readFileSync(path.join(process.cwd(), ...segments), "utf8");
-}
+const source = (...segments: string[]) =>
+  readFileSync(path.join(process.cwd(), ...segments), "utf8");
 
-describe("MVP completion security invariants", () => {
-  it("derives checklist couple ownership on the server", () => {
-    const action = source("features", "checklist", "actions.ts");
-    expect(action).toContain('supabase.rpc(\n    "current_couple_id"');
-    expect(action).not.toContain('formData.get("coupleId")');
-    expect(action).toContain('{ onConflict: "couple_id,checklist_definition_id" }');
+describe("v3 endpoint invariants", () => {
+  it("saves answers through one transactional server RPC", () => {
+    const actions = source("features", "v3", "actions.ts");
+    expect(actions).toContain('supabase.rpc("save_answer"');
+    expect(actions).not.toContain('.from("answers").upsert');
+    expect(actions).not.toContain('.from("comparisons").');
   });
 
-  it("closes only the authenticated user current journey", () => {
-    const action = source("features", "settings", "actions.ts");
-    const validation = source("features", "settings", "validation.ts");
-    expect(validation).toContain('z.literal("CLOSE")');
-    expect(action).toContain('requireAuthenticatedUser(locale)');
-    expect(action).toContain('supabase.rpc("close_couple_journey")');
-    expect(action).not.toMatch(/formData\.get\(["'](?:userId|coupleId)["']\)/);
+  it("shares exact answers only through the irreversible endpoint", () => {
+    const actions = source("features", "v3", "actions.ts");
+    expect(actions).toContain('supabase.rpc("share_answer"');
+    expect(actions).not.toMatch(/delete\(\).*answer_shares|revoke.*answer/i);
   });
 
-  it("lists reveal management without selecting raw answer values", () => {
-    const settingsPage = source(
-      "app",
-      "[locale]",
-      "(private)",
-      "settings",
-      "page.tsx",
+  it("derives both participants progress through the protected count RPC", () => {
+    const data = source("features", "v3", "data.ts");
+    expect(data).toContain('client.rpc("get_topic_progress"');
+    expect(data).toContain("row.user_id === userId");
+    expect(data).toContain("row.user_id !== userId");
+  });
+
+  it("closes only the authenticated user current space", () => {
+    const actions = source("features", "v3", "actions.ts");
+    const closeAction = actions.slice(
+      actions.indexOf("export async function closeSpaceAction"),
     );
-    expect(settingsPage).toContain('.from("answers")');
-    expect(settingsPage).toContain('.select("question_id")');
-    expect(settingsPage).not.toMatch(/\.select\(["'][^"']*\bvalue\b/);
-    expect(settingsPage).toContain('name="revealed" type="hidden" value="false"');
+    expect(closeAction).toContain('supabase.rpc("close_space")');
+    expect(closeAction).not.toContain("p_space_id");
   });
 });

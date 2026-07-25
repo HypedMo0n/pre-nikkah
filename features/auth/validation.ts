@@ -10,7 +10,7 @@ export const signUpSchema = z.object({
   locale: localeSchema,
   email: emailSchema,
   password: passwordSchema,
-  privateDisplayName: z.string().trim().max(80).optional().default(""),
+  privateDisplayName: z.string().trim().min(1).max(80),
   entryMode: z.enum(["create", "join"]),
   next: z.string().optional(),
 });

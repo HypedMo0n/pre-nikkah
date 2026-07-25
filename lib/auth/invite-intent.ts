@@ -3,6 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 
 import { isInviteCode, normalizeInviteCode } from "@/features/invites/invite-code";
+import type { Locale } from "@/lib/i18n/config";
 
 export const inviteIntentCookieName = "pn_invite_intent";
 
@@ -34,6 +35,6 @@ export async function clearInviteIntent() {
   store.delete(inviteIntentCookieName);
 }
 
-export function inviteIntentPath(locale: "en" | "fr", intent: InviteIntent | null) {
+export function inviteIntentPath(locale: Locale, intent: InviteIntent | null) {
   return intent ? `/${locale}/join/${encodeURIComponent(intent.code)}` : null;
 }

@@ -1,36 +1,57 @@
-import { notFound } from "next/navigation";
+import { Users } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { InviteCreator } from "@/components/invites/invite-creator";
 import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
-import { Card } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { InvitePanel } from "@/components/v3/invite-panel";
+import { getV3Copy } from "@/features/v3/copy";
+import { getSpaceOverview } from "@/features/v3/data";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
 
-export default async function InvitePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function InvitePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   const { supabase } = await requireAuthenticatedUser(locale);
-  const { data: connection } = await supabase.rpc("get_connection_overview");
-  const connected = Boolean(
-    connection &&
-    typeof connection === "object" &&
-    "status" in connection &&
-    connection.status === "active",
-  );
-  const d = getDictionary(locale);
+  const overview = await getSpaceOverview(supabase);
+  const d = getV3Copy(locale);
+
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/dashboard")} locale={locale}>
-      <h1 className="font-expressive text-4xl font-medium text-ink">{d["invite.title"]}</h1>
-      <p className="mt-4 leading-7 text-body">{d["invite.body"]}</p>
-      {connected ? (
-        <Card className="mt-7 border-aligned/40 bg-aligned-soft p-5">
-          <p className="font-semibold text-ink">{d["invite.joined"]}</p>
-          <Link className={buttonClasses({ className: "mt-4 w-full" })} href={localizedPath(locale, "/dashboard")}>{d["complete.dashboard"]}</Link>
+    <OnboardingShell
+      backHref={localizedPath(locale, "/dashboard")}
+      locale={locale}
+    >
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-amber-ink">
+        {d.privacyPromise}
+      </p>
+      <h1 className="font-expressive mt-3 text-4xl font-medium text-ink">
+        {d.inviteTitle}
+      </h1>
+      <p className="mt-4 leading-7 text-muted">{d.inviteBody}</p>
+
+      {overview.status === "active" || overview.status === "paused" ? (
+        <Card className="mt-7 border-green/20 bg-green-soft text-center">
+          <Users aria-hidden="true" className="mx-auto text-green" size={24} />
+          <p className="mt-3 font-semibold text-ink">{d.connected}</p>
+          <p className="mt-1 text-sm text-muted">
+            {overview.partner?.displayName}
+          </p>
+          <Link
+            className={buttonClasses({ className: "mt-5 w-full" })}
+            href={localizedPath(locale, "/dashboard")}
+          >
+            {d.home}
+          </Link>
         </Card>
-      ) : <InviteCreator locale={locale} />}
+      ) : (
+        <InvitePanel locale={locale} />
+      )}
     </OnboardingShell>
   );
 }

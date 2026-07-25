@@ -3,27 +3,41 @@
 @tailwind utilities;
 
 :root {
-  --color-background: 255 253 248;
-  --color-section: 245 239 228;
-  --color-border: 222 213 198;
-  --color-card: 255 255 252;
-  --color-ink-soft: 111 113 128;
-  --color-body: 65 70 87;
-  --color-ink: 23 35 66;
-  --color-primary: 94 103 69;
-  --color-primary-soft: 237 240 229;
-  --color-accent: 196 154 74;
-  --color-aligned: 94 103 69;
-  --color-aligned-soft: 237 240 229;
-  --color-discuss: 153 113 38;
-  --color-discuss-soft: 250 243 225;
-  --color-concern: 165 65 62;
-  --color-concern-soft: 249 235 232;
-  --color-focus: 23 35 66;
-  --font-inter: ui-sans-serif;
-  --font-fraunces: Georgia;
+  --ivory: #faf8f4;
+  --white: #ffffff;
+  --hairline: #e9e4dc;
+  --track: #efece6;
+  --ink: #23201c;
+  --muted: #7a736a;
+  --green: #34594a;
+  --green-soft: #e8efe9;
+  --amber: #c9923e;
+  --amber-soft: #f9f0e1;
+  --amber-ink: #6b4c1f;
+  --danger: #b8473d;
+
+  /* Temporary compatibility aliases while existing screens are replaced. */
+  --color-background: 250 248 244;
+  --color-section: 239 236 230;
+  --color-border: 233 228 220;
+  --color-card: 255 255 255;
+  --color-ink-soft: 122 115 106;
+  --color-body: 122 115 106;
+  --color-ink: 35 32 28;
+  --color-primary: 52 89 74;
+  --color-primary-soft: 232 239 233;
+  --color-accent: 201 146 62;
+  --color-aligned: 52 89 74;
+  --color-aligned-soft: 232 239 233;
+  --color-discuss: 107 76 31;
+  --color-discuss-soft: 249 240 225;
+  --color-concern: 184 71 61;
+  --color-concern-soft: 249 240 225;
+  --color-focus: 52 89 74;
   --touch-target: 2.75rem;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -39,12 +53,27 @@ html {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: rgb(var(--color-background));
   color: rgb(var(--color-body));
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   overflow-wrap: anywhere;
   text-rendering: optimizeLegibility;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --hairline: #aaa39a;
+    --muted: #5f5952;
+    --track: #d7d1c8;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-translucent] {
+    background-color: var(--white) !important;
+    backdrop-filter: none !important;
+  }
 }
 
 button,
@@ -114,8 +143,8 @@ canvas {
 
   .font-productive {
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
+    letter-spacing: 0;
+    line-height: 1.5;
   }
 
   .text-balance {

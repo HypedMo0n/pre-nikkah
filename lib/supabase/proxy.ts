@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv, hasPublicEnv } from "@/lib/env/public";
 import { isProtectedPath } from "@/lib/auth/paths";
-import { isLocale } from "@/lib/i18n/config";
+import { parseLocale } from "@/lib/i18n/config";
 
 function copySessionHeaders(source: NextResponse, target: NextResponse) {
   source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
@@ -23,8 +23,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!hasPublicEnv()) {
     if (isProtectedPath(request.nextUrl.pathname)) {
-      const firstSegment = request.nextUrl.pathname.split("/")[1];
-      const locale = isLocale(firstSegment) ? firstSegment : "en";
+      const locale = parseLocale(request.nextUrl.pathname.split("/")[1]);
       return NextResponse.redirect(new URL(`/${locale}/sign-in`, request.url));
     }
 
@@ -54,8 +53,7 @@ export async function updateSession(request: NextRequest) {
   const hasVerifiedIdentity = !error && Boolean(data?.claims?.sub);
 
   if (!hasVerifiedIdentity && isProtectedPath(request.nextUrl.pathname)) {
-    const firstSegment = request.nextUrl.pathname.split("/")[1];
-    const locale = isLocale(firstSegment) ? firstSegment : "en";
+    const locale = parseLocale(request.nextUrl.pathname.split("/")[1]);
     const signInUrl = new URL(`/${locale}/sign-in`, request.url);
     const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     signInUrl.searchParams.set("next", returnTo);

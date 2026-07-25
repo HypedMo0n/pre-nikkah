@@ -38,6 +38,30 @@ export function AuthForm({
       <input name="entryMode" type="hidden" value={entryMode} />
       <input name="next" type="hidden" value={next} />
 
+      {mode === "sign-up" && (
+        <div>
+          <label
+            className="mb-2 block text-sm font-semibold text-ink"
+            htmlFor="private-display-name"
+          >
+            {d["auth.displayName"]}
+          </label>
+          <input
+            aria-describedby="private-display-name-hint"
+            autoComplete="given-name"
+            className={inputClasses}
+            id="private-display-name"
+            maxLength={80}
+            name="privateDisplayName"
+            required
+            type="text"
+          />
+          <p className="mt-2 text-xs leading-5 text-ink-soft" id="private-display-name-hint">
+            {d["auth.displayNameHint"]}
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="mb-2 block text-sm font-semibold text-ink" htmlFor={`${mode}-email`}>
           {d["auth.email"]}
@@ -77,7 +101,7 @@ export function AuthForm({
             type={showPassword ? "text" : "password"}
           />
           <button
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? d["auth.hidePassword"] : d["auth.showPassword"]}
             className="absolute inset-y-0 end-0 flex min-w-11 items-center justify-center rounded-e-productive text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             onClick={() => setShowPassword((visible) => !visible)}
             type="button"
@@ -91,29 +115,6 @@ export function AuthForm({
           </p>
         )}
       </div>
-
-      {mode === "sign-up" && (
-        <div>
-          <div className="mb-2 flex items-baseline justify-between gap-2">
-            <label className="text-sm font-semibold text-ink" htmlFor="private-display-name">
-              {d["auth.displayName"]}
-            </label>
-            <span className="text-xs text-ink-soft">{d["common.optional"]}</span>
-          </div>
-          <input
-            aria-describedby="private-display-name-hint"
-            autoComplete="nickname"
-            className={inputClasses}
-            id="private-display-name"
-            maxLength={80}
-            name="privateDisplayName"
-            type="text"
-          />
-          <p className="mt-2 text-xs leading-5 text-ink-soft" id="private-display-name-hint">
-            {d["auth.displayNameHint"]}
-          </p>
-        </div>
-      )}
 
       <FormMessage message={state.message} status={state.status} />
 

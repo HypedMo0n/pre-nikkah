@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/config";
+
 const INVITE_CODE_LENGTH = 20;
 
 export function normalizeInviteCode(value: string) {
@@ -13,6 +15,6 @@ export function formatInviteCode(value: string) {
   return normalized.match(/.{1,4}/g)?.join(" ") ?? normalized;
 }
 
-export function invitationPath(locale: "en" | "fr", value: string) {
+export function invitationPath(locale: Locale, value: string) {
   return `/${locale}/join/${normalizeInviteCode(value)}`;
 }

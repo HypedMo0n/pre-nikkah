@@ -1,13 +1,14 @@
-import { ArrowRight, Check, LockKeyhole } from "lucide-react";
+import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { BrandMark } from "@/components/brand/brand-mark";
+import { BrandLockup } from "@/components/brand/brand-lockup";
+import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { buttonClasses } from "@/components/ui/button";
+import { LanguageSheet } from "@/components/v3/language-sheet";
+import { getV3Copy } from "@/features/v3/copy";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function WelcomePage({
   params,
@@ -16,75 +17,66 @@ export default async function WelcomePage({
 }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const d = getDictionary(locale);
-  const trustPoints = [
-    d["welcome.trustProfile"],
-    d["welcome.trustScore"],
-    d["welcome.trustAnswers"],
-  ];
+  const d = getV3Copy(locale);
 
   return (
-    <main>
-      <Container className="grid min-h-screen items-center gap-12 py-10 md:grid-cols-[minmax(0,1.08fr)_minmax(19rem,0.92fr)] md:py-20 lg:gap-20">
-        <section aria-labelledby="welcome-heading" className="max-w-2xl">
-          <BrandMark className="text-primary" size={42} />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-            {d["entry.eyebrow"]}
+    <main className="min-h-screen">
+      <LanguageSheet d={d} locale={locale} />
+      <Container className="grid min-h-screen max-w-6xl items-center gap-10 py-10 md:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] md:py-20 lg:gap-16">
+        <section
+          aria-labelledby="welcome-title"
+          className="mx-auto w-full max-w-2xl text-center md:mx-0 md:text-left"
+        >
+          <BrandLockup />
+          <p className="mt-12 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-amber-ink">
+            {d.welcomeEyebrow}
           </p>
           <h1
-            className="font-expressive mt-3 text-balance text-4xl font-medium leading-[1.08] text-ink sm:text-5xl lg:text-6xl"
-            id="welcome-heading"
+            className="font-expressive mt-3 text-balance text-5xl font-medium leading-[1.02] tracking-[-0.035em] text-ink sm:text-6xl"
+            id="welcome-title"
           >
-            {d["welcome.title"]}
+            {d.welcomeTitle}
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-body sm:text-lg sm:leading-8">
-            {d["welcome.body"]}
+          <p className="mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg sm:leading-8">
+            {d.welcomeBody}
           </p>
-
-          <ul className="mt-8 space-y-3" role="list">
-            {trustPoints.map((point) => (
-              <li className="flex items-center gap-3 text-sm text-ink" key={point}>
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Check aria-hidden="true" size={14} strokeWidth={2.5} />
-                </span>
-                {point}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row md:justify-start">
             <Link
               className={buttonClasses({ className: "sm:min-w-64" })}
               href={localizedPath(locale, "/product")}
             >
-              {d["welcome.primary"]}
+              {d.welcomePrimary}
               <ArrowRight aria-hidden="true" size={18} />
             </Link>
             <Link
               className={buttonClasses({
-                className: "sm:min-w-32",
+                className: "sm:min-w-56",
                 variant: "secondary",
               })}
-              href={localizedPath(locale, "/sign-in")}
+              href={localizedPath(locale, "/join")}
             >
-              {d["welcome.secondary"]}
+              {d.welcomeSecondary}
             </Link>
           </div>
+          <p className="mt-6 text-xs font-medium text-muted">{d.welcomeFooter}</p>
+          <p className="mt-8 max-w-xl text-xs leading-5 text-muted">{d.notAdvice}</p>
         </section>
 
-        <Card className="relative overflow-hidden border-ink bg-ink p-6 shadow-soft sm:p-8">
-          <div aria-hidden="true" className="absolute -end-16 -top-16 size-44 rounded-full bg-primary/30" />
-          <div className="relative">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-white/10 text-accent">
-              <LockKeyhole aria-hidden="true" size={23} />
-            </span>
-            <h2 className="font-expressive mt-6 text-2xl font-medium text-white">
-              {d["privacy.title"]}
-            </h2>
-            <p className="mt-3 leading-7 text-white/85">{d["privacy.beatOne"]}</p>
-            <div className="my-6 h-px bg-white/15" />
-            <p className="text-sm leading-6 text-white/65">{d["privacy.beatTwo"]}</p>
+        <Card className="relative mx-auto w-full max-w-md overflow-hidden border-green bg-green p-7 text-left text-white md:max-w-none sm:p-9">
+          <div className="flex size-12 items-center justify-center rounded-full bg-white/10">
+            <LockKeyhole aria-hidden="true" size={22} />
           </div>
+          <h2 className="font-expressive mt-8 text-3xl font-medium">
+            {d.privacyPromise}
+          </h2>
+          <p className="mt-4 text-base leading-7 text-white/80">
+            {d.privacyDetail}
+          </p>
+          <div className="my-7 h-px bg-white/20" />
+          <p className="flex items-start gap-3 text-sm leading-6 text-white/70">
+            <ShieldCheck aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+            {d.publicTrust}
+          </p>
         </Card>
       </Container>
     </main>

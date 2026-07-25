@@ -6,12 +6,15 @@ Run the suite with:
 npm run db:test
 ```
 
-The seven pgTAP files contain 125 assertions covering schema and function grants,
-account non-enumeration, answer ownership, the complete comparison matrix,
-reveal ownership, safe revealed-answer access, revocation behavior, outsider
-isolation, canonical content immutability, policy acceptance, couple-only shared
-records, invitation misuse, the agreed two-person deletion cascade, and the
-seeded content inventory with its mahr, intimacy, and cadence invariants.
+The two pgTAP files cover the v3 schema: table/RLS/function inventory and
+grants (`schema_security.test.sql`), and the functional privacy proof —
+un-shared answers and private notes are unreadable by a partner through any
+route, sharing is one-way and irreversible, comparisons are writable only by
+`refresh_comparison()` never a client, and progress functions return counts
+only (`rls_and_privacy.test.sql`). This suite is authored against the v3
+schema in `supabase/migrations/` and has not yet been executed against
+PostgreSQL — see `docs/product/v3-rewrite-audit.md` and the schema
+migrations' own header comments for the design decisions it proves.
 
 The remote test command also runs a two-connection redemption race and requires
 exactly one successful redeemer:

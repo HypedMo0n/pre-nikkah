@@ -1,11 +1,25 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
+import { Fraunces, Inter } from "next/font/google";
 
-import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { brand } from "@/config/brand";
 import { localeCookieName, parseLocale } from "@/lib/i18n/config";
 
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  weight: ["300", "400"],
+});
 
 export const metadata: Metadata = {
   description: brand.shortDescription,
@@ -14,6 +28,8 @@ export const metadata: Metadata = {
     template: `%s | ${brand.name}`,
   },
 };
+
+const analyticsEnabled = process.env.VERCEL === "1";
 
 export default async function RootLayout({
   children,
@@ -25,9 +41,9 @@ export default async function RootLayout({
 
   return (
     <html dir="ltr" lang={locale}>
-      <body className="antialiased">
+      <body className={`${inter.variable} ${fraunces.variable} antialiased`}>
         {children}
-        <SiteAnalytics />
+        {analyticsEnabled ? <Analytics /> : null}
       </body>
     </html>
   );

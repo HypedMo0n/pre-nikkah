@@ -65,42 +65,44 @@ async function verifySchemaAndSeed() {
   const sql = postgres(context.dbUrl, { max: 1, prepare: false });
   try {
     const applicationSecurityDefinerFunctions = [
-      "close_couple_journey",
-      "create_couple_invite",
-      "current_couple_id",
-      "current_couple_id_for",
-      "get_connection_overview",
-      "get_question_comparison",
-      "get_topic_comparison_summary",
+      "add_shared_note",
+      "can_current_user_read_answer",
+      "close_space",
+      "create_space",
+      "current_space_id",
+      "get_space_overview",
+      "get_topic_progress",
       "handle_new_auth_user",
-      "inspect_couple_invite",
-      "is_couple_member_for",
-      "is_current_user_couple_member",
-      "log_answer_reveal_event",
+      "inspect_space_invite",
+      "is_current_space_member",
+      "is_current_user_answer_owner",
+      "mark_question_discussed",
+      "mark_space_event_read",
       "prepare_account_deletion",
-      "redeem_couple_invite",
-      "revoke_couple_invite",
-      "validate_answer_write",
-      "validate_checklist_item",
-      "validate_couple_activation",
-      "validate_guided_discussion",
-      "validate_journey_policy_acceptance",
-      "validate_topic_progress",
+      "recompute_comparison_internal",
+      "redeem_space_invite",
+      "regenerate_space_invite",
+      "save_answer",
+      "set_space_paused",
+      "share_answer",
     ];
     const expectedTables = [
-      "answer_reveal_events",
+      "answer_shares",
       "answers",
-      "checklist_definitions",
-      "couple_checklist_items",
-      "couple_invites",
-      "couple_memberships",
-      "couples",
-      "guided_discussions",
-      "journey_closure_notices",
-      "journey_policy_acceptances",
-      "private_accounts",
+      "comparisons",
+      "discussions",
+      "event_reads",
+      "private_answer_notes",
+      "profiles",
+      "question_option_translations",
+      "question_options",
+      "question_translations",
       "questions",
-      "topic_progress",
+      "shared_notes",
+      "space_events",
+      "space_members",
+      "spaces",
+      "topic_translations",
       "topics",
     ];
     const tables = await sql`
@@ -150,11 +152,11 @@ async function verifySchemaAndSeed() {
 
     const [{ topic_count: topicCount, question_count: questionCount }] = await sql`
       select
-        (select count(*)::integer from public.topics where is_active) as topic_count,
-        (select count(*)::integer from public.questions where is_active) as question_count
+        (select count(*)::integer from public.topics) as topic_count,
+        (select count(*)::integer from public.questions) as question_count
     `;
     if (topicCount !== 12 || questionCount !== 72) {
-      throw new Error("Seed inventory does not match the approved twelve-topic library.");
+      throw new Error("Seed inventory does not match the approved 12-topic, 72-question library.");
     }
   } finally {
     await sql.end();

@@ -1,53 +1,101 @@
 import { NextResponse } from "next/server";
 
+import { getJourneyState } from "@/features/v3/data";
 import { getAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ locale: string }> }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ locale: string }> },
+) {
   const { locale } = await params;
-  if (!isLocale(locale)) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const authenticated = await getAuthenticatedUser();
-  if (!authenticated) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { supabase } = authenticated;
-  const [topicsResult, questionsResult, progressResult, discussionsResult, definitionsResult, checklistResult] = await Promise.all([
-    supabase.from("topics").select("id,name,order_index").eq("is_active", true).order("order_index"),
-    supabase.from("questions").select("id,text,topic_id,order_index").eq("is_active", true),
-    supabase.from("topic_progress").select("topic_id,completed_at"),
-    supabase.from("guided_discussions").select("question_id,status,shared_note,updated_at"),
-    supabase.from("checklist_definitions").select("id,label,order_index").eq("is_active", true).order("order_index"),
-    supabase.from("couple_checklist_items").select("checklist_definition_id,done,completed_at"),
-  ]);
-  if ([topicsResult, questionsResult, progressResult, discussionsResult, definitionsResult, checklistResult].some((result) => result.error)) {
-    return NextResponse.json({ error: "Summary unavailable" }, { status: 503 });
+  if (!isLocale(locale)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  const questions = new Map((questionsResult.data ?? []).map((question) => [question.id, question]));
-  const checklistState = new Map((checklistResult.data ?? []).map((item) => [item.checklist_definition_id, item]));
-  const summary = {
+  const authenticated = await getAuthenticatedUser();
+  if (!authenticated) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { supabase, user } = authenticated;
+  const data = await getJourneyState(supabase, locale, user.id);
+  const ownAnswers = data.answers.filter(
+    (answer) => answer.userId === user.id,
+  );
+  const answerIds = ownAnswers.map((answer) => answer.id);
+  const { data: privateNotes } = answerIds.length
+    ? await supabase
+        .from("private_answer_notes")
+        .select("answer_id,body,updated_at")
+        .in("answer_id", answerIds)
+    : { data: [] };
+  const noteMap = new Map(
+    (privateNotes ?? []).map((note) => [note.answer_id, note]),
+  );
+
+  const record = {
+    version: 1,
     generatedAt: new Date().toISOString(),
-    disclaimer: "Discussion summary. Not religious, psychological, or legal advice.",
-    privacy: "This export intentionally excludes all raw answers, including revealed answers.",
-    topics: (topicsResult.data ?? []).map((topic) => ({
-      name: topic.name,
-      participantCompletions: (progressResult.data ?? []).filter((progress) => progress.topic_id === topic.id && progress.completed_at).length,
+    disclaimer:
+      "Private reflection record. Not religious, legal, medical, psychological, or compatibility advice.",
+    privacy:
+      "Contains the requesting user's exact answers and private notes, neutral server comparisons, and intentionally shared notes. It excludes the partner's unshared exact answers and all partner private notes.",
+    space: {
+      status: data.overview.status,
+      partnerDisplayName: data.overview.partner?.displayName ?? null,
+    },
+    topics: data.content.topics.map((topic) => {
+      const progress = data.progress.find((item) => item.topicId === topic.id);
+      return {
+        title: topic.title,
+        ownAnswered: progress?.own ?? 0,
+        partnerAnswered: progress?.partner ?? 0,
+        readyTogether: progress?.together ?? 0,
+        totalQuestions: progress?.total ?? 0,
+      };
+    }),
+    ownAnswers: ownAnswers.map((answer) => {
+      const question = data.content.questions.find(
+        (item) => item.id === answer.questionId,
+      );
+      const option = question?.options.find(
+        (item) => item.key === answer.optionKey,
+      );
+      return {
+        question: question?.text ?? "Question unavailable",
+        answer: option?.label ?? answer.optionKey,
+        importance: answer.importance,
+        privateNote: noteMap.get(answer.id)?.body ?? null,
+        updatedAt: answer.updatedAt,
+      };
+    }),
+    comparisons: data.comparisons.map((comparison) => ({
+      question:
+        data.content.questions.find(
+          (item) => item.id === comparison.questionId,
+        )?.text ?? "Question unavailable",
+      state: comparison.state,
+      priority: comparison.priority,
+      discussed: data.discussions.some(
+        (discussion) => discussion.question_id === comparison.questionId,
+      ),
+      computedAt: comparison.computedAt,
     })),
-    discussions: (discussionsResult.data ?? []).map((discussion) => ({
-      question: questions.get(discussion.question_id)?.text ?? "Question unavailable",
-      status: discussion.status,
-      sharedNote: discussion.shared_note,
-      updatedAt: discussion.updated_at,
-    })),
-    checklist: (definitionsResult.data ?? []).map((definition) => ({
-      label: definition.label,
-      done: checklistState.get(definition.id)?.done ?? false,
-      completedAt: checklistState.get(definition.id)?.completed_at ?? null,
+    sharedNotes: data.sharedNotes.map((note) => ({
+      question:
+        data.content.questions.find((item) => item.id === note.question_id)
+          ?.text ?? "Question unavailable",
+      body: note.body,
+      createdAt: note.created_at,
     })),
   };
-  return NextResponse.json(summary, {
+
+  return NextResponse.json(record, {
     headers: {
       "Cache-Control": "private, no-store",
-      "Content-Disposition": 'attachment; filename="discussion-summary.json"',
+      "Content-Disposition":
+        'attachment; filename="together-in-amanah-record.json"',
       "X-Content-Type-Options": "nosniff",
     },
   });

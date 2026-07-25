@@ -4,397 +4,843 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
-
-type TableDefinition<Row, Insert, Update> = {
-  Row: Row;
-  Insert: Insert;
-  Update: Update;
-  Relationships: [];
-};
-
-type PrivateAccountRow = {
-  id: string;
-  preferred_locale: "en" | "fr";
-  private_display_name: string | null;
-  relationship_stage:
-    | "getting_to_know_seriously"
-    | "families_involved"
-    | "engaged"
-    | "preparing_for_nikah"
-    | "other"
-    | null;
-  onboarding_completed: boolean;
-  onboarding_step: string | null;
-  product_intro_completed: boolean;
-  privacy_intro_completed: boolean;
-  entry_mode: "create" | "join" | null;
-  preferred_pace: "gentle" | "steady" | "flexible";
-  created_at: string;
-  updated_at: string;
-};
-
-type TopicRow = {
-  id: string;
-  slug: string;
-  name: string;
-  blurb: string;
-  estimated_minutes: number;
-  order_index: number;
-  is_active: boolean;
-  created_at: string;
-};
-
-type QuestionRow = {
-  id: string;
-  topic_id: string;
-  type: "single" | "scale" | "text";
-  text: string;
-  helper_text: string | null;
-  options: Json | null;
-  sensitivity: "standard" | "sensitive" | "professional_discussion";
-  comparison_mode: "exact" | "scale_distance" | "discussion_only" | "never_compare";
-  can_reveal: boolean;
-  order_index: number;
-  is_active: boolean;
-  created_at: string;
-};
-
-type AnswerRow = {
-  id: string;
-  question_id: string;
-  user_id: string;
-  couple_id: string;
-  value: Json;
-  importance: "flexible" | "important" | "essential" | "non_negotiable";
-  discussion_preference: "together" | "professional" | "outside_app" | null;
-  revealed: boolean;
-  revealed_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
+  | Json[]
 
 export type Database = {
   public: {
     Tables: {
-      private_accounts: TableDefinition<
-        PrivateAccountRow,
-        {
-          id: string;
-          preferred_locale?: "en" | "fr";
-          private_display_name?: string | null;
-          relationship_stage?: PrivateAccountRow["relationship_stage"];
-          onboarding_completed?: boolean;
-          onboarding_step?: string | null;
-          product_intro_completed?: boolean;
-          privacy_intro_completed?: boolean;
-          entry_mode?: "create" | "join" | null;
-          preferred_pace?: PrivateAccountRow["preferred_pace"];
-          created_at?: string;
-          updated_at?: string;
-        },
-        Partial<Omit<PrivateAccountRow, "id" | "created_at" | "updated_at">>
-      >;
-      couples: TableDefinition<
-        {
-          id: string;
-          user_a_id: string;
-          user_b_id: string | null;
-          status: "waiting" | "active" | "closed";
-          created_at: string;
-          updated_at: string;
-        },
-        {
-          id?: string;
-          user_a_id: string;
-          user_b_id?: string | null;
-          status?: "waiting" | "active" | "closed";
-          created_at?: string;
-          updated_at?: string;
-        },
-        {
-          user_b_id?: string | null;
-          status?: "waiting" | "active" | "closed";
-          updated_at?: string;
+      answer_shares: {
+        Row: {
+          answer_id: string
+          shared_at: string
+          shared_with_user_id: string
         }
-      >;
-      couple_memberships: TableDefinition<
-        {
-          couple_id: string;
-          user_id: string;
-          member_role: "a" | "b";
-          joined_at: string;
-          ended_at: string | null;
-        },
-        {
-          couple_id: string;
-          user_id: string;
-          member_role: "a" | "b";
-          joined_at?: string;
-          ended_at?: string | null;
-        },
-        { ended_at?: string | null }
-      >;
-      journey_policy_acceptances: TableDefinition<
-        {
-          id: string;
-          couple_id: string;
-          user_id: string;
-          policy_version: string;
-          accepted_at: string;
-        },
-        {
-          id?: string;
-          couple_id: string;
-          user_id: string;
-          policy_version: string;
-          accepted_at?: string;
-        },
-        { accepted_at?: string }
-      >;
-      couple_invites: TableDefinition<
-        {
-          id: string;
-          couple_id: string;
-          code_hash: string;
-          expires_at: string;
-          redeemed_at: string | null;
-          created_by: string;
-          redeemed_by: string | null;
-          created_at: string;
-        },
-        {
-          id?: string;
-          couple_id: string;
-          code_hash: string;
-          expires_at: string;
-          redeemed_at?: string | null;
-          created_by: string;
-          redeemed_by?: string | null;
-          created_at?: string;
-        },
-        {
-          expires_at?: string;
-          redeemed_at?: string | null;
-          redeemed_by?: string | null;
+        Insert: {
+          answer_id: string
+          shared_at?: string
+          shared_with_user_id: string
         }
-      >;
-      topics: TableDefinition<
-        TopicRow,
-        Omit<TopicRow, "created_at"> & { created_at?: string },
-        Partial<Omit<TopicRow, "id" | "created_at">>
-      >;
-      questions: TableDefinition<
-        QuestionRow,
-        Omit<QuestionRow, "created_at"> & { created_at?: string },
-        Partial<Omit<QuestionRow, "id" | "created_at">>
-      >;
-      checklist_definitions: TableDefinition<
-        {
-          id: string;
-          slug: string;
-          label: string;
-          description: string | null;
-          order_index: number;
-          is_active: boolean;
-        },
-        {
-          id: string;
-          slug: string;
-          label: string;
-          description?: string | null;
-          order_index: number;
-          is_active?: boolean;
-        },
-        {
-          slug?: string;
-          label?: string;
-          description?: string | null;
-          order_index?: number;
-          is_active?: boolean;
+        Update: {
+          answer_id?: string
+          shared_at?: string
+          shared_with_user_id?: string
         }
-      >;
-      answers: TableDefinition<
-        AnswerRow,
-        {
-          id?: string;
-          question_id: string;
-          user_id: string;
-          couple_id: string;
-          value: Json;
-          importance?: "flexible" | "important" | "essential" | "non_negotiable";
-          discussion_preference?: "together" | "professional" | "outside_app" | null;
-          revealed?: boolean;
-          revealed_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        },
-        {
-          value?: Json;
-          importance?: "flexible" | "important" | "essential" | "non_negotiable";
-          discussion_preference?: "together" | "professional" | "outside_app" | null;
-          revealed?: boolean;
-          revealed_at?: string | null;
-          updated_at?: string;
+        Relationships: [
+          {
+            foreignKeyName: "answer_shares_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answer_shares_shared_with_user_id_fkey"
+            columns: ["shared_with_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      answers: {
+        Row: {
+          id: string
+          importance: string
+          option_key: string
+          question_id: string
+          space_id: string
+          updated_at: string
+          user_id: string
         }
-      >;
-      answer_reveal_events: TableDefinition<
-        {
-          id: string;
-          answer_id: string;
-          user_id: string;
-          action: "revealed" | "revoked";
-          created_at: string;
-        },
-        {
-          id?: string;
-          answer_id: string;
-          user_id: string;
-          action: "revealed" | "revoked";
-          created_at?: string;
-        },
-        never
-      >;
-      topic_progress: TableDefinition<
-        {
-          id: string;
-          couple_id: string;
-          topic_id: string;
-          user_id: string;
-          completed_at: string | null;
-          updated_at: string;
-        },
-        {
-          id?: string;
-          couple_id: string;
-          topic_id: string;
-          user_id: string;
-          completed_at?: string | null;
-          updated_at?: string;
-        },
-        { completed_at?: string | null; updated_at?: string }
-      >;
-      guided_discussions: TableDefinition<
-        {
-          id: string;
-          couple_id: string;
-          topic_id: string;
-          question_id: string;
-          status: "not_started" | "discussing" | "discussed";
-          shared_note: string | null;
-          created_at: string;
-          updated_at: string;
-        },
-        {
-          id?: string;
-          couple_id: string;
-          topic_id: string;
-          question_id: string;
-          status?: "not_started" | "discussing" | "discussed";
-          shared_note?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        },
-        {
-          status?: "not_started" | "discussing" | "discussed";
-          shared_note?: string | null;
-          updated_at?: string;
+        Insert: {
+          id?: string
+          importance?: string
+          option_key: string
+          question_id: string
+          space_id: string
+          updated_at?: string
+          user_id: string
         }
-      >;
-      couple_checklist_items: TableDefinition<
-        {
-          id: string;
-          couple_id: string;
-          checklist_definition_id: string;
-          done: boolean;
-          completed_at: string | null;
-          updated_at: string;
-        },
-        {
-          id?: string;
-          couple_id: string;
-          checklist_definition_id: string;
-          done?: boolean;
-          completed_at?: string | null;
-          updated_at?: string;
-        },
-        { done?: boolean; completed_at?: string | null; updated_at?: string }
-      >;
-      journey_closure_notices: TableDefinition<
-        {
-          id: string;
-          user_id: string;
-          reason: "closed" | "partner_account_deleted";
-          created_at: string;
-          acknowledged_at: string | null;
-        },
-        {
-          id?: string;
-          user_id: string;
-          reason: "closed" | "partner_account_deleted";
-          created_at?: string;
-          acknowledged_at?: string | null;
-        },
-        { acknowledged_at?: string | null }
-      >;
-    };
-    Views: Record<string, never>;
+        Update: {
+          id?: string
+          importance?: string
+          option_key?: string
+          question_id?: string
+          space_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_question_id_option_key_fkey"
+            columns: ["question_id", "option_key"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["question_id", "key"]
+          },
+          {
+            foreignKeyName: "answers_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comparisons: {
+        Row: {
+          computed_at: string
+          high_priority_user_ids: string[]
+          priority: string
+          question_id: string
+          space_id: string
+          state: string
+        }
+        Insert: {
+          computed_at?: string
+          high_priority_user_ids?: string[]
+          priority: string
+          question_id: string
+          space_id: string
+          state: string
+        }
+        Update: {
+          computed_at?: string
+          high_priority_user_ids?: string[]
+          priority?: string
+          question_id?: string
+          space_id?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comparisons_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comparisons_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussions: {
+        Row: {
+          discussed_at: string
+          discussed_by: string
+          question_id: string
+          space_id: string
+        }
+        Insert: {
+          discussed_at?: string
+          discussed_by: string
+          question_id: string
+          space_id: string
+        }
+        Update: {
+          discussed_at?: string
+          discussed_by?: string
+          question_id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussions_discussed_by_fkey"
+            columns: ["discussed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_reads: {
+        Row: {
+          read_at: string
+          space_event_id: string
+          user_id: string
+        }
+        Insert: {
+          read_at?: string
+          space_event_id: string
+          user_id: string
+        }
+        Update: {
+          read_at?: string
+          space_event_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_reads_space_event_id_fkey"
+            columns: ["space_event_id"]
+            isOneToOne: false
+            referencedRelation: "space_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_answer_notes: {
+        Row: {
+          answer_id: string
+          body: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_id: string
+          body: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_id?: string
+          body?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_answer_notes_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: true
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_answer_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          locale: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id: string
+          locale?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          locale?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      question_option_translations: {
+        Row: {
+          description: string
+          label: string
+          locale: string
+          option_key: string
+          question_id: string
+        }
+        Insert: {
+          description: string
+          label: string
+          locale: string
+          option_key: string
+          question_id: string
+        }
+        Update: {
+          description?: string
+          label?: string
+          locale?: string
+          option_key?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_option_translations_question_id_option_key_fkey"
+            columns: ["question_id", "option_key"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["question_id", "key"]
+          },
+        ]
+      }
+      question_options: {
+        Row: {
+          cluster: string
+          key: string
+          order_index: number
+          question_id: string
+        }
+        Insert: {
+          cluster: string
+          key: string
+          order_index: number
+          question_id: string
+        }
+        Update: {
+          cluster?: string
+          key?: string
+          order_index?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_translations: {
+        Row: {
+          locale: string
+          question_id: string
+          starter_aligned: string
+          starter_discuss: string
+          text: string
+        }
+        Insert: {
+          locale: string
+          question_id: string
+          starter_aligned: string
+          starter_discuss: string
+          text: string
+        }
+        Update: {
+          locale?: string
+          question_id?: string
+          starter_aligned?: string
+          starter_discuss?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_translations_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          default_importance: string
+          id: string
+          key: string
+          order_index: number
+          topic_id: string
+        }
+        Insert: {
+          default_importance?: string
+          id: string
+          key: string
+          order_index: number
+          topic_id: string
+        }
+        Update: {
+          default_importance?: string
+          id?: string
+          key?: string
+          order_index?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_notes: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          question_id: string
+          space_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          question_id: string
+          space_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_notes_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_notes_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          kind: string
+          payload_json: Json
+          space_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload_json?: Json
+          space_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload_json?: Json
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_members: {
+        Row: {
+          ended_at: string | null
+          joined_at: string
+          role: string
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          joined_at?: string
+          role: string
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          joined_at?: string
+          role?: string
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_members_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          invite_code_hash: string
+          invite_expires_at: string
+          invite_redeemed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_code_hash: string
+          invite_expires_at: string
+          invite_redeemed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_code_hash?: string
+          invite_expires_at?: string
+          invite_redeemed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spaces_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topic_translations: {
+        Row: {
+          locale: string
+          subtitle: string
+          title: string
+          topic_id: string
+        }
+        Insert: {
+          locale: string
+          subtitle: string
+          title: string
+          topic_id: string
+        }
+        Update: {
+          locale?: string
+          subtitle?: string
+          title?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_translations_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          id: string
+          order_index: number
+          slug: string
+        }
+        Insert: {
+          id: string
+          order_index: number
+          slug: string
+        }
+        Update: {
+          id?: string
+          order_index?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      current_journey_policy_version: { Args: Record<string, never>; Returns: string };
-      current_couple_id: { Args: Record<string, never>; Returns: string | null };
-      is_current_user_couple_member: {
-        Args: { p_couple_id: string };
-        Returns: boolean;
-      };
-      create_couple_invite: {
-        Args: { p_policy_version: string };
+      add_shared_note: {
+        Args: { p_body: string; p_question_id: string; p_space_id: string }
+        Returns: string
+      }
+      can_current_user_read_answer: {
+        Args: { p_answer_id: string }
+        Returns: boolean
+      }
+      close_space: { Args: never; Returns: undefined }
+      create_space: {
+        Args: never
         Returns: {
-          invite_id: string;
-          couple_id: string;
-          invite_code: string;
-          expires_at: string;
-        }[];
-      };
-      inspect_couple_invite: {
-        Args: { p_invite_code: string };
-        Returns: Json;
-      };
-      redeem_couple_invite: {
-        Args: { p_invite_code: string; p_policy_version: string };
-        Returns: string;
-      };
-      revoke_couple_invite: {
-        Args: { p_invite_id: string };
-        Returns: undefined;
-      };
-      get_connection_overview: { Args: Record<string, never>; Returns: Json };
-      get_question_comparison: {
-        Args: { p_question_id: string };
+          expires_at: string
+          invite_code: string
+          space_id: string
+        }[]
+      }
+      current_space_id: { Args: never; Returns: string }
+      get_space_overview: { Args: never; Returns: Json }
+      get_topic_progress: {
+        Args: { p_space_id: string; p_topic_id: string }
         Returns: {
-          status: string;
-          question_id: string;
-          bucket: string | null;
-          own_answer: Json | null;
-          own_answer_revealed: boolean | null;
-          partner_answer_revealed: boolean | null;
-          partner_answer: Json | null;
-        }[];
-      };
-      get_topic_comparison_summary: {
-        Args: { p_topic_id: string };
-        Returns: Json;
-      };
-      close_couple_journey: { Args: Record<string, never>; Returns: undefined };
-      abandon_empty_waiting_journey: {
-        Args: Record<PropertyKey, never>
+          answered_count: number
+          question_count: number
+          user_id: string
+        }[]
+      }
+      inspect_space_invite: { Args: { p_invite_code: string }; Returns: Json }
+      is_current_space_member: {
+        Args: { p_space_id: string }
+        Returns: boolean
+      }
+      is_current_user_answer_owner: {
+        Args: { p_answer_id: string }
+        Returns: boolean
+      }
+      mark_question_discussed: {
+        Args: { p_question_id: string; p_space_id: string }
         Returns: undefined
       }
-      prepare_account_deletion: { Args: { p_user_id: string }; Returns: undefined };
-    };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
-};
+      mark_space_event_read: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      prepare_account_deletion: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      recompute_comparison_internal: {
+        Args: { p_question_id: string; p_space_id: string }
+        Returns: {
+          computed_at: string
+          high_priority_user_ids: string[]
+          priority: string
+          question_id: string
+          space_id: string
+          state: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "comparisons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      redeem_space_invite: { Args: { p_invite_code: string }; Returns: string }
+      regenerate_space_invite: {
+        Args: never
+        Returns: {
+          expires_at: string
+          invite_code: string
+        }[]
+      }
+      save_answer: {
+        Args: {
+          p_importance?: string
+          p_option_key: string
+          p_private_note?: string
+          p_question_id: string
+          p_space_id: string
+        }
+        Returns: Json
+      }
+      set_space_paused: { Args: { p_paused: boolean }; Returns: undefined }
+      share_answer: { Args: { p_answer_id: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
 
-export type Tables<TableName extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][TableName]["Row"];
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

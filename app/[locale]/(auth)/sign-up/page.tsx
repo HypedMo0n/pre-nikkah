@@ -12,11 +12,11 @@ export default async function SignUpPage({ params, searchParams }: { params: Pro
   if (!isLocale(locale)) notFound();
   const query = await searchParams;
   const entryMode = query.mode === "join" ? "join" : "create";
-  const fallback = localizedPath(locale, `/onboarding/account?mode=${entryMode}`);
+  const fallback = localizedPath(locale, entryMode === "join" ? "/join" : "/invite");
   const next = safeReturnPath(locale, query.next, fallback);
   const d = getDictionary(locale);
   return (
-    <OnboardingShell backHref={localizedPath(locale, "/journey")} locale={locale}>
+    <OnboardingShell backHref={localizedPath(locale, "/product")} locale={locale}>
       <Card className="p-6 shadow-soft sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{d["auth.privateAccount"]}</p>
         <h1 className="font-expressive mt-3 text-3xl font-medium text-ink">{d["auth.createTitle"]}</h1>

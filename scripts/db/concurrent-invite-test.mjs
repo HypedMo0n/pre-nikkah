@@ -3,8 +3,6 @@ import { pathToFileURL } from "node:url";
 import postgres from "postgres";
 import { requireRemoteDevelopmentDatabase } from "./remote-safety.mjs";
 
-const policyVersion = "2026-07-18-v1";
-
 async function createFixtureUser(sql, userId, displayName) {
   await sql`
     insert into auth.users (
@@ -29,7 +27,7 @@ async function createFixtureUser(sql, userId, displayName) {
       extensions.crypt('temporary-test-password', extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      ${sql.json({ private_display_name: displayName })},
+      ${sql.json({ display_name: displayName, locale: "en" })},
       now(),
       now()
     )
@@ -48,12 +46,9 @@ async function asAuthenticated(sql, userId, callback) {
 async function redeem(sql, userId, inviteCode) {
   return asAuthenticated(sql, userId, async (transaction) => {
     const [result] = await transaction`
-      select public.redeem_couple_invite(
-        ${inviteCode},
-        ${policyVersion}
-      ) as couple_id
+      select public.redeem_space_invite(${inviteCode}) as space_id
     `;
-    return result.couple_id;
+    return result.space_id;
   });
 }
 
@@ -73,8 +68,8 @@ export async function runConcurrentInviteTest(dbUrl) {
 
     const invitation = await asAuthenticated(admin, ownerId, async (transaction) => {
       const [created] = await transaction`
-        select invite_code, couple_id
-        from public.create_couple_invite(${policyVersion})
+        select space_id, invite_code
+        from public.create_space()
       `;
       return created;
     });
@@ -90,26 +85,25 @@ export async function runConcurrentInviteTest(dbUrl) {
       throw new Error("Concurrent redemption did not produce exactly one success.");
     }
 
-    const [couple] = await admin`
-      select status, user_b_id
-      from public.couples
-      where id = ${invitation.couple_id}::uuid
+    const [space] = await admin`
+      select status, invite_redeemed_at
+      from public.spaces
+      where id = ${invitation.space_id}::uuid
     `;
     const [{ membership_count: membershipCount }] = await admin`
       select count(*)::integer as membership_count
-      from public.couple_memberships
-      where couple_id = ${invitation.couple_id}::uuid
+      from public.space_members
+      where space_id = ${invitation.space_id}::uuid
         and ended_at is null
     `;
 
-    if (couple?.status !== "active" || !couple.user_b_id || membershipCount !== 2) {
-      throw new Error("Concurrent redemption left an invalid couple membership state.");
+    if (space?.status !== "active" || !space.invite_redeemed_at || membershipCount !== 2) {
+      throw new Error("Concurrent redemption left an invalid space membership state.");
     }
   } finally {
     await admin`
-      delete from public.couples
-      where user_a_id = any(${fixtureIds}::uuid[])
-         or user_b_id = any(${fixtureIds}::uuid[])
+      delete from public.spaces
+      where created_by = any(${fixtureIds}::uuid[])
     `;
     await admin`delete from auth.users where id = any(${fixtureIds}::uuid[])`;
     await Promise.all([admin.end(), firstClient.end(), secondClient.end()]);

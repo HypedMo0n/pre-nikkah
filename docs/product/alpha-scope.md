@@ -54,14 +54,15 @@ Authored but unverified:
 - Runtime authentication and two-user authorization behavior (real Supabase
   Auth sessions, real RLS enforcement) are unverified for the same reason.
 
-A note on seed counts: this document was originally written when
-`supabase/seed.sql` defined eight topics and 34 questions. The seed now
-defines twelve topics and 72 questions, adding careers-education-and-time,
-marriage-contract-and-nikah, health-and-wellbeing, and
-intimacy-and-closeness alongside the original eight, and moving
-dealbreakers to `order_index` 12 so it remains the closing reflection. The
-counts in `supabase/README.md` and the verify gate in
-`scripts/db/remote-db.mjs` were corrected in the same change.
+A stale-documentation note for accuracy: `supabase/README.md` currently
+states the seed adds "four active topics, 27 original questions." The
+actual `supabase/seed.sql` defines eight topics and 34 questions
+(communication-and-conflict, faith-and-religious-practice,
+family-boundaries-and-involvement, living-arrangements, household-roles,
+finances-and-debt, children-and-parenting, and dealbreakers). This scope
+document is written against the actual seed content, not the stale count.
+`supabase/README.md` should be corrected separately; that correction is not
+part of this file's scope.
 
 ## 2. In scope
 
@@ -134,36 +135,6 @@ introduce.
   carries the "do not include abuse/trauma detail" copy), the onboarding
   privacy explanation, and a persistent link from settings.
 
-**Status: closed.** `app/[locale]/(public)/resources/page.tsx` is a static,
-locale-aware surface carrying an "if something doesn't feel safe" framing,
-signs worth taking seriously, what a person can do, and what this app does and
-does not do. It is outside `protectedPrefixes` and makes no Supabase call, so
-it renders with no session. It reads no answer, topic, or per-user state, which
-keeps the cadence document's "does not inspect answer values" boundary intact.
-
-Content is deliberately jurisdiction-agnostic: it points at local emergency
-services and local organisations rather than naming a hotline that would be
-wrong for most readers.
-
-`components/safety/quick-exit.tsx` leaves via `location.replace` so the current
-history entry is overwritten rather than stacked, and also fires on Escape. A
-browser cannot erase the entries before it, so the page says plainly that this
-does not clear browsing history and explains what to check.
-
-All three required entry points are a single navigation away: the sensitive and
-professional_discussion branch on the question screen, a link in the onboarding
-privacy sequence, and a persistent link in the settings privacy section.
-
-One addition beyond the written requirement: `<Analytics />` was mounted
-globally, so opening the off-ramp recorded a pageview. Vercel Analytics is
-cookieless and does not identify a visitor, but this surface exists for people
-whose activity may be watched, so `components/analytics/site-analytics.tsx`
-drops the event for `/resources` via `beforeSend`.
-
-Proven by `tests/e2e/safety-resources.spec.ts`. The signed-out cases run
-anywhere; the settings and sensitive-question cases follow the repository's
-existing convention of skipping without `E2E_BASE_URL`.
-
 ### c) Seed content gaps
 
 **Gap — mahr / marriage-contract.** `checklist_definitions` has a
@@ -179,14 +150,6 @@ and, given the sensitivity, likely one `discussion_only`-tier prompt, must
 be added to `finances-and-debt` covering mahr and marriage-contract
 expectations. No content is authored in this task.
 
-**Status: closed.** `finances-and-debt` now carries a `single` / `exact`
-mahr question at `order_index` 8 asking which arrangement (immediate,
-deferred, or split) is expected, with helper text keeping the answer to the
-general form rather than an amount. The `discussion_only` contract prompt
-sits in the new `marriage-contract-and-nikah` topic, which also covers
-ceremony, walimah, civil registration, contract conditions, and wali or
-witnesses. Proven by `supabase/tests/database/seed_content_inventory.test.sql`.
-
 **Gap — intimacy.** No topic or question in the current seed addresses
 intimacy expectations at all.
 
@@ -196,18 +159,6 @@ schema (`sensitivity = 'sensitive'` or `'professional_discussion'`, with
 `comparison_mode` of `discussion_only` or `never_compare` depending on how
 the content is eventually authored). Topic placement (existing topic vs. a
 new one) is a content-authoring decision deferred past this scope document.
-
-**Status: closed.** Placement went to a new `intimacy-and-closeness` topic
-at `order_index` 11, immediately before dealbreakers. It holds five
-questions: a `standard` opener about how each person shows care day to day,
-so the topic does not begin on a sensitive prompt, then three `sensitive`
-questions on affection, comfort discussing expectations, and how private
-this stays from family, and finally a `professional_discussion` free-text
-prompt that is `never_compare` and non-revealable. Every prompt is written
-to expectations rather than explicit detail, and the free-text helper names
-sexual detail, trauma, abuse history, and medical information as
-out of scope. Proven by
-`supabase/tests/database/seed_content_inventory.test.sql`.
 
 ### d) Partner-visibility softening
 
@@ -230,28 +181,6 @@ whole-journey "partner is progressing" indicator, or restricting
 implementation decision for the follow-up task; the fixed requirement here
 is that no topic-level partner-completion signal reaches the client for
 topics outside the couple's current shared one.
-
-**Status: closed.** The second option was taken, and the collapse happens in
-`buildTopicStages` rather than in the pages, so no caller can reintroduce the
-leak. `computeTopicStages` remains private to the module; the exported builder
-maps every non-current topic through `redactPartnerDetail`, which nulls
-`partnerCompletedCount`, `bothCompletedCount`, and `completionPercentage`, and
-rewrites the stage:
-
-- `waiting_for_partner` and `ready_to_discuss` both disclose whether the
-  partner has finished, so both collapse to a new self-only `your_part_done`.
-- `in_progress` is recomputed from this user's own answers, because the old
-  rule also fired when only the partner had started a topic, which revealed
-  which subject they had gone to alone.
-- `completed` survives: it means both finished *and* discussed the topic
-  together, which both partners already know.
-
-Whole-journey aggregates are still permitted, so `calculateJourneyMetrics` and
-`foundationLayersFromStages` now take the builder input and derive from the
-unredacted view instead of from the redacted summaries. The comparisons
-surface needed no change: `groupComparisons` already drops everything except
-`status === 'ready'`, which is only ever a mutually answered question. Proven
-by `tests/unit/topic-stages.test.ts`.
 
 ## 3. Phase 2 verification gate
 

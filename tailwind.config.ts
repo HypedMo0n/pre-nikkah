@@ -10,13 +10,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        ivory: "var(--ivory)",
+        white: "var(--white)",
+        hairline: "var(--hairline)",
+        track: "var(--track)",
+        ink: "var(--ink)",
+        muted: "var(--muted)",
+        green: "var(--green)",
+        "green-soft": "var(--green-soft)",
+        amber: "var(--amber)",
+        "amber-soft": "var(--amber-soft)",
+        "amber-ink": "var(--amber-ink)",
+        danger: "var(--danger)",
         background: "rgb(var(--color-background) / <alpha-value>)",
         section: "rgb(var(--color-section) / <alpha-value>)",
         border: "rgb(var(--color-border) / <alpha-value>)",
         card: "rgb(var(--color-card) / <alpha-value>)",
         "ink-soft": "rgb(var(--color-ink-soft) / <alpha-value>)",
         body: "rgb(var(--color-body) / <alpha-value>)",
-        ink: "rgb(var(--color-ink) / <alpha-value>)",
         primary: "rgb(var(--color-primary) / <alpha-value>)",
         "primary-soft": "rgb(var(--color-primary-soft) / <alpha-value>)",
         accent: "rgb(var(--color-accent) / <alpha-value>)",
@@ -28,11 +39,14 @@ const config: Config = {
         "concern-soft": "rgb(var(--color-concern-soft) / <alpha-value>)",
       },
       borderRadius: {
-        expressive: "1.125rem",
-        productive: "0.75rem",
+        card: "1.25rem",
+        option: "1rem",
+        field: "0.875rem",
+        expressive: "1.25rem",
+        productive: "0.875rem",
       },
       boxShadow: {
-        soft: "0 18px 44px -28px rgba(23, 35, 66, 0.42)",
+        soft: "0 18px 44px -28px rgba(52, 89, 74, 0.28)",
       },
       transitionTimingFunction: {
         // Deliberate entrance/state-change curve, not a blanket ease-out

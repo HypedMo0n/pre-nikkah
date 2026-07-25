@@ -1,17 +1,16 @@
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/config";
 
+// /create-space is deliberately not here — it is the pre-auth sign-up
+// screen (account creation happens on it), not a destination that requires
+// being signed in already. Space creation itself happens on /invite, which
+// is protected.
 const protectedPrefixes = [
-  "/dashboard",
-  "/onboarding",
+  "/home",
   "/invite",
   "/topics",
-  "/comparisons",
-  "/conversations",
-  "/checklist",
-  "/summary",
+  "/record",
   "/settings",
-  "/test-complete",
 ];
 
 export function removeLocalePrefix(pathname: string) {
@@ -28,7 +27,7 @@ export function isProtectedPath(pathname: string) {
 export function safeReturnPath(
   locale: Locale,
   value: FormDataEntryValue | string | null | undefined,
-  fallback = localizedPath(locale, "/dashboard"),
+  fallback = localizedPath(locale, "/home"),
 ) {
   if (typeof value !== "string") {
     return fallback;
