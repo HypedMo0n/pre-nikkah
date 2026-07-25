@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(25);
+select plan(32);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -217,6 +217,81 @@ select is(
   (select category_key from public.get_revealed_disclosures('en')),
   (select key from public.disclosure_categories where id = (select value::uuid from test_state where key = 'category_one')),
   'The revealed attestation is labelled with its own category'
+);
+
+-- Editing a revealed fact must not push the new text to the partner. The
+-- reveal keys on the attestation, not on its content, so the edit retracts it.
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+set local role authenticated;
+
+select lives_ok(
+  format(
+    'select public.save_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'category_one'),
+    'A materially different fact about my own life.'
+  ),
+  'The discloser edits an already revealed attestation'
+);
+
+select is(
+  (select count(*) from public.disclosure_reveals),
+  0::bigint,
+  'Editing the body retracts every reveal of that attestation'
+);
+
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.get_revealed_disclosures('en')),
+  0::bigint,
+  'The partner cannot see the edited fact without a fresh confirmation'
+);
+
+-- Re-revealing the revised fact is a new explicit act.
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+set local role authenticated;
+
+select lives_ok(
+  format(
+    'select public.reveal_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'attestation_one'),
+    'CONFIRM_DISCLOSURE_REVEAL'
+  ),
+  'The revised fact can be revealed again with a new confirmation'
+);
+
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+set local role authenticated;
+
+select is(
+  (select body from public.get_revealed_disclosures('en')),
+  'A materially different fact about my own life.',
+  'The partner then sees the revised fact'
+);
+
+-- Saving the same body again is not an edit and leaves the reveal alone.
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+set local role authenticated;
+
+select lives_ok(
+  format(
+    'select public.save_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'category_one'),
+    'A materially different fact about my own life.'
+  ),
+  'The discloser saves the same body again'
+);
+
+select is(
+  (select count(*) from public.disclosure_reveals),
+  1::bigint,
+  'An unchanged save does not retract the reveal'
 );
 
 -- An outsider sees nothing, revealed or not.

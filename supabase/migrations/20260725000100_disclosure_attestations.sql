@@ -135,6 +135,7 @@ declare
   v_user_id uuid := auth.uid();
   v_space_id uuid := public.current_space_id();
   v_id uuid;
+  v_existing public.disclosure_attestations%rowtype;
 begin
   if v_user_id is null then
     raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
@@ -149,16 +150,37 @@ begin
     raise exception using errcode = 'P0001', message = 'CATEGORY_NOT_FOUND';
   end if;
 
-  insert into public.disclosure_attestations (
-    space_id, category_id, user_id, body
-  )
-  values (v_space_id, p_category_id, v_user_id, p_body)
-  on conflict (space_id, category_id, user_id) do update
-    set body = excluded.body,
-        updated_at = now()
-  returning id into v_id;
+  select * into v_existing
+  from public.disclosure_attestations
+  where space_id = v_space_id
+    and category_id = p_category_id
+    and user_id = v_user_id;
 
-  return v_id;
+  if not found then
+    insert into public.disclosure_attestations (
+      space_id, category_id, user_id, body
+    )
+    values (v_space_id, p_category_id, v_user_id, p_body)
+    returning id into v_id;
+    return v_id;
+  end if;
+
+  -- Editing the body after a reveal would otherwise push the new text to the
+  -- partner through get_revealed_disclosures() without a second confirmation,
+  -- since the reveal keys on the attestation rather than on its content. Any
+  -- change to the fact retracts every reveal of it, so the revised version has
+  -- to be revealed explicitly, exactly like the first one.
+  if v_existing.body is distinct from p_body then
+    update public.disclosure_attestations
+    set body = p_body,
+        updated_at = now()
+    where id = v_existing.id;
+
+    delete from public.disclosure_reveals
+    where attestation_id = v_existing.id;
+  end if;
+
+  return v_existing.id;
 end;
 $$;
 
