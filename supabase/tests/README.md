@@ -6,11 +6,12 @@ Run the suite with:
 npm run db:test
 ```
 
-The four pgTAP files contain 96 assertions covering schema and function grants,
+The seven pgTAP files contain 125 assertions covering schema and function grants,
 account non-enumeration, answer ownership, the complete comparison matrix,
 reveal ownership, safe revealed-answer access, revocation behavior, outsider
 isolation, canonical content immutability, policy acceptance, couple-only shared
-records, invitation misuse, and the agreed two-person deletion cascade.
+records, invitation misuse, the agreed two-person deletion cascade, and the
+seeded content inventory with its mahr, intimacy, and cadence invariants.
 
 The remote test command also runs a two-connection redemption race and requires
 exactly one successful redeemer:

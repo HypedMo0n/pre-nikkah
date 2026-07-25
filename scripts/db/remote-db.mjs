@@ -153,8 +153,8 @@ async function verifySchemaAndSeed() {
         (select count(*)::integer from public.topics where is_active) as topic_count,
         (select count(*)::integer from public.questions where is_active) as question_count
     `;
-    if (topicCount !== 8 || questionCount !== 34) {
-      throw new Error("Seed inventory does not match the approved eight-topic library.");
+    if (topicCount !== 12 || questionCount !== 72) {
+      throw new Error("Seed inventory does not match the approved twelve-topic library.");
     }
   } finally {
     await sql.end();

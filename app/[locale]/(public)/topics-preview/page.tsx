@@ -20,6 +20,10 @@ const TOPIC_KEYS = [
   "household",
   "finances",
   "children",
+  "careers",
+  "nikah",
+  "health",
+  "intimacy",
   "dealbreakers",
 ] as const;
 

@@ -192,7 +192,11 @@ select throws_ok(
       'not_a_real_value'
     )
   $$,
+  -- pgTAP reads a third text argument as the expected error message, so the
+  -- description has to go in the fourth slot with a null message to assert on
+  -- the SQLSTATE alone.
   '23514',
+  null,
   'An out-of-range importance value is rejected'
 );
 
@@ -208,6 +212,7 @@ select throws_ok(
     )
   $$,
   '23514',
+  null,
   'An out-of-range discussion_preference value is rejected'
 );
 

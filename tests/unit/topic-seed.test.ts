@@ -11,24 +11,31 @@ const questionInsert = seed
   .split("on conflict (id) do update")[0];
 
 const expectedTopics = [
-  ["communication-and-conflict", 1, "00000000-0000-4000-8000-000000000105", 2],
-  ["faith-and-religious-practice", 2, "00000000-0000-4000-8000-000000000101", 6],
+  ["communication-and-conflict", 1, "00000000-0000-4000-8000-000000000105", 7],
+  ["faith-and-religious-practice", 2, "00000000-0000-4000-8000-000000000101", 7],
   ["family-boundaries-and-involvement", 3, "00000000-0000-4000-8000-000000000103", 7],
-  ["living-arrangements", 4, "00000000-0000-4000-8000-000000000106", 2],
-  ["household-roles", 5, "00000000-0000-4000-8000-000000000107", 2],
-  ["finances-and-debt", 6, "00000000-0000-4000-8000-000000000102", 7],
+  ["living-arrangements", 4, "00000000-0000-4000-8000-000000000106", 6],
+  ["household-roles", 5, "00000000-0000-4000-8000-000000000107", 6],
+  ["finances-and-debt", 6, "00000000-0000-4000-8000-000000000102", 8],
   ["children-and-parenting", 7, "00000000-0000-4000-8000-000000000104", 7],
-  ["dealbreakers", 8, "00000000-0000-4000-8000-000000000108", 1],
+  ["careers-education-and-time", 8, "00000000-0000-4000-8000-000000000109", 6],
+  ["marriage-contract-and-nikah", 9, "00000000-0000-4000-8000-000000000110", 6],
+  ["health-and-wellbeing", 10, "00000000-0000-4000-8000-000000000111", 6],
+  ["intimacy-and-closeness", 11, "00000000-0000-4000-8000-000000000112", 5],
+  ["dealbreakers", 12, "00000000-0000-4000-8000-000000000108", 1],
 ] as const;
 
 describe("canonical topic seed", () => {
-  it("contains the approved eight-topic sequence exactly once", () => {
+  it("contains the approved twelve-topic sequence exactly once", () => {
+    // Rows are compared by order_index, not by their position in the file: the
+    // seed lists dealbreakers first so it vacates order_index 8 before another
+    // row claims it, since topics.order_index is unique and not deferrable.
     const topicRows = Array.from(
       topicInsert.matchAll(
         /\(\s*'[^']+',\s*'([^']+)',\s*'[^']+',\s*'[^']+',\s*\d+,\s*(\d+),\s*true\s*\)/g,
       ),
-      (match) => [match[1], Number(match[2])],
-    );
+      (match) => [match[1], Number(match[2])] as [string, number],
+    ).sort((left, right) => left[1] - right[1]);
 
     expect(topicRows).toEqual(expectedTopics.map(([slug, order]) => [slug, order]));
   });
@@ -49,7 +56,7 @@ describe("canonical topic seed", () => {
         expectedTopics.map(([slug, , , expected]) => [slug, { actual: expected, expected }]),
       ),
     );
-    expect(Object.values(counts).reduce((total, count) => total + count.actual, 0)).toBe(34);
+    expect(Object.values(counts).reduce((total, count) => total + count.actual, 0)).toBe(72);
   });
 
   it("keeps the opener low sensitivity and the final prompt private and never compared", () => {

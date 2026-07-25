@@ -207,8 +207,12 @@ select is(
   public.inspect_couple_invite(
     (select value from test_state where key = 'invite_code')
   ) ->> 'status',
-  'unavailable',
-  'Inspection does not expose details about a used invitation'
+  -- 20260720000300_invite_status_granularity deliberately stopped collapsing
+  -- expired, used, and malformed codes into one generic 'unavailable', which it
+  -- records as misleading. Inspection already requires an authenticated caller
+  -- who holds the secret code, so naming the reason discloses nothing new.
+  'already_used',
+  'Inspection reports a used invitation as already used rather than a generic failure'
 );
 
 select set_config(
@@ -322,8 +326,8 @@ select is(
 
 select is(
   (select count(*) from public.topics),
-  8::bigint,
-  'An authenticated user can read all eight active topics'
+  12::bigint,
+  'An authenticated user can read all twelve active topics'
 );
 
 select is(
@@ -339,6 +343,10 @@ select is(
     'household-roles',
     'finances-and-debt',
     'children-and-parenting',
+    'careers-education-and-time',
+    'marriage-contract-and-nikah',
+    'health-and-wellbeing',
+    'intimacy-and-closeness',
     'dealbreakers'
   ]::text[],
   'Authenticated topic reads preserve the approved low-to-high intensity order'
@@ -476,7 +484,10 @@ select is(
   public.get_topic_comparison_summary(
     '00000000-0000-4000-8000-000000000101'
   ),
-  '{"aligned":1,"worthDiscussing":1,"possibleConcern":1,"waiting":3}'::jsonb,
+  -- The four buckets must always sum to the topic's active question count.
+  -- faith-and-religious-practice seeds seven questions and this fixture answers
+  -- three of them, so the remaining four are still waiting.
+  '{"aligned":1,"worthDiscussing":1,"possibleConcern":1,"waiting":4}'::jsonb,
   'A topic aggregate includes every active question rather than only the first'
 );
 

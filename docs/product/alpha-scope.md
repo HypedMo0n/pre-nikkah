@@ -54,15 +54,14 @@ Authored but unverified:
 - Runtime authentication and two-user authorization behavior (real Supabase
   Auth sessions, real RLS enforcement) are unverified for the same reason.
 
-A stale-documentation note for accuracy: `supabase/README.md` currently
-states the seed adds "four active topics, 27 original questions." The
-actual `supabase/seed.sql` defines eight topics and 34 questions
-(communication-and-conflict, faith-and-religious-practice,
-family-boundaries-and-involvement, living-arrangements, household-roles,
-finances-and-debt, children-and-parenting, and dealbreakers). This scope
-document is written against the actual seed content, not the stale count.
-`supabase/README.md` should be corrected separately; that correction is not
-part of this file's scope.
+A note on seed counts: this document was originally written when
+`supabase/seed.sql` defined eight topics and 34 questions. The seed now
+defines twelve topics and 72 questions, adding careers-education-and-time,
+marriage-contract-and-nikah, health-and-wellbeing, and
+intimacy-and-closeness alongside the original eight, and moving
+dealbreakers to `order_index` 12 so it remains the closing reflection. The
+counts in `supabase/README.md` and the verify gate in
+`scripts/db/remote-db.mjs` were corrected in the same change.
 
 ## 2. In scope
 
@@ -150,6 +149,14 @@ and, given the sensitivity, likely one `discussion_only`-tier prompt, must
 be added to `finances-and-debt` covering mahr and marriage-contract
 expectations. No content is authored in this task.
 
+**Status: closed.** `finances-and-debt` now carries a `single` / `exact`
+mahr question at `order_index` 8 asking which arrangement (immediate,
+deferred, or split) is expected, with helper text keeping the answer to the
+general form rather than an amount. The `discussion_only` contract prompt
+sits in the new `marriage-contract-and-nikah` topic, which also covers
+ceremony, walimah, civil registration, contract conditions, and wali or
+witnesses. Proven by `supabase/tests/database/seed_content_inventory.test.sql`.
+
 **Gap — intimacy.** No topic or question in the current seed addresses
 intimacy expectations at all.
 
@@ -159,6 +166,18 @@ schema (`sensitivity = 'sensitive'` or `'professional_discussion'`, with
 `comparison_mode` of `discussion_only` or `never_compare` depending on how
 the content is eventually authored). Topic placement (existing topic vs. a
 new one) is a content-authoring decision deferred past this scope document.
+
+**Status: closed.** Placement went to a new `intimacy-and-closeness` topic
+at `order_index` 11, immediately before dealbreakers. It holds five
+questions: a `standard` opener about how each person shows care day to day,
+so the topic does not begin on a sensitive prompt, then three `sensitive`
+questions on affection, comfort discussing expectations, and how private
+this stays from family, and finally a `professional_discussion` free-text
+prompt that is `never_compare` and non-revealable. Every prompt is written
+to expectations rather than explicit detail, and the free-text helper names
+sexual detail, trauma, abuse history, and medical information as
+out of scope. Proven by
+`supabase/tests/database/seed_content_inventory.test.sql`.
 
 ### d) Partner-visibility softening
 

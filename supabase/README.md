@@ -22,7 +22,7 @@ is granted explicitly.
    - Restricted connected-partner metadata, question comparison, and complete
      topic aggregates
 
-`seed.sql` adds four active topics, 27 original questions, and 10 checklist
+`seed.sql` adds 12 active topics, 72 original questions, and 10 checklist
 definitions.
 
 ## Local setup
