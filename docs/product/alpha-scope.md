@@ -134,6 +134,36 @@ introduce.
   carries the "do not include abuse/trauma detail" copy), the onboarding
   privacy explanation, and a persistent link from settings.
 
+**Status: closed.** `app/[locale]/(public)/resources/page.tsx` is a static,
+locale-aware surface carrying an "if something doesn't feel safe" framing,
+signs worth taking seriously, what a person can do, and what this app does and
+does not do. It is outside `protectedPrefixes` and makes no Supabase call, so
+it renders with no session. It reads no answer, topic, or per-user state, which
+keeps the cadence document's "does not inspect answer values" boundary intact.
+
+Content is deliberately jurisdiction-agnostic: it points at local emergency
+services and local organisations rather than naming a hotline that would be
+wrong for most readers.
+
+`components/safety/quick-exit.tsx` leaves via `location.replace` so the current
+history entry is overwritten rather than stacked, and also fires on Escape. A
+browser cannot erase the entries before it, so the page says plainly that this
+does not clear browsing history and explains what to check.
+
+All three required entry points are a single navigation away: the sensitive and
+professional_discussion branch on the question screen, a link in the onboarding
+privacy sequence, and a persistent link in the settings privacy section.
+
+One addition beyond the written requirement: `<Analytics />` was mounted
+globally, so opening the off-ramp recorded a pageview. Vercel Analytics is
+cookieless and does not identify a visitor, but this surface exists for people
+whose activity may be watched, so `components/analytics/site-analytics.tsx`
+drops the event for `/resources` via `beforeSend`.
+
+Proven by `tests/e2e/safety-resources.spec.ts`. The signed-out cases run
+anywhere; the settings and sensitive-question cases follow the repository's
+existing convention of skipping without `E2E_BASE_URL`.
+
 ### c) Seed content gaps
 
 **Gap — mahr / marriage-contract.** `checklist_definitions` has a

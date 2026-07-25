@@ -36,7 +36,14 @@ export function PrivacySequence({ locale }: { locale: Locale }) {
           ))}
         </div>
       </div>
-      <p className="mb-5 rounded-productive border bg-section p-3 text-xs leading-5 text-ink-soft">{d["privacy.technical"]}</p>
+      <p className="mb-3 rounded-productive border bg-section p-3 text-xs leading-5 text-ink-soft">{d["privacy.technical"]}</p>
+      {/* Off-ramp from onboarding: reachable before an account exists. */}
+      <Link
+        className="mb-5 block text-center text-sm font-semibold text-primary underline underline-offset-4"
+        href={localizedPath(locale, "/resources")}
+      >
+        {d["safety.link"]}
+      </Link>
       {step < beats.length - 1 ? (
         <Button className="w-full" onClick={() => setStep((value) => value + 1)}>
           {d["common.next"]}

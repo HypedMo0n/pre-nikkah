@@ -111,6 +111,8 @@ export default async function SettingsPage({
       <div className="mt-4 grid gap-3">
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/summary")}>{d["settings.export"]}</Link>
         <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/privacy")}>{d["privacy.title"]}</Link>
+        {/* Persistent off-ramp: always present, never conditional on any answer. */}
+        <Link className={buttonClasses({ variant: "secondary", className: "w-full" })} href={localizedPath(locale, "/resources")}>{d["safety.link"]}</Link>
       </div>
 
       {testerEnvironment ? <section className="mt-9" aria-labelledby="beta-testing-heading"><h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-soft" id="beta-testing-heading">{d["settings.betaSection"]}</h2><Card className="mt-3 p-5"><p className="text-sm leading-6 text-body">{d["demo.warningBody"]}</p><Link className={buttonClasses({ variant: "secondary", className: "mt-4 w-full" })} href={localizedPath(locale, "/test-complete")}>{d["settings.controlledTest"]}</Link></Card></section> : null}

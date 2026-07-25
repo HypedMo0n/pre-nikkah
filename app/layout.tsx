@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Analytics } from "@vercel/analytics/next";
 
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { brand } from "@/config/brand";
 import { localeCookieName, parseLocale } from "@/lib/i18n/config";
 
@@ -27,7 +27,7 @@ export default async function RootLayout({
     <html dir="ltr" lang={locale}>
       <body className="antialiased">
         {children}
-        <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   );

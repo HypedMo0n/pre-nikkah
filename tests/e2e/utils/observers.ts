@@ -3,7 +3,11 @@ import { expect } from "@playwright/test";
 
 import { redactSensitive } from "./secrets";
 
-const allowedConsolePatterns = [/favicon/i, /ResizeObserver loop/i];
+// `/_vercel/insights/script.js` is injected by @vercel/analytics and is only
+// served by Vercel's edge, so it 404s against a local `next start` and returns
+// an HTML error page that trips strict MIME checking. Same class of
+// off-platform noise as a missing favicon, not a defect under test.
+const allowedConsolePatterns = [/favicon/i, /ResizeObserver loop/i, /_vercel\/insights/i];
 
 export function attachPageGuards(page: Page, testInfo: TestInfo) {
   const failures: string[] = [];
@@ -11,7 +15,11 @@ export function attachPageGuards(page: Page, testInfo: TestInfo) {
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = redactSensitive(message.text());
-    if (allowedConsolePatterns.some((pattern) => pattern.test(text))) return;
+    // A failed resource load reports only a generic "Failed to load resource"
+    // message; the URL that actually failed is on the console location, so
+    // allowances have to be matched against both.
+    const source = redactSensitive(message.location()?.url ?? "");
+    if (allowedConsolePatterns.some((pattern) => pattern.test(text) || pattern.test(source))) return;
     failures.push(`console error: ${text}`);
   });
 
