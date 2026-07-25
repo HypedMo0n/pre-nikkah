@@ -1,7 +1,19 @@
 import type { FoundationLayerState } from "@/components/dashboard/foundation-visual";
 import type { QuestionType } from "@/types/domain";
 
-export type TopicStage = "not_started" | "in_progress" | "waiting_for_partner" | "ready_to_discuss" | "completed";
+/**
+ * `waiting_for_partner` and `ready_to_discuss` both disclose that the partner
+ * has or has not finished a specific topic, so they are only ever produced for
+ * the couple's current shared topic. Every other topic collapses to
+ * `your_part_done`, which describes this user's own side and nothing else.
+ */
+export type TopicStage =
+  | "not_started"
+  | "in_progress"
+  | "your_part_done"
+  | "waiting_for_partner"
+  | "ready_to_discuss"
+  | "completed";
 
 export type TopicStageTopic = { id: string; slug: string; name: string; blurb?: string | null; order_index: number };
 export type TopicStageQuestion = { id: string; topic_id: string; text?: string | null; type?: QuestionType | string | null; order_index?: number | null };
@@ -9,15 +21,21 @@ export type TopicProgressRecord = { topic_id: string; user_id: string; completed
 export type TopicAnswerRecord = { question_id: string; user_id: string; questions?: { topic_id: string | null } | null };
 export type TopicDiscussionRecord = { topic_id: string | null; question_id?: string | null; status: string | null; updated_at?: string | null };
 
+/**
+ * The partner-derived counts are `null` for every topic except the current
+ * shared one. Knowing that a partner has answered 4 of 7 questions in, say,
+ * dealbreakers reveals which specific sensitive subject they are avoiding, so
+ * that detail never leaves this module for a non-current topic.
+ */
 export type TopicStageSummary = {
   topic: TopicStageTopic;
   stage: TopicStage;
   totalQuestionCount: number;
   currentUserCompletedCount: number;
-  partnerCompletedCount: number;
-  bothCompletedCount: number;
+  partnerCompletedCount: number | null;
+  bothCompletedCount: number | null;
   discussionStatus: "not_started" | "discussing" | "discussed";
-  completionPercentage: number;
+  completionPercentage: number | null;
   isCurrent: boolean;
   unansweredQuestions: TopicStageQuestion[];
 };
@@ -45,14 +63,21 @@ function buildAnswerIndex(answers: readonly TopicAnswerRecord[]) {
   return { byTopicUser, byQuestion };
 }
 
-export function buildTopicStages(input: {
+export type TopicStageInput = {
   topics: readonly TopicStageTopic[];
   questions: readonly TopicStageQuestion[];
   progress: readonly TopicProgressRecord[];
   answers: readonly TopicAnswerRecord[];
   discussions: readonly TopicDiscussionRecord[];
   currentUserId: string;
-}): TopicStageSummary[] {
+};
+
+/**
+ * Unredacted view, private to this module. It still carries per-topic partner
+ * detail, so it must never be returned to a caller. Whole-journey aggregates
+ * derive from it; anything topic-shaped goes through `redactPartnerDetail`.
+ */
+function computeTopicStages(input: TopicStageInput): TopicStageSummary[] {
   const { byTopicUser, byQuestion } = buildAnswerIndex(input.answers);
   const questionMap = new Map<string, TopicStageQuestion[]>();
   for (const question of input.questions) {
@@ -104,13 +129,54 @@ export function buildTopicStages(input: {
   return summaries.map((summary, index) => ({ ...summary, isCurrent: index === currentIndex }));
 }
 
+/**
+ * Strips every per-topic partner signal from a topic the couple is not
+ * currently on. `completed` survives because it means both partners finished
+ * *and* discussed the topic together, which both already know.
+ */
+function redactPartnerDetail(summary: TopicStageSummary): TopicStageSummary {
+  if (summary.isCurrent) return summary;
+
+  const selfOnlyStage: TopicStage =
+    summary.stage === "completed"
+      ? "completed"
+      : summary.stage === "waiting_for_partner" || summary.stage === "ready_to_discuss"
+        ? "your_part_done"
+        : summary.currentUserCompletedCount > 0
+          ? "in_progress"
+          : "not_started";
+
+  return {
+    ...summary,
+    stage: selfOnlyStage,
+    partnerCompletedCount: null,
+    bothCompletedCount: null,
+    completionPercentage: null,
+  };
+}
+
+/**
+ * The only topic-shaped view callers get. Partner progress is visible for the
+ * current shared topic and nowhere else.
+ */
+export function buildTopicStages(input: TopicStageInput): TopicStageSummary[] {
+  return computeTopicStages(input).map(redactPartnerDetail);
+}
+
 export function selectCurrentTopic(stages: readonly TopicStageSummary[]) {
   return stages.find((summary) => summary.stage !== "completed") ?? null;
 }
 
-export function calculateJourneyMetrics(stages: readonly TopicStageSummary[]): JourneyMetrics {
+/**
+ * Whole-journey totals are permitted: they say the couple is making progress
+ * without attributing any of it to a named topic. They are computed from the
+ * unredacted view rather than from `buildTopicStages`, whose partner counts are
+ * deliberately null outside the current topic.
+ */
+export function calculateJourneyMetrics(input: TopicStageInput): JourneyMetrics {
+  const stages = computeTopicStages(input);
   const topicsCompleted = stages.filter((summary) => summary.stage === "completed").length;
-  const questionsCompletedTogether = stages.reduce((total, summary) => total + summary.bothCompletedCount, 0);
+  const questionsCompletedTogether = stages.reduce((total, summary) => total + (summary.bothCompletedCount ?? 0), 0);
   const sharedFoundationsDiscovered = topicsCompleted;
   const totalMilestones = stages.length * 2;
   const completedMilestones = stages.reduce((total, summary) => total + (summary.bothCompletedCount === summary.totalQuestionCount && summary.totalQuestionCount > 0 ? 1 : 0) + (summary.stage === "completed" ? 1 : 0), 0);
@@ -122,8 +188,8 @@ export function calculateJourneyMetrics(stages: readonly TopicStageSummary[]): J
   };
 }
 
-export function foundationLayersFromStages(stages: readonly TopicStageSummary[]): FoundationLayerState[] {
-  return stages.map((summary) => summary.stage === "completed" ? "discussed" : summary.bothCompletedCount === summary.totalQuestionCount && summary.totalQuestionCount > 0 ? "completed" : "empty");
+export function foundationLayersFromStages(input: TopicStageInput): FoundationLayerState[] {
+  return computeTopicStages(input).map((summary) => summary.stage === "completed" ? "discussed" : summary.bothCompletedCount === summary.totalQuestionCount && summary.totalQuestionCount > 0 ? "completed" : "empty");
 }
 
 export function activeDashboardTopics(stages: readonly TopicStageSummary[], limit = 3) {
@@ -131,5 +197,5 @@ export function activeDashboardTopics(stages: readonly TopicStageSummary[], limi
 }
 
 export function hasJourneyStarted(stages: readonly TopicStageSummary[]) {
-  return stages.some((summary) => summary.currentUserCompletedCount > 0 || summary.partnerCompletedCount > 0 || summary.stage !== "not_started");
+  return stages.some((summary) => summary.currentUserCompletedCount > 0 || (summary.partnerCompletedCount ?? 0) > 0 || summary.stage !== "not_started");
 }

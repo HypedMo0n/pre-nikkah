@@ -201,6 +201,28 @@ implementation decision for the follow-up task; the fixed requirement here
 is that no topic-level partner-completion signal reaches the client for
 topics outside the couple's current shared one.
 
+**Status: closed.** The second option was taken, and the collapse happens in
+`buildTopicStages` rather than in the pages, so no caller can reintroduce the
+leak. `computeTopicStages` remains private to the module; the exported builder
+maps every non-current topic through `redactPartnerDetail`, which nulls
+`partnerCompletedCount`, `bothCompletedCount`, and `completionPercentage`, and
+rewrites the stage:
+
+- `waiting_for_partner` and `ready_to_discuss` both disclose whether the
+  partner has finished, so both collapse to a new self-only `your_part_done`.
+- `in_progress` is recomputed from this user's own answers, because the old
+  rule also fired when only the partner had started a topic, which revealed
+  which subject they had gone to alone.
+- `completed` survives: it means both finished *and* discussed the topic
+  together, which both partners already know.
+
+Whole-journey aggregates are still permitted, so `calculateJourneyMetrics` and
+`foundationLayersFromStages` now take the builder input and derive from the
+unredacted view instead of from the redacted summaries. The comparisons
+surface needed no change: `groupComparisons` already drops everything except
+`status === 'ready'`, which is only ever a mutually answered question. Proven
+by `tests/unit/topic-stages.test.ts`.
+
 ## 3. Phase 2 verification gate
 
 Restated from `README.md` as a hard gate, not a preference: Phase 2, and

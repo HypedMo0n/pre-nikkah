@@ -31,6 +31,7 @@ const stageLabelKeys = {
   not_started: "dashboard.stageNotStarted",
   ready_to_discuss: "dashboard.stageReadyDiscuss",
   waiting_for_partner: "dashboard.stageWaitingPartner",
+  your_part_done: "dashboard.stageYourPartDone",
 } as const satisfies Record<TopicStageSummary["stage"], TranslationKey>;
 
 type DashboardQuestion = {
@@ -326,8 +327,12 @@ function UpNextTopicCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="font-semibold text-ink">{summary.topic.name}</h3>
+          {/* The "together" figure is partner-derived, so it only appears for
+              the current shared topic, where buildTopicStages leaves it set. */}
           <p className="mt-1 text-sm text-ink-soft">
-            {summary.currentUserCompletedCount}/{summary.totalQuestionCount} {d["dashboard.yourQuestions"]} · {summary.bothCompletedCount}/{summary.totalQuestionCount} {d["dashboard.togetherQuestions"]} · {estimateTopicMinutes(questionTypes)} {d["topic.minutes"]}
+            {summary.currentUserCompletedCount}/{summary.totalQuestionCount} {d["dashboard.yourQuestions"]}
+            {summary.bothCompletedCount !== null && ` · ${summary.bothCompletedCount}/${summary.totalQuestionCount} ${d["dashboard.togetherQuestions"]}`}
+            {" · "}{estimateTopicMinutes(questionTypes)} {d["topic.minutes"]}
           </p>
         </div>
         <span className="rounded-full bg-section px-3 py-1 text-xs font-semibold text-ink-soft">
