@@ -252,6 +252,11 @@ $$;
 
 -- The only path by which a partner ever sees disclosure content, and only for
 -- the specific attestations that were explicitly revealed to them.
+--
+-- Current membership is required as well as the reveal. close_space() ends
+-- memberships without deleting attestations or reveals, so authorizing on the
+-- reveal row alone would let a former partner keep reading health, financial,
+-- and family disclosures indefinitely after the space was unlinked.
 create or replace function public.get_revealed_disclosures(p_locale text)
 returns table (
   attestation_id uuid,
@@ -283,6 +288,7 @@ as $$
     on fallback.category_id = category.id
    and fallback.locale = 'en'
   where reveal.revealed_to_user_id = auth.uid()
+    and public.is_current_space_member(attestation.space_id)
   order by category.order_index;
 $$;
 

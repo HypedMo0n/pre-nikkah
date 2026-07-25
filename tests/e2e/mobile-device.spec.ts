@@ -1,7 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 test("language choice and localized onboarding remain touch accessible", async ({ page }) => {
+  // v3 moved language choice off a dedicated entry screen: / redirects straight
+  // to the English welcome, where a sheet offers the other locales.
   await page.goto("/");
+  await expect(page).toHaveURL(/\/en\/welcome$/);
+
+  const openSheet = page.getByRole("button", { expanded: false }).first();
+  const openBox = await openSheet.boundingBox();
+  expect(openBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await openSheet.click();
+
   const english = page.getByRole("link", { name: "English" });
   const french = page.getByRole("link", { name: "Français" });
   await expect(english).toBeVisible();
@@ -13,7 +22,7 @@ test("language choice and localized onboarding remain touch accessible", async (
 
   await french.click();
   await expect(page).toHaveURL(/\/fr\/welcome$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Vous avez trouvé quelqu’un");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Avant le nikah");
   await expect(page.evaluate(() => document.documentElement.scrollWidth)).resolves.toBeLessThanOrEqual(
     await page.evaluate(() => document.documentElement.clientWidth + 1),
   );

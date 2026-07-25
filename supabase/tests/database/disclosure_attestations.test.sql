@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(19);
+select plan(22);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -213,7 +213,30 @@ select is(
   'An outsider is shown no disclosure content'
 );
 
+-- Unlinking the space ends memberships without deleting attestations or
+-- reveals, so access has to stop at the membership rather than at the reveal.
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+set local role authenticated;
+select lives_ok('select public.close_space()', 'The discloser unlinks the space');
+
+set local role postgres;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.get_revealed_disclosures('en')),
+  0::bigint,
+  'A former partner loses revealed disclosure content once the space is unlinked'
+);
+
 reset role;
+
+select is(
+  (select count(*) from public.disclosure_reveals),
+  1::bigint,
+  'The reveal record itself survives closure; only access to the content stops'
+);
 
 -- An attestation has no comparison to run, which is stronger than choosing not
 -- to compare one. There is no column by which a comparison could reference it.

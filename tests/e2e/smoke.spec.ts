@@ -9,7 +9,8 @@ const publicRoutes = [
   "/en/join/00000000000000000000",
   "/en/account-deleted",
   "/fr/account-deleted",
-  "/account-deleted",
+  // The un-localized /account-deleted route was removed by the v3 rewrite;
+  // every public surface is locale-prefixed now.
 ];
 
 for (const route of publicRoutes) {
