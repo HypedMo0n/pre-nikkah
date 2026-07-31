@@ -82,9 +82,13 @@ export default async function DashboardPage({
       row.topic.id === current?.topic.id,
     ),
   }));
-  const together = data.comparisons.filter(
-    (comparison) => comparison.state !== "pending",
-  ).length;
+  // Comparison rows are now only readable for the current and already
+  // discussed topics, so counting the visible ones would under-report the
+  // journey total. A whole-journey count is permitted; a per-topic one is not.
+  const { data: comparisonTotal } = await supabase.rpc(
+    "get_journey_comparison_count",
+  );
+  const together = Number(comparisonTotal ?? 0);
   const readEventIds = new Set(
     data.eventReads.map((read) => read.space_event_id),
   );
