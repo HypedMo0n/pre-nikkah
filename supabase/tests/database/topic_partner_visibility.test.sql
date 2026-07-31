@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(9);
+select plan(14);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -83,11 +83,15 @@ $$;
 
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
 
+-- Checked as postgres: the helper is deliberately not executable by an
+-- authenticated caller, which is asserted at the end of this file.
+set local role postgres;
 select is(
   public.current_topic_id((select value::uuid from test_state where key = 'space_id')),
   (select value::uuid from test_state where key = 'topic_one'),
   'The first topic the couple has not discussed is the current shared topic'
 );
+set local role authenticated;
 
 select ok(
   public.can_read_topic_partner_state(
@@ -164,6 +168,106 @@ select throws_ok(
   'P0001',
   'SPACE_REQUIRED',
   'The progress RPC still refuses a space the caller is not in'
+);
+
+-- save_answer returns the comparison state and a partnerReady flag, which for a
+-- later topic would disclose whether the partner answered that exact question.
+-- Member B has already answered every topic-two question, so an unguarded
+-- result here would come back ready.
+select is(
+  (
+    select public.save_answer(
+      (select value::uuid from test_state where key = 'space_id'),
+      (select question.id from public.questions question
+       where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+       order by question.order_index limit 1),
+      (select option.key from public.question_options option
+       where option.question_id = (
+         select question.id from public.questions question
+         where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+         order by question.order_index limit 1)
+       order by option.order_index limit 1),
+      'medium',
+      null
+    ) ? 'partnerReady'
+  ),
+  false,
+  'save_answer withholds partner readiness for a non-current topic'
+);
+
+select ok(
+  public.save_answer(
+    (select value::uuid from test_state where key = 'space_id'),
+    (select question.id from public.questions question
+     where question.topic_id = (select value::uuid from test_state where key = 'topic_one')
+     order by question.order_index limit 1),
+    (select option.key from public.question_options option
+     where option.question_id = (
+       select question.id from public.questions question
+       where question.topic_id = (select value::uuid from test_state where key = 'topic_one')
+       order by question.order_index limit 1)
+     order by option.order_index limit 1),
+    'medium',
+    null
+  ) ? 'partnerReady',
+  'save_answer still reports readiness on the current shared topic'
+);
+
+-- Finishing a later topic writes a topic_ready event naming it. Reading that
+-- event would name the topic just as the redacted counts would.
+do $$
+declare
+  v_question record;
+begin
+  for v_question in
+    select question.id, option.key
+    from public.questions question
+    join public.question_options option on option.question_id = question.id
+    where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+      and option.order_index = 1
+  loop
+    perform public.save_answer(
+      (select value::uuid from test_state where key = 'space_id'),
+      v_question.id,
+      v_question.key,
+      'medium',
+      null
+    );
+  end loop;
+end;
+$$;
+
+select is_empty(
+  format(
+    $$select event.id from public.space_events event
+      where event.kind = 'topic_ready'
+        and event.payload_json ->> 'topic_id' = %L$$,
+    (select value from test_state where key = 'topic_two')
+  ),
+  'A topic_ready event for a non-current topic is not readable'
+);
+
+-- The stage helpers check no membership themselves, so they must not be
+-- callable directly; can_read_topic_partner_state is the guarded entry point.
+select throws_ok(
+  format(
+    'select public.is_topic_discussed(%L, %L)',
+    (select value from test_state where key = 'space_id'),
+    (select value from test_state where key = 'topic_two')
+  ),
+  '42501',
+  null,
+  'is_topic_discussed cannot be called directly by an authenticated caller'
+);
+
+select throws_ok(
+  format(
+    'select public.current_topic_id(%L)',
+    (select value from test_state where key = 'space_id')
+  ),
+  '42501',
+  null,
+  'current_topic_id cannot be called directly by an authenticated caller'
 );
 
 reset role;
