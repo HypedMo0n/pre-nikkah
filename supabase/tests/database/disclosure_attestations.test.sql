@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(35);
+select plan(36);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -397,6 +397,26 @@ select is(
   ),
   0::bigint,
   'Anonymous callers have no access to any disclosure table'
+);
+
+-- Both functions take the attestation row and the space row. If they take them
+-- in opposite orders, a concurrent save and reveal of the same attestation
+-- deadlock and Postgres aborts one. No functional test catches that, so the
+-- ordering is pinned here.
+select is_empty(
+  $$
+    select procedure.proname
+    from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'public'
+      and procedure.proname in (
+        'save_disclosure_attestation',
+        'reveal_disclosure_attestation'
+      )
+      and position('disclosure_attestations' in procedure.prosrc)
+          > position('public.spaces' in procedure.prosrc)
+  $$,
+  'Both disclosure functions lock the attestation before the space'
 );
 
 select * from finish();
