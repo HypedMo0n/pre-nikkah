@@ -88,7 +88,15 @@ delete from supabase_migrations.schema_migrations;
 Clearing the ledger is required, otherwise the CLI believes the v2 migrations
 are still applied and will skip straight past the v3 ones.
 
-### 4. Deal with the existing auth users — do not skip this
+### 4. Apply the v3 migrations
+
+```bash
+supabase db push --db-url "$SUPABASE_DB_URL" --include-all
+```
+
+Forward only. Do not reset.
+
+### 5. Deal with the existing auth users — do not skip this
 
 `auth.users` lives outside the `public` schema, so step 3 does not touch it. v3
 `profiles` references it, and that row is created by `handle_new_auth_user`,
@@ -138,14 +146,6 @@ can sign up again:
 ```sql
 delete from auth.users;
 ```
-
-### 5. Apply the v3 migrations
-
-```bash
-supabase db push --db-url "$SUPABASE_DB_URL" --include-all
-```
-
-Forward only. Do not reset.
 
 ### 6. Reload the PostgREST schema cache
 

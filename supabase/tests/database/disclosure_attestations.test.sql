@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(32);
+select plan(34);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -224,6 +224,26 @@ select is(
 set local role postgres;
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
 set local role authenticated;
+
+-- A whitespace-only body would satisfy char_length(body) >= 1 and then count
+-- as an attested required category while disclosing nothing.
+select throws_ok(
+  format(
+    'select public.save_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'category_two'),
+    '   '
+  ),
+  'P0001',
+  'DISCLOSURE_BODY_REQUIRED',
+  'A whitespace-only attestation is rejected'
+);
+
+select is(
+  (select body from public.disclosure_attestations
+   where category_id = (select value::uuid from test_state where key = 'category_two')),
+  'A fact about my own life, category two.',
+  'The rejected blank save left the existing body untouched'
+);
 
 select lives_ok(
   format(
