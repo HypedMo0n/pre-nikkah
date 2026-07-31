@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(34);
+select plan(35);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -185,6 +185,19 @@ select throws_ok(
   'P0001',
   'SPACE_PAUSED',
   'A paused journey refuses a confirmed reveal'
+);
+
+-- Pausing stops answer saves, so it must stop disclosure saves too; otherwise
+-- the partner-visible attested count could still move while paused.
+select throws_ok(
+  format(
+    'select public.save_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'category_two'),
+    'A fact recorded while paused.'
+  ),
+  'P0001',
+  'SPACE_PAUSED',
+  'A paused journey refuses a disclosure save'
 );
 
 select lives_ok('select public.set_space_paused(false)', 'The discloser resumes the journey');
