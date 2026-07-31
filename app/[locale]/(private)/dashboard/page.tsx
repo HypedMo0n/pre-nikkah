@@ -82,13 +82,14 @@ export default async function DashboardPage({
       row.topic.id === current?.topic.id,
     ),
   }));
-  // Comparison rows are now only readable for the current and already
-  // discussed topics, so counting the visible ones would under-report the
-  // journey total. A whole-journey count is permitted; a per-topic one is not.
-  const { data: comparisonTotal } = await supabase.rpc(
-    "get_journey_comparison_count",
-  );
-  const together = Number(comparisonTotal ?? 0);
+  // Counts only the comparisons this member can read, which is the current and
+  // already discussed topics. A total spanning hidden topics would move when a
+  // member answered a chosen question there, and that difference reveals
+  // whether the partner had already answered it. Under-reporting is the price
+  // of the count not being an oracle.
+  const together = data.comparisons.filter(
+    (comparison) => comparison.state !== "pending",
+  ).length;
   const readEventIds = new Set(
     data.eventReads.map((read) => read.space_event_id),
   );

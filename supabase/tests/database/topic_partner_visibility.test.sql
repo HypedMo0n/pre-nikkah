@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(14);
+select plan(17);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -270,7 +270,45 @@ select throws_ok(
   'current_topic_id cannot be called directly by an authenticated caller'
 );
 
+-- Both members have now answered every topic-two question, so its comparisons
+-- really are ready. These calls would succeed without the guard, which is
+-- exactly what made them an oracle: success meant the partner had answered.
+select throws_ok(
+  format(
+    'select public.mark_question_discussed(%L, %L)',
+    (select value from test_state where key = 'space_id'),
+    (select question.id from public.questions question
+     where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+     order by question.order_index limit 1)
+  ),
+  'P0001',
+  'COMPARISON_NOT_READY',
+  'Marking discussed on a hidden topic fails as though the comparison were not ready'
+);
+
+select throws_ok(
+  format(
+    'select public.add_shared_note(%L, %L, %L)',
+    (select value from test_state where key = 'space_id'),
+    (select question.id from public.questions question
+     where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+     order by question.order_index limit 1),
+    'a note'
+  ),
+  'P0001',
+  'COMPARISON_NOT_READY',
+  'Adding a shared note on a hidden topic fails with the same error'
+);
+
 reset role;
+
+-- The journey-wide comparison count was itself differential: answering one
+-- chosen question in a hidden topic moved it if and only if the partner had
+-- already answered that question.
+select hasnt_function(
+  'public', 'get_journey_comparison_count',
+  'The differential journey comparison count no longer exists'
+);
 
 select * from finish();
 rollback;

@@ -73,7 +73,6 @@ async function verifySchemaAndSeed() {
       "current_space_id",
       "current_topic_id",
       "get_disclosure_overview",
-      "get_journey_comparison_count",
       "get_revealed_disclosures",
       "get_space_overview",
       "get_topic_progress",
