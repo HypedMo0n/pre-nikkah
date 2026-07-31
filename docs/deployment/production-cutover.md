@@ -88,20 +88,56 @@ delete from supabase_migrations.schema_migrations;
 Clearing the ledger is required, otherwise the CLI believes the v2 migrations
 are still applied and will skip straight past the v3 ones.
 
-### 4. Decide what happens to the existing auth users
+### 4. Deal with the existing auth users — do not skip this
 
-v3 `profiles` references `auth.users`, and the row is created by the
-`handle_new_auth_user` trigger, which only fires on insert. Existing auth users
-therefore survive step 3 with no profile, and cannot use the app.
+`auth.users` lives outside the `public` schema, so step 3 does not touch it. v3
+`profiles` references it, and that row is created by `handle_new_auth_user`,
+which is attached `after insert on auth.users`. Every account that existed
+before the cutover therefore survives with **no profile row**, and
+`create_space()` then fails on its profile foreign key.
 
-Either delete them, so the accounts are genuinely gone:
+Signing up again does **not** fix this. The confirmed `auth.users` row already
+exists, so Supabase returns "User already registered" (or an obfuscated fake
+user) rather than inserting a new row, the trigger never fires, and the person
+is left authenticated but permanently unable to use the app.
+
+Pick one of these two. There is no third option.
+
+**Either** backfill the missing profiles, keeping the accounts. This mirrors the
+trigger's own logic, including its display-name and locale fallbacks:
+
+```sql
+insert into public.profiles (id, display_name, locale)
+select
+  users.id,
+  coalesce(
+    nullif(left(trim(users.raw_user_meta_data ->> 'display_name'), 80), ''),
+    nullif(left(split_part(coalesce(users.email, ''), '@', 1), 80), ''),
+    'Member'
+  ),
+  case
+    when coalesce(users.raw_user_meta_data ->> 'locale', '') ~ '^[a-z]{2}(?:-[A-Z]{2})?$'
+      then users.raw_user_meta_data ->> 'locale'
+    else 'en'
+  end
+from auth.users users
+on conflict (id) do nothing;
+```
+
+Then confirm none are left behind:
+
+```sql
+select count(*) from auth.users u
+  where not exists (select 1 from public.profiles p where p.id = u.id);
+-- expect 0
+```
+
+**Or** delete the accounts outright, so those people start genuinely fresh and
+can sign up again:
 
 ```sql
 delete from auth.users;
 ```
-
-Or leave them and have each person sign up again. Do not leave them in place and
-assume they will work.
 
 ### 5. Apply the v3 migrations
 
