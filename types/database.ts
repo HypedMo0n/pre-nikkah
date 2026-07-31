@@ -650,7 +650,6 @@ export type Database = {
       }
       current_space_id: { Args: never; Returns: string }
       current_topic_id: { Args: { p_space_id: string }; Returns: string }
-      get_journey_comparison_count: { Args: never; Returns: number }
       get_space_overview: { Args: never; Returns: Json }
       is_topic_discussed: {
         Args: { p_space_id: string; p_topic_id: string }
