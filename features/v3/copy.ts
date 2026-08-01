@@ -83,6 +83,7 @@ const copy = {
     readyToCompare: "Ready to compare",
     yourTurn: "Your turn",
     answeredWaiting: "Answered · waiting",
+    answeredCompareLater: "Answered",
     continueAnswering: "Continue answering",
     topicIntroPrivacy:
       "Answer at your own pace. Your selections and private notes are hidden from your partner.",
@@ -319,6 +320,7 @@ const copy = {
     readyToCompare: "Prêt à comparer",
     yourTurn: "À vous",
     answeredWaiting: "Répondu · en attente",
+    answeredCompareLater: "Répondu",
     continueAnswering: "Continuer à répondre",
     topicIntroPrivacy:
       "Répondez à votre rythme. Vos choix et notes privées sont cachés à votre partenaire.",

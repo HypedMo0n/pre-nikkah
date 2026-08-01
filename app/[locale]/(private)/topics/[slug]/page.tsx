@@ -98,12 +98,20 @@ export default async function TopicPage({
           const comparison = comparisons.get(question.id);
           const discussed = discussedIds.has(question.id);
           const ready = comparison && comparison.state !== "pending";
+          // Outside the current topic the comparisons policy withholds the row
+          // entirely, so its absence means "not visible", not "the partner has
+          // not answered". "Answered · waiting" would state the latter, which
+          // is a claim about the partner this screen is not entitled to make
+          // and which may be false. A fully discussed topic needs no branch of
+          // its own: every row there takes the `discussed` label first.
           const label = discussed
             ? d.discussed
             : ready
               ? d.readyToCompare
               : ownAnswered
-                ? d.answeredWaiting
+                ? isCurrentTopic
+                  ? d.answeredWaiting
+                  : d.answeredCompareLater
                 : d.yourTurn;
           const href = ready
             ? localizedPath(locale, `/conversations/${question.id}`)

@@ -411,12 +411,13 @@ select is_empty(
     where namespace.nspname = 'public'
       and procedure.proname in (
         'save_disclosure_attestation',
-        'reveal_disclosure_attestation'
+        'reveal_disclosure_attestation',
+        'prepare_account_deletion'
       )
       and position('disclosure_attestations' in procedure.prosrc)
           > position('public.spaces' in procedure.prosrc)
   $$,
-  'Both disclosure functions lock the attestation before the space'
+  'Every function touching both rows takes the attestation before the space'
 );
 
 select * from finish();
