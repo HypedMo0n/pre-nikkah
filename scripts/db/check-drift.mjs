@@ -52,8 +52,14 @@ if (duplicateVersions.length > 0) {
 }
 
 let appliedVersions = [];
-const sql = postgres(databaseUrl, { max: 1, prepare: false, idle_timeout: 5 });
+let sql;
 try {
+  // Constructed inside the boundary: postgres() parses the URL eagerly and
+  // throws on a malformed one with the whole input in the message. Outside
+  // this catch that surfaces as an uncaught exception, printing the username
+  // and password to the terminal or a CI log — past the redact() this script
+  // exists to guarantee — and exiting 1 rather than the documented 2.
+  sql = postgres(databaseUrl, { max: 1, prepare: false, idle_timeout: 5 });
   const rows = await sql`
     select version
     from supabase_migrations.schema_migrations
@@ -64,7 +70,7 @@ try {
   process.stderr.write(`${redact(error.message ?? error)}\n`);
   process.exit(2);
 } finally {
-  await sql.end();
+  await sql?.end();
 }
 
 const applied = new Set(appliedVersions);
