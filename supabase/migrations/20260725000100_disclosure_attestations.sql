@@ -136,12 +136,21 @@ declare
   v_space_id uuid := public.current_space_id();
   v_id uuid;
   v_existing public.disclosure_attestations%rowtype;
+  v_has_existing boolean;
+  v_body text := trim(coalesce(p_body, ''));
+  v_space_status text;
 begin
   if v_user_id is null then
     raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
   end if;
   if v_space_id is null then
     raise exception using errcode = 'P0001', message = 'SPACE_REQUIRED';
+  end if;
+  -- The table's char_length(body) >= 1 accepts a single space, which would
+  -- count the category as attested in get_disclosure_overview() while
+  -- disclosing nothing.
+  if v_body = '' then
+    raise exception using errcode = 'P0001', message = 'DISCLOSURE_BODY_REQUIRED';
   end if;
   if not exists (
     select 1 from public.disclosure_categories category
@@ -154,6 +163,11 @@ begin
   -- it, a reveal could read the pre-edit row, this edit could then update the
   -- body and delete the reveals, and the reveal could still insert afterwards,
   -- publishing the revised fact without a confirmation for that revision.
+  --
+  -- Attestation first, space second. reveal_disclosure_attestation() takes them
+  -- in that order too; reversing them here let a concurrent save and reveal
+  -- each hold one row while waiting for the other. Any future function touching
+  -- both rows must use the same order.
   select * into v_existing
   from public.disclosure_attestations
   where space_id = v_space_id
@@ -161,11 +175,28 @@ begin
     and user_id = v_user_id
   for update;
 
-  if not found then
+  -- Captured immediately: FOUND is rewritten by the next SELECT INTO, and the
+  -- space lock below sits between this lookup and the branch that uses it.
+  v_has_existing := found;
+
+  -- Pausing stops answer saves, so it stops disclosure saves too, otherwise a
+  -- paused member could still move the partner-visible partnerAttested count.
+  -- 'waiting' is allowed, matching save_answer: a person may record their own
+  -- facts before a partner has joined.
+  select space.status into v_space_status
+  from public.spaces space
+  where space.id = v_space_id
+  for update;
+
+  if v_space_status is null or v_space_status not in ('waiting', 'active') then
+    raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
+  end if;
+
+  if not v_has_existing then
     insert into public.disclosure_attestations (
       space_id, category_id, user_id, body
     )
-    values (v_space_id, p_category_id, v_user_id, p_body)
+    values (v_space_id, p_category_id, v_user_id, v_body)
     returning id into v_id;
     return v_id;
   end if;
@@ -175,9 +206,9 @@ begin
   -- since the reveal keys on the attestation rather than on its content. Any
   -- change to the fact retracts every reveal of it, so the revised version has
   -- to be revealed explicitly, exactly like the first one.
-  if v_existing.body is distinct from p_body then
+  if v_existing.body is distinct from v_body then
     update public.disclosure_attestations
-    set body = p_body,
+    set body = v_body,
         updated_at = now()
     where id = v_existing.id;
 
@@ -206,6 +237,7 @@ declare
   v_user_id uuid := auth.uid();
   v_attestation public.disclosure_attestations%rowtype;
   v_partner_id uuid;
+  v_space_status text;
 begin
   if v_user_id is null then
     raise exception using errcode = 'P0001', message = 'AUTH_REQUIRED';
@@ -230,12 +262,17 @@ begin
   -- membership check alone would let a paused journey keep disclosing. This
   -- mirrors share_answer(), which refuses to share an answer while paused;
   -- an attestation is more sensitive, not less.
-  if not exists (
-    select 1
-    from public.spaces space
-    where space.id = v_attestation.space_id
-      and space.status = 'active'
-  ) then
+  --
+  -- Locked, not merely read: set_space_paused() updates this row, so an
+  -- unlocked check could observe 'active', the pause could commit, and the
+  -- reveal would still insert afterwards, publishing content into a space that
+  -- is by then paused.
+  select space.status into v_space_status
+  from public.spaces space
+  where space.id = v_attestation.space_id
+  for update;
+
+  if v_space_status is distinct from 'active' then
     raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
   end if;
 

@@ -34,6 +34,23 @@ const repoVersions = (
   .map((name) => name.split("_")[0])
   .sort();
 
+// The comparison below is set-based, so two files sharing a timestamp would
+// cancel out: neither pending nor unknown, and a confident "No drift" even
+// though the ledger records that version once and cannot represent the second.
+const duplicateVersions = [
+  ...new Set(
+    repoVersions.filter((version, index) => repoVersions.indexOf(version) !== index),
+  ),
+];
+if (duplicateVersions.length > 0) {
+  process.stderr.write(
+    `Duplicate migration versions in supabase/migrations (${duplicateVersions.length}):\n` +
+      duplicateVersions.map((version) => `  ${version}\n`).join("") +
+      "The ledger keys on version, so only one of each can ever be applied.\n",
+  );
+  process.exit(1);
+}
+
 let appliedVersions = [];
 const sql = postgres(databaseUrl, { max: 1, prepare: false, idle_timeout: 5 });
 try {

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(17);
+select plan(18);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -268,6 +268,19 @@ select throws_ok(
   '42501',
   null,
   'current_topic_id cannot be called directly by an authenticated caller'
+);
+
+select throws_ok(
+  format(
+    'select public.require_ready_comparison(%L, %L)',
+    (select value from test_state where key = 'space_id'),
+    (select question.id from public.questions question
+     where question.topic_id = (select value::uuid from test_state where key = 'topic_two')
+     order by question.order_index limit 1)
+  ),
+  '42501',
+  null,
+  'require_ready_comparison cannot be called directly by an authenticated caller'
 );
 
 -- Both members have now answered every topic-two question, so its comparisons

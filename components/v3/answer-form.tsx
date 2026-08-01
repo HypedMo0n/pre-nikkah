@@ -138,7 +138,9 @@ export function V3AnswerForm({
               ? state.comparisonState === "aligned"
                 ? d.aligned
                 : d.patternWorth
-              : d.savedPartnerWaiting}
+              : state.partnerReady === undefined
+                ? d.savedComparisonLater
+                : d.savedPartnerWaiting}
           </p>
           {state.partnerReady && state.priority === "high" ? (
             <p className="mt-1 text-xs">{d.highPriority}</p>

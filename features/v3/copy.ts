@@ -108,6 +108,8 @@ const copy = {
     savePrivately: "Save privately",
     savedPartnerReady: "Your pattern is ready",
     savedPartnerWaiting: "Saved — your partner hasn’t reached this one yet",
+    savedComparisonLater:
+      "Saved — you’ll see how this compares once you reach this topic together",
     nextQuestion: "Next question",
     comparisonTitle: "Here’s your pattern.",
     comparisonBody:
@@ -342,6 +344,8 @@ const copy = {
     savePrivately: "Enregistrer en privé",
     savedPartnerReady: "Votre tendance est prête",
     savedPartnerWaiting: "Enregistré — votre partenaire n’a pas encore répondu",
+    savedComparisonLater:
+      "Enregistré — vous verrez la comparaison lorsque vous arriverez à ce thème ensemble",
     nextQuestion: "Question suivante",
     comparisonTitle: "Voici votre tendance.",
     comparisonBody:

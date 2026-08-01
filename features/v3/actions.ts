@@ -142,6 +142,12 @@ export async function saveAnswerAction(
     data && typeof data === "object" && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
+  // save_answer omits both fields outside the couple's current or already
+  // discussed topics, so their absence means "withheld", not "not ready".
+  // Collapsing that to false would state that the partner has not reached the
+  // question, which is a claim the caller is deliberately not entitled to and
+  // is not known to be true.
+  const partnerStateWithheld = !("partnerReady" in result);
   const comparisonState = ["pending", "aligned", "discuss"].includes(
     String(result.state),
   )
@@ -153,8 +159,8 @@ export async function saveAnswerAction(
   return {
     status: "saved",
     message: d.saved,
-    comparisonState,
-    partnerReady: result.partnerReady === true,
+    comparisonState: partnerStateWithheld ? undefined : comparisonState,
+    partnerReady: partnerStateWithheld ? undefined : result.partnerReady === true,
     priority:
       result.priority === "low" ||
       result.priority === "medium" ||
