@@ -6,6 +6,7 @@ import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { buttonClasses } from "@/components/ui/button";
 import { getV3Copy } from "@/features/v3/copy";
 import { getJourneyState } from "@/features/v3/data";
+import { getCurrentTopicId } from "@/features/v3/progress";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 
@@ -32,6 +33,18 @@ export default async function TopicCompletePage({
     redirect(localizedPath(locale, `/topics/${slug}`));
   }
   const d = getV3Copy(locale);
+  // "Waiting for partner" is a claim about the partner, and outside the
+  // current shared topic this screen has no basis for it: the comparison rows
+  // that would say otherwise are withheld by policy, so the partner may well
+  // have finished this topic already.
+  const isCurrentTopic =
+    topic.id ===
+    getCurrentTopicId(
+      data.content.topics,
+      data.progress,
+      data.content.questions,
+      new Set(data.discussions.map((discussion) => discussion.question_id)),
+    );
   return (
     <OnboardingShell locale={locale}>
       <div className="text-center">
@@ -42,7 +55,7 @@ export default async function TopicCompletePage({
           {topic.title}
         </h1>
         <p className="mt-3 leading-7 text-muted">
-          {d.saved}. {d.waiting}
+          {isCurrentTopic ? `${d.saved}. ${d.waiting}` : d.savedComparisonLater}
         </p>
         <Link
           className={buttonClasses({ className: "mt-8 w-full" })}
