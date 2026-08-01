@@ -13,8 +13,14 @@ The drift is now total rather than partial. As of the last check:
 | | |
 | --- | --- |
 | Applied to production | 10 migrations, `20260718000100` → `20260721000100` (v2) |
-| In `supabase/migrations/` | 7 migrations, `20260724000100` → `20260725000400` (v3) |
+| In `supabase/migrations/` | 10 migrations, `20260724000100` → `20260725000700` (v3) |
 | Overlap | none |
+
+Both counts move as migrations are added, so re-derive them rather than trust
+the table: `ls supabase/migrations/*.sql | wc -l` for the repository side and
+`npm run db:drift` for both. If a checkout disagrees with this table it is the
+table that is stale, and a checkout with *fewer* migrations than the drift
+report expects is missing security fixes and must not be cut over.
 
 The v3 rewrite replaced the schema outright and deleted the migrations that
 built the v2 one. **There is no forward-only path.** Verified by rebuilding

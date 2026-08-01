@@ -135,9 +135,10 @@ reading was taken: `get_disclosure_overview()` returns counts only —
 or title, so a partner learns that disclosures exist without learning which.
 A test asserts those are the only three keys.
 
-Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 19
-assertions. Verified against PostgreSQL across two clean migrate-and-test
-passes: 70 assertions across the whole suite, no failures.
+Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 36
+assertions. Executed against PostgreSQL 16 from a clean database — every
+migration in `supabase/migrations/`, then `supabase/seed.sql`, then all four
+suites: 104 assertions, no failures.
 
 Not included: the UI for recording and revealing an attestation, including the
 reveal confirmation screen. The database refuses an unconfirmed reveal, so the
