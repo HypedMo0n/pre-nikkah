@@ -137,7 +137,7 @@ declare
   v_id uuid;
   v_existing public.disclosure_attestations%rowtype;
   v_has_existing boolean;
-  v_body text := trim(coalesce(p_body, ''));
+  v_body text := public.normalize_body(p_body);
   v_space_status text;
 begin
   if v_user_id is null then
@@ -146,9 +146,9 @@ begin
   if v_space_id is null then
     raise exception using errcode = 'P0001', message = 'SPACE_REQUIRED';
   end if;
-  -- The table's char_length(body) >= 1 accepts a single space, which would
-  -- count the category as attested in get_disclosure_overview() while
-  -- disclosing nothing.
+  -- The table's char_length(body) >= 1 accepts a body of pure whitespace,
+  -- which would count the category as attested in get_disclosure_overview()
+  -- while disclosing nothing.
   if v_body = '' then
     raise exception using errcode = 'P0001', message = 'DISCLOSURE_BODY_REQUIRED';
   end if;

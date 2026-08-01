@@ -243,12 +243,12 @@ begin
     updated_at = excluded.updated_at
   returning id into v_answer_id;
 
-  if nullif(trim(coalesce(p_private_note, '')), '') is null then
+  if nullif(public.normalize_body(p_private_note), '') is null then
     delete from public.private_answer_notes
     where answer_id = v_answer_id and user_id = v_user_id;
   else
     insert into public.private_answer_notes (answer_id, user_id, body, updated_at)
-    values (v_answer_id, v_user_id, trim(p_private_note), now())
+    values (v_answer_id, v_user_id, public.normalize_body(p_private_note), now())
     on conflict (answer_id) do update set
       body = excluded.body,
       updated_at = excluded.updated_at;
@@ -338,12 +338,12 @@ declare
 begin
   perform public.require_ready_comparison(p_space_id, p_question_id);
 
-  if char_length(trim(coalesce(p_body, ''))) not between 1 and 5000 then
+  if char_length(public.normalize_body(p_body)) not between 1 and 5000 then
     raise exception using errcode = 'P0001', message = 'SHARED_NOTE_INVALID';
   end if;
 
   insert into public.shared_notes (space_id, question_id, author_id, body)
-  values (p_space_id, p_question_id, auth.uid(), trim(p_body))
+  values (p_space_id, p_question_id, auth.uid(), public.normalize_body(p_body))
   returning id into v_note_id;
 
   insert into public.space_events (space_id, actor_id, kind, payload_json)

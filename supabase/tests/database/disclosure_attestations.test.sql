@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(36);
+select plan(37);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -249,6 +249,19 @@ select throws_ok(
   'P0001',
   'DISCLOSURE_BODY_REQUIRED',
   'A whitespace-only attestation is rejected'
+);
+
+-- trim() strips ordinary spaces only, so tabs and newlines are the case that
+-- actually reaches this from a textarea.
+select throws_ok(
+  format(
+    'select public.save_disclosure_attestation(%L, %L)',
+    (select value from test_state where key = 'category_two'),
+    E'\n\t\r '
+  ),
+  'P0001',
+  'DISCLOSURE_BODY_REQUIRED',
+  'An attestation of only tabs and newlines is rejected too'
 );
 
 select is(

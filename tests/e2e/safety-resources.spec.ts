@@ -74,29 +74,54 @@ test.describe("safety resources off-ramp", () => {
     await expectNoBrowserFailures();
   });
 
-  test("is one navigation from settings and from a question screen", async ({ page }, testInfo) => {
+  test("is one navigation from settings", async ({ page }, testInfo) => {
     test.skip(!process.env.E2E_BASE_URL, "Requires E2E_BASE_URL plus E2E_TEST_EMAIL/E2E_TEST_PASSWORD.");
     const credentials = getE2ECredentials();
     const expectNoBrowserFailures = attachPageGuards(page, testInfo);
 
     await signIn(page, credentials);
+    await page.goto("/en/settings");
+    await page.getByRole("link", { name: /unsafe or pressured/i }).click();
+    await expect(page).toHaveURL(/\/en\/resources$/);
+    await expect(page.getByTestId("quick-exit")).toBeVisible();
 
-    await test.step("settings carries a persistent link", async () => {
-      await page.goto("/en/settings");
-      await page.getByRole("link", { name: /unsafe or pressured/i }).click();
-      await expect(page).toHaveURL(/\/en\/resources$/);
-      await expect(page.getByTestId("quick-exit")).toBeVisible();
-    });
+    await expectHealthyPage(page);
+    await expectNoBrowserFailures();
+  });
 
-    await test.step("a question screen carries the same link", async () => {
-      await page.goto("/en/topics");
-      await page.locator('a[href*="/topics/"]').first().click();
-      await page.getByRole("link", { name: /begin|continue|start/i }).first().click();
-      const link = page.getByRole("link", { name: /unsafe or pressured/i });
-      await expect(link).toBeVisible();
-      await link.click();
-      await expect(page).toHaveURL(/\/en\/resources$/);
-    });
+  // Split from the settings case because this one needs a connected space and
+  // that one does not. signIn() accepts an onboarding or waiting destination,
+  // so the configured account may have none; /topics then offers only "Create
+  // space" and there is no question screen to check. Skipping on that
+  // precondition says so plainly, where the combined test used to time out
+  // hunting a Begin link that was never going to be there — a fixture gap
+  // reported as a missing safety link.
+  test("is one navigation from a question screen", async ({ page }, testInfo) => {
+    test.skip(!process.env.E2E_BASE_URL, "Requires E2E_BASE_URL plus E2E_TEST_EMAIL/E2E_TEST_PASSWORD.");
+    const credentials = getE2ECredentials();
+    const expectNoBrowserFailures = attachPageGuards(page, testInfo);
+
+    await signIn(page, credentials);
+    await page.goto("/en/topics");
+
+    const topicLink = page.locator('a[href*="/topics/"]').first();
+    test.skip(
+      (await topicLink.count()) === 0,
+      "The E2E account has no connected space, so no question screen exists to check.",
+    );
+    await topicLink.click();
+
+    const openQuestion = page.getByRole("link", { name: /begin|continue|start/i }).first();
+    test.skip(
+      (await openQuestion.count()) === 0,
+      "The E2E account has no connected space, so no question screen exists to check.",
+    );
+    await openQuestion.click();
+
+    const link = page.getByRole("link", { name: /unsafe or pressured/i });
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/\/en\/resources$/);
 
     await expectHealthyPage(page);
     await expectNoBrowserFailures();

@@ -13,7 +13,7 @@ Four pgTAP files cover the v3 schema:
 | `schema_security.test.sql` | 16 | Table, RLS, function and grant inventory |
 | `privacy_and_lifecycle.test.sql` | 35 | Un-shared answers and private notes are unreadable by a partner through any route; sharing is one-way and irreversible; `comparisons` is writable only by `refresh_comparison()`, never by a client; progress functions return counts only |
 | `topic_partner_visibility.test.sql` | 18 | Partner state is withheld for topics the couple has not reached, through every route including the progress RPC, comparisons, events and the save return value |
-| `disclosure_attestations.test.sql` | 36 | Attestations are owner-only including after a reveal; reveal is per attestation and explicitly confirmed; the overview returns counts without category identity; every function touching an attestation and its space locks them in one order, account deletion included |
+| `disclosure_attestations.test.sql` | 37 | Attestations are owner-only including after a reveal; reveal is per attestation and explicitly confirmed; the overview returns counts without category identity; every function touching an attestation and its space locks them in one order, account deletion included |
 
 The assertion counts are the `plan()` in each file. They are listed so a run
 that silently stops early is visible as a shortfall rather than passing quietly.
