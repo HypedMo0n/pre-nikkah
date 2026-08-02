@@ -245,11 +245,18 @@ existing convention of skipping without `E2E_BASE_URL`.
 seven questions cover general finances, debt, transparency, family support,
 and major purchases, but mahr and contract terms are absent entirely.
 
-**Requirement.** At least one comparison-eligible question (following the
-existing `single` or `scale` pattern already used in `finances-and-debt`)
-and, given the sensitivity, likely one `discussion_only`-tier prompt, must
-be added to `finances-and-debt` covering mahr and marriage-contract
-expectations. No content is authored in this task.
+**Requirement.** At least one comparison-eligible question covering mahr and
+marriage-contract expectations.
+
+Originally this required the question to sit in `finances-and-debt`, because
+that was the only topic the v2 seed had where contract terms could plausibly
+belong. **Revised here, explicitly, so the requirement and its status agree:**
+the v3 library added a dedicated `nikah-contract` topic, which is a better home
+for the subject than the finances topic — mahr is a contract term, not a
+budgeting question, and grouping it with debt and major purchases was a
+limitation of the old topic list rather than a decision about the content. The
+`discussion_only`-tier wording is dropped with the column that carried it (see
+the amendment at the top of this file).
 
 **Gap — intimacy.** No topic or question in the current seed addresses
 intimacy expectations at all.
@@ -266,7 +273,7 @@ same "do not put abuse or trauma detail here" framing the dealbreakers and
 family-boundaries questions use, with the safety off-ramp from item (b)
 present on its screen as it is on every question screen.
 
-**Status: mahr closed, intimacy still open.**
+**Status: mahr closed against the revised requirement, intimacy still open.**
 The v3 seed added a `nikah-contract` topic carrying three mahr and
 marriage-contract questions ("How should the mahr be decided?", "What form
 would you want the mahr to take?", "Would you want conditions written into the

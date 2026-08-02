@@ -13,8 +13,9 @@ it replaced.
      memberships with one-current-space-per-user enforcement, hashed opaque
      invitations with transactional creation and redemption, localized
      topics and single-choice questions with clustered options, owner-only
-     answers carrying an importance flag and a private note, one-way
-     irreversible answer sharing, comparisons written only by a
+     answers carrying an importance flag and a private note, explicit
+     answer sharing that the author can revoke and that any edit to the
+     answer retracts, comparisons written only by a
      `SECURITY DEFINER` trigger path and never by a client, per-question
      discussed markers, a multi-entry shared-note list, the
      space_events/event_reads notification model, pause/resume and
@@ -97,9 +98,14 @@ project containing unrelated data.
 - A partner's answer can leave PostgreSQL only through
   `get_partner_shared_answer()`, and only the shared `option_key` — the
   function has no `private_note` output column at all, by construction.
-- Sharing is one-way and irreversible: `answer_shares` is insert-only, with
-  no revoke path, matching the v3 product requirement that a share cannot be
-  undone.
+- Sharing is explicit and revocable. `answer_shares` is never writable by a
+  client; rows are created by `share_answer()`, which requires the caller to
+  name the option it is consenting to share, and removed by `revoke_answer()`,
+  which is deliberately not gated on space status or membership so a pause, a
+  close or an unlink can never trap a share. Editing an answer retracts every
+  share of it, so a revised answer has to be shared again explicitly. Current
+  membership is required to read a shared answer, so a share does not outlive
+  the space.
 - `comparisons` grants `authenticated` clients `SELECT` only. Every row is
   written by `refresh_comparison()`, invoked by a trigger on `answers`; a
   direct client insert/update/delete is rejected at the grant level.

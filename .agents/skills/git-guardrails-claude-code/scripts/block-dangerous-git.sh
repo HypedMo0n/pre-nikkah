@@ -107,8 +107,14 @@ while [ "$index" -lt "$count" ]; do
     clean)
       { has_flag -f || has_flag --force; } && block "clean --force" ;;
     branch)
+      # -D is shorthand for --delete --force. The flags are also accepted
+      # separately and in any grouping, so -d -f and -df delete an unmerged
+      # branch just as -D does; matching only -D and the long pair left those
+      # spellings allowed.
       has_flag -D && block "branch -D"
-      { has_flag --delete && has_flag --force; } && block "branch --delete --force" ;;
+      { has_flag -d || has_flag --delete; } &&
+        { has_flag -f || has_flag --force; } &&
+        block "branch --delete --force" ;;
     checkout|restore)
       has_operand "." && block "$subcommand ." ;;
   esac
