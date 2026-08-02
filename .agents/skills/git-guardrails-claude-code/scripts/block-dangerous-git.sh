@@ -135,7 +135,14 @@ while [ "$index" -lt "$count" ]; do
       { has_flag -d || has_flag --delete; } &&
         { has_flag -f || has_flag --force; } &&
         block "branch --delete --force" ;;
-    checkout|restore)
+    checkout|switch|restore)
+      # `git checkout -h` documents -f/--force as "throw away local
+      # modifications", and `git switch -h` gives -f and --discard-changes the
+      # same meaning. Switching refs that way erases uncommitted work just as
+      # surely as a hard reset, and `switch` was not being examined at all.
+      { has_flag -f || has_flag --force || has_flag --discard-changes; } &&
+        block "$subcommand --force discards local modifications"
+
       # `.` is only one spelling of "the whole tree". Git's magic root
       # pathspec `:/` restores every tracked file from the repository root,
       # from any subdirectory, and a bare `*` matches everything too. Matching

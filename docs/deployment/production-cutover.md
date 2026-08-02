@@ -65,7 +65,20 @@ diverged rather than merely fallen behind.
   data. It exists for a disposable verification project only.
 - `supabase db reset` — same reason.
 
-## Prerequisite: the runtime gate, which has not been satisfied
+## Prerequisites, none of which are satisfied yet
+
+`docs/product/alpha-scope.md` is explicit that the runtime gate and the four
+in-scope items are independent: passing the gate without completing the items
+does not make alpha done, and completing the items without the gate does not
+either. **Plan C is approved in principle, not cleared to run.** Both of these
+have to close first:
+
+1. The runtime gate below.
+2. Every in-scope item in `alpha-scope.md`. Item (c) is **open**: no question
+   in the library addresses intimacy expectations, and authoring it is a
+   content decision that has not been made. Items (a), (b) and (d) are closed.
+
+### The runtime gate, which has not been satisfied
 
 `docs/product/alpha-scope.md` makes this a hard gate, not a preference: private
 alpha is not done until an **isolated, disposable** Supabase project passes
@@ -94,8 +107,8 @@ pointed at production. It exists for the disposable project only.
 
 ## Plan C: rebuild production on v3
 
-The approved cutover, to be run **after** the gate above passes. It
-**destroys the existing production data**. At the time
+The approved cutover, to be run only once **every prerequisite above** has
+closed — not the gate alone. It **destroys the existing production data**. At the time
 of writing that is 3 `private_accounts`, 3 `couples`, 3 `couple_memberships`,
 3 `journey_policy_acceptances`, and 3 `couple_invites`. `answers`,
 `topic_progress`, `guided_discussions`, and `answer_reveal_events` are all

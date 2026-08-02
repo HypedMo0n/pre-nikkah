@@ -132,6 +132,8 @@ const copy = {
     shareAnswer: "Share my exact answer",
     shared: "Shared",
     revokeAnswer: "Stop sharing this answer",
+    shareAnswerChanged:
+      "Your answer changed since you opened this. Nothing was shared — check the current answer and share again if you still want to.",
     shareWarning:
       "Your partner sees this option until you stop sharing it. Your private note is never shared.",
     shareConfirmTitle: "Share this exact answer?",
@@ -370,6 +372,8 @@ const copy = {
     shareAnswer: "Partager ma réponse exacte",
     shared: "Partagée",
     revokeAnswer: "Ne plus partager cette réponse",
+    shareAnswerChanged:
+      "Votre réponse a changé depuis l’ouverture de cette fenêtre. Rien n’a été partagé — vérifiez la réponse actuelle et partagez à nouveau si vous le souhaitez.",
     shareWarning:
       "Votre partenaire voit cette option jusqu’à ce que vous cessiez de la partager. Votre note privée n’est jamais partagée.",
     shareConfirmTitle: "Partager cette réponse exacte ?",

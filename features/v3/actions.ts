@@ -172,25 +172,41 @@ export async function saveAnswerAction(
   };
 }
 
-export async function shareAnswerAction(formData: FormData) {
+export async function shareAnswerAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const locale = parseLocale(formData.get("locale"));
+  const d = getV3Copy(locale);
   const answerId = uuidSchema.safeParse(formData.get("answerId"));
   const questionId = uuidSchema.safeParse(formData.get("questionId"));
   const expectedOptionKey = formData.get("expectedOptionKey");
-  if (!answerId.success || !questionId.success) return;
-  if (typeof expectedOptionKey !== "string" || !expectedOptionKey) return;
+  if (!answerId.success || !questionId.success) return errorState(locale);
+  if (typeof expectedOptionKey !== "string" || !expectedOptionKey) {
+    return errorState(locale);
+  }
   const { supabase } = await requireAuthenticatedUser(locale);
   // The option the confirmation screen actually showed. share_answer() raises
-  // ANSWER_CHANGED if the answer moved on since, so a stale confirmation
-  // cannot publish a value the person never agreed to. Revalidating on the
-  // error path re-renders the screen with the current answer, still unshared.
-  await supabase.rpc("share_answer", {
+  // ANSWER_CHANGED if the answer moved on since.
+  const { error } = await supabase.rpc("share_answer", {
     p_answer_id: answerId.data,
     p_expected_option_key: expectedOptionKey,
   });
   revalidatePath(
     localizedPath(locale, `/conversations/${questionId.data}`),
   );
+  // Reported rather than swallowed. Revalidation refreshes the option this
+  // form carries, so an ignored ANSWER_CHANGED would leave the confirmation
+  // open and silently rebound to the new value — and the dialog does not show
+  // the option, so a second click would share something never reviewed. The
+  // caller closes the dialog on this state, putting the current answer back in
+  // front of the person before they can share it.
+  if (error) {
+    return error.message?.includes("ANSWER_CHANGED")
+      ? { status: "error", message: d.shareAnswerChanged }
+      : errorState(locale);
+  }
+  return { status: "saved", message: d.shared };
 }
 
 export async function revokeAnswerAction(formData: FormData) {

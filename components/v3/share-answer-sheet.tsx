@@ -1,10 +1,14 @@
 "use client";
 
 import { LockKeyhole, X } from "lucide-react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
+import {
+  initialActionState,
+  type ActionState,
+} from "@/features/v3/action-types";
 import { shareAnswerAction } from "@/features/v3/actions";
 import { getV3Copy } from "@/features/v3/copy";
 import type { Locale } from "@/lib/i18n/config";
@@ -21,13 +25,33 @@ export function ShareAnswerSheet({
   questionId: string;
 }) {
   const d = getV3Copy(locale);
-  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState(
+    shareAnswerAction,
+    initialActionState,
+  );
+  // The dialog stays open only while the action has not answered the click
+  // that opened it. Any outcome closes it: on success the page now shows the
+  // share, and on ANSWER_CHANGED the answer moved on while this was open, so
+  // leaving the dialog up would let a second click share a value the person
+  // never saw — it does not display the option itself. Derived rather than
+  // set from an effect, so reopening after an error works without resetting
+  // anything.
+  const [openedWith, setOpenedWith] = useState<ActionState | null>(null);
+  const open = openedWith !== null && openedWith === state;
   return (
     <>
       <p className="mt-4 text-xs leading-5 text-muted">{d.shareWarning}</p>
+      {state.status === "error" && state.message ? (
+        <p
+          className="mt-3 rounded-card border border-amber/30 bg-amber-soft p-3 text-sm leading-6 text-amber-ink"
+          role="status"
+        >
+          {state.message}
+        </p>
+      ) : null}
       <Button
         className="mt-3 w-full"
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenedWith(state)}
         variant="secondary"
       >
         {d.shareAnswer}
@@ -47,7 +71,7 @@ export function ShareAnswerSheet({
               <button
                 aria-label={d.cancel}
                 className="flex size-11 items-center justify-center rounded-full text-muted hover:bg-track"
-                onClick={() => setOpen(false)}
+                onClick={() => setOpenedWith(null)}
                 type="button"
               >
                 <X aria-hidden="true" size={20} />
@@ -62,7 +86,7 @@ export function ShareAnswerSheet({
             <p className="mt-3 text-sm leading-6 text-muted">
               {d.shareConfirmBody}
             </p>
-            <form action={shareAnswerAction} className="mt-6 grid gap-3">
+            <form action={formAction} className="mt-6 grid gap-3">
               <input name="locale" type="hidden" value={locale} />
               <input name="answerId" type="hidden" value={answerId} />
               <input name="questionId" type="hidden" value={questionId} />
@@ -76,7 +100,7 @@ export function ShareAnswerSheet({
               </SubmitButton>
               <Button
                 className="w-full"
-                onClick={() => setOpen(false)}
+                onClick={() => setOpenedWith(null)}
                 variant="ghost"
               >
                 {d.cancel}
