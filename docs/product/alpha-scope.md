@@ -254,12 +254,30 @@ expectations. No content is authored in this task.
 **Gap — intimacy.** No topic or question in the current seed addresses
 intimacy expectations at all.
 
-**Requirement.** At least one sensitive-tier intimacy-expectations question
-must exist, following the existing pattern for sensitive material in this
-schema (`sensitivity = 'sensitive'` or `'professional_discussion'`, with
-`comparison_mode` of `discussion_only` or `never_compare` depending on how
-the content is eventually authored). Topic placement (existing topic vs. a
-new one) is a content-authoring decision deferred past this scope document.
+**Requirement.** At least one intimacy-expectations question must exist.
+
+The original wording required it to carry `sensitivity = 'sensitive'` or
+`'professional_discussion'` with a `comparison_mode` of `discussion_only` or
+`never_compare`. Neither column exists in v3 (see the amendment at the top of
+this file), so that criterion could never be met by the approved schema and is
+restated here in terms the v3 model can satisfy: an active question, in a
+topic, whose options are a closed set like every other question, carrying the
+same "do not put abuse or trauma detail here" framing the dealbreakers and
+family-boundaries questions use, with the safety off-ramp from item (b)
+present on its screen as it is on every question screen.
+
+**Status: mahr closed, intimacy still open.**
+The v3 seed added a `nikah-contract` topic carrying three mahr and
+marriage-contract questions ("How should the mahr be decided?", "What form
+would you want the mahr to take?", "Would you want conditions written into the
+contract?"), which closes the mahr half of this item.
+
+No question in the 12-topic, 72-question library addresses intimacy
+expectations. That half is **not** closed, and this document should not be
+read as if it were. Authoring that question is a content decision — what it
+asks, how it is framed, and which topic it belongs in — and this file
+deliberately defers content authoring, so it is recorded as outstanding rather
+than filled in here.
 
 ### d) Partner-visibility softening
 
@@ -328,7 +346,7 @@ only a passing runtime gate counts.
 | --- | --- | --- |
 | a) Disclosure engine | A direct read of an attestation record returns rows only to its owner, including after reveal (mirroring the existing direct-read denial proven for `answers` in `rls_and_authorization.test.sql`). No comparison bucket is ever computed for an attestation. Revealing one attestation does not reveal another. | `supabase/tests/database/disclosure_attestations.test.sql` |
 | b) Safety/off-ramp layer | The resources surface renders without an authenticated session and is reachable in at most two navigations from every `sensitive`/`professional_discussion` question screen, from onboarding privacy, and from settings. This is a reachability property of the UI, not database state, so a pgTAP file cannot prove it. | `tests/e2e/safety-resources.spec.ts` |
-| c) Seed content gaps | `finances-and-debt` contains an active question addressing mahr/marriage-contract expectations. At least one active question across all topics has `sensitivity` in (`sensitive`, `professional_discussion`) and addresses intimacy expectations. | `supabase/tests/database/seed_content_inventory.test.sql` |
+| c) Seed content gaps | The `nikah-contract` topic contains active questions addressing mahr and marriage-contract expectations — **met**, three such questions. At least one active question addresses intimacy expectations — **not met**, none exists; the original form of this criterion referenced `sensitivity`, a column v3 does not have, so it could not have been met as written either. | `supabase/tests/database/seed_content_inventory.test.sql` |
 | d) Partner-visibility softening | For any topic other than the couple's current shared topic, no response reaching the client contains a per-topic partner-completion count or a per-topic `waiting_for_partner` label. If the fix stays in the application layer, this is proven at the unit level; if it moves into a database-side safe-read function, a pgTAP file should assert the function never returns per-topic partner detail for non-current topics. | Extend `tests/unit/topic-stages.test.ts`; add `supabase/tests/database/partner_visibility.test.sql` only if the computation moves server-side |
 
 ## 5. Explicitly out of scope

@@ -86,10 +86,15 @@ psql cutover_backup_check < <the-downloaded-dump>
 
 psql cutover_backup_check -c "select count(*) from public.private_accounts"
 psql cutover_backup_check -c "select count(*) from public.couples"
+psql cutover_backup_check -c "select count(*) from public.couple_memberships"
+psql cutover_backup_check -c "select count(*) from public.journey_policy_acceptances"
 psql cutover_backup_check -c "select count(*) from public.couple_invites"
 psql cutover_backup_check -c "select count(*) from auth.users"
 ```
 
+Every table the inventory above names, plus `auth.users`. A dump missing
+`couple_memberships` or `journey_policy_acceptances` would otherwise pass this
+gate while losing the relationship links and the recorded policy acceptances.
 Those counts must match what production reports right now. Step 3 drops the
 schema and clears the ledger, so a dump that is truncated, partial, or missing
 `auth.users` is discovered *after* the data it was protecting is gone —
@@ -134,14 +139,19 @@ is left authenticated but permanently unable to use the app.
 Pick one of these two. There is no third option.
 
 **Either** backfill the missing profiles, keeping the accounts. This mirrors the
-trigger's own logic, including its display-name and locale fallbacks:
+trigger's own logic, including its display-name and locale fallbacks. It uses
+`public.normalize_body()` for the same reason the trigger does: `trim()` strips
+ordinary spaces only, so metadata containing just tabs or newlines would
+survive it and become a visually blank display name instead of falling back to
+the email prefix. The helper exists by this point because step 4 has already
+applied the migrations:
 
 ```sql
 insert into public.profiles (id, display_name, locale)
 select
   users.id,
   coalesce(
-    nullif(left(trim(users.raw_user_meta_data ->> 'display_name'), 80), ''),
+    nullif(left(public.normalize_body(users.raw_user_meta_data ->> 'display_name'), 80), ''),
     nullif(left(split_part(coalesce(users.email, ''), '@', 1), 80), ''),
     'Member'
   ),

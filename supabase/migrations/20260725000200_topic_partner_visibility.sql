@@ -110,7 +110,6 @@ create or replace function public.require_ready_comparison(
 )
 returns void
 language plpgsql
-stable
 security definer
 set search_path = public, pg_temp
 as $$
@@ -118,12 +117,15 @@ begin
   if not public.is_current_space_member(p_space_id) then
     raise exception using errcode = 'P0001', message = 'SPACE_REQUIRED';
   end if;
-  if not exists (
-    select 1
-    from public.spaces space
-    where space.id = p_space_id
-      and space.status = 'active'
-  ) then
+  -- Locked: both callers write after this returns, so an unlocked snapshot
+  -- would let a concurrent set_space_paused() commit in between and the
+  -- discussion or shared note would still land past the pause boundary. Only
+  -- the space is locked here, so this cannot form a cycle with the functions
+  -- that take an answer before a space.
+  perform 1 from public.spaces space
+  where space.id = p_space_id and space.status = 'active'
+  for update;
+  if not found then
     raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
   end if;
   if not public.can_read_topic_partner_state(
@@ -207,20 +209,13 @@ declare
   v_user_id uuid := auth.uid();
   v_answer_id uuid;
   v_previous_option text;
+  v_space_status text;
   v_comparison public.comparisons%rowtype;
   v_topic_id uuid;
   v_topic_ready boolean;
 begin
   if v_user_id is null or not public.is_current_space_member(p_space_id) then
     raise exception using errcode = 'P0001', message = 'SPACE_REQUIRED';
-  end if;
-  if not exists (
-    select 1
-    from public.spaces space
-    where space.id = p_space_id
-      and space.status in ('waiting', 'active')
-  ) then
-    raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
   end if;
   if p_importance not in ('low', 'medium', 'high') then
     raise exception using errcode = 'P0001', message = 'IMPORTANCE_INVALID';
@@ -244,6 +239,21 @@ begin
     and answer.user_id = v_user_id
   for update;
 
+  -- The pause boundary, checked under a lock and after the answer, not before
+  -- it. Unlocked, set_space_paused() could commit between the check and the
+  -- upsert, and the answer, its recomputed comparison and its topic_ready
+  -- event would all land after the pause took effect. The answer is locked
+  -- first because share_answer() and revoke_answer() take them in that order;
+  -- validating the space at the top of this function instead would reverse it.
+  select space.status into v_space_status
+  from public.spaces space
+  where space.id = p_space_id
+  for update;
+
+  if v_space_status is null or v_space_status not in ('waiting', 'active') then
+    raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
+  end if;
+
   insert into public.answers (
     space_id, question_id, user_id, option_key, importance, updated_at
   )
@@ -264,6 +274,15 @@ begin
   if v_previous_option is not null
      and v_previous_option is distinct from p_option_key then
     delete from public.answer_shares where answer_id = v_answer_id;
+
+    -- And its activity event, exactly as revoke_answer() does. Left behind it
+    -- would report a share the partner can no longer read, and would suppress
+    -- the event for a later share of the revised answer.
+    delete from public.space_events event
+    where event.space_id = p_space_id
+      and event.kind = 'answer_shared'
+      and event.actor_id = v_user_id
+      and event.payload_json ->> 'question_id' = p_question_id::text;
   end if;
 
   if nullif(public.normalize_body(p_private_note), '') is null then
