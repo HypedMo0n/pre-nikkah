@@ -28,7 +28,9 @@ discovered after it.
 - **Per-answer revoke is restored**, in `20260725000300_revoke_answer.sql`.
   `revoke_answer()` deletes every share of an answer and is deliberately not
   gated on space status or membership: granting access is refused while
-  paused, withdrawing it never is. Without this a person who shared an answer
+  paused, withdrawing it never is. Changing an answer retracts its shares for
+  the same reason an edited disclosure retracts its reveals — a share names an
+  answer, not the value it held when the decision to share it was made. Without this a person who shared an answer
   about money, family or faith and then thought better of it had no way back
   short of deleting their account, which is the part of the invariant carrying
   real user-safety weight.
@@ -169,7 +171,7 @@ A test asserts those are the only three keys.
 Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 37
 assertions. Executed against PostgreSQL 16 from a clean database — every
 migration in `supabase/migrations/`, then `supabase/seed.sql`, then all four
-suites: 114 assertions, no failures.
+suites: 117 assertions, no failures.
 
 Not included: the UI for recording and revealing an attestation, including the
 reveal confirmation screen. The database refuses an unconfirmed reveal, so the

@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(43);
+select plan(46);
 
 insert into auth.users (
   id,
@@ -282,7 +282,27 @@ select lives_ok(
   format('select public.share_answer(%L)', (select value from test_state where key = 'answer_a_id')),
   'The author can share again after revoking'
 );
+
+-- A share names an answer, not the value it held when it was shared, so an
+-- edit would otherwise push the newly chosen option to the partner on the
+-- strength of a decision made about a different one.
+select lives_ok(
+  format(
+    'select public.save_answer(%L, %L, %L, %L, null)',
+    (select value from test_state where key = 'space_id'),
+    (select value from test_state where key = 'question_id'),
+    (select value from test_state where key = 'option_b'),
+    'medium'
+  ),
+  'The author can change a shared answer'
+);
+
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+select is(
+  (select count(*) from public.answers),
+  1::bigint,
+  'Changing a shared answer retracts the share, as editing a disclosure retracts its reveals'
+);
 
 select lives_ok(
   format(
@@ -399,6 +419,23 @@ select is(
   ),
   0::bigint,
   'Deleting either account removes the shared space and all dependent private data'
+);
+
+-- share_answer() holds the answer while waiting for its space, so account
+-- deletion must take the answers before the space too rather than reaching
+-- them through the cascade. Both are checked against the stored source, so a
+-- reordering fails here instead of surfacing as an intermittent deadlock.
+select is_empty(
+  $$
+    select procedure.proname
+    from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'public'
+      and procedure.proname in ('share_answer', 'prepare_account_deletion')
+      and position('public.answers' in procedure.prosrc)
+          > position('public.spaces' in procedure.prosrc)
+  $$,
+  'Both functions locking an answer and its space take the answer first'
 );
 
 select * from finish();

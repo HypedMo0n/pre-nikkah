@@ -387,41 +387,6 @@ grant execute on function public.is_current_user_attestation_owner(uuid),
   public.get_revealed_disclosures(text)
   to authenticated;
 
--- Account deletion has to take the same locks in the same order as the two
--- functions above, so it is extended here rather than in the migration that
--- first defined it: attestations do not exist until this file runs.
---
--- Deleting the space first would cascade into disclosure_attestations, so the
--- deletion would hold the space while waiting for an attestation row that a
--- concurrent save or reveal holds while waiting for that same space. Postgres
--- breaks such a cycle by aborting one side, which here could be the account
--- deletion itself. Taking the attestations explicitly and first keeps every
--- path on the one order. disclosure_reveals cascades from the attestation and
--- is never locked ahead of it, so it needs no step of its own.
-create or replace function public.prepare_account_deletion(p_user_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-begin
-  if auth.role() <> 'service_role' then
-    raise exception using errcode = '42501', message = 'SERVICE_ROLE_REQUIRED';
-  end if;
-  delete from public.disclosure_attestations
-  where space_id in (
-    select member.space_id from public.space_members member
-    where member.user_id = p_user_id
-  );
-  delete from public.spaces space
-  where exists (
-    select 1 from public.space_members member
-    where member.space_id = space.id and member.user_id = p_user_id
-  );
-  delete from public.profiles where id = p_user_id;
-end;
-$$;
-
 -- The fixed categories named by the scope document: the material facts the
 -- question library deliberately refuses to collect as answers.
 insert into public.disclosure_categories (id, key, order_index, is_required)

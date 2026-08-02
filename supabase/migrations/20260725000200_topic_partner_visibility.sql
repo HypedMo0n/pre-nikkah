@@ -206,6 +206,7 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_answer_id uuid;
+  v_previous_option text;
   v_comparison public.comparisons%rowtype;
   v_topic_id uuid;
   v_topic_ready boolean;
@@ -231,6 +232,18 @@ begin
     raise exception using errcode = 'P0001', message = 'ANSWER_OPTION_INVALID';
   end if;
 
+  -- Read before the upsert overwrites it. A share names an answer, not the
+  -- value it held when it was shared, so editing a shared answer would push
+  -- the newly chosen option to the partner on the strength of a decision made
+  -- about a different one. Locked so a concurrent share_answer() cannot insert
+  -- its row after the retraction below has run.
+  select answer.option_key into v_previous_option
+  from public.answers answer
+  where answer.space_id = p_space_id
+    and answer.question_id = p_question_id
+    and answer.user_id = v_user_id
+  for update;
+
   insert into public.answers (
     space_id, question_id, user_id, option_key, importance, updated_at
   )
@@ -242,6 +255,16 @@ begin
     importance = excluded.importance,
     updated_at = excluded.updated_at
   returning id into v_answer_id;
+
+  -- Any change to the answer retracts every share of it, so the revised
+  -- version has to be shared explicitly, exactly like the first one. This is
+  -- the same rule save_disclosure_attestation() applies to reveals when the
+  -- body changes. Importance is deliberately not included: it reaches the
+  -- partner through the comparison, never as the exact option.
+  if v_previous_option is not null
+     and v_previous_option is distinct from p_option_key then
+    delete from public.answer_shares where answer_id = v_answer_id;
+  end if;
 
   if nullif(public.normalize_body(p_private_note), '') is null then
     delete from public.private_answer_notes

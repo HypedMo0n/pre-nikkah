@@ -9,7 +9,7 @@
 -- finances, family or faith and then thinks better of it has no way back short
 -- of deleting their account.
 --
--- Two things are needed for revoke to actually mean anything.
+-- Three things are needed for revoke to actually mean anything.
 
 -- 1. The revoke itself.
 --
@@ -60,6 +60,7 @@ declare
   v_user_id uuid := auth.uid();
   v_answer public.answers%rowtype;
   v_partner_id uuid;
+  v_space_status text;
 begin
   select answer.* into v_answer
   from public.answers answer
@@ -68,12 +69,18 @@ begin
   if not found then
     raise exception using errcode = 'P0001', message = 'ANSWER_NOT_OWNED';
   end if;
-  if not exists (
-    select 1
-    from public.spaces space
-    where space.id = v_answer.space_id
-      and space.status = 'active'
-  ) then
+
+  -- Locked, not merely read: set_space_paused() updates this row, so an
+  -- unlocked check could observe 'active', the pause could commit, and this
+  -- share would still insert afterwards, exposing the answer past a boundary
+  -- that had already taken effect. reveal_disclosure_attestation() locks it
+  -- for the same reason.
+  select space.status into v_space_status
+  from public.spaces space
+  where space.id = v_answer.space_id
+  for update;
+
+  if v_space_status is distinct from 'active' then
     raise exception using errcode = 'P0001', message = 'SPACE_PAUSED';
   end if;
 
@@ -146,3 +153,38 @@ $$;
 
 revoke all on function public.revoke_answer(uuid) from public, anon, authenticated;
 grant execute on function public.revoke_answer(uuid) to authenticated;
+
+-- 3. Account deletion has to take these locks in the same order as everything
+-- else. It previously deleted the space first and let the cascade reach
+-- disclosure_attestations; share_answer() now holds an answer row while
+-- waiting for its space, so the deletion has to take the answers explicitly
+-- and first too, or the two can wait on each other and Postgres aborts one --
+-- possibly the deletion. Children before the parent, on every path.
+create or replace function public.prepare_account_deletion(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'SERVICE_ROLE_REQUIRED';
+  end if;
+  delete from public.disclosure_attestations
+  where space_id in (
+    select member.space_id from public.space_members member
+    where member.user_id = p_user_id
+  );
+  delete from public.answers
+  where space_id in (
+    select member.space_id from public.space_members member
+    where member.user_id = p_user_id
+  );
+  delete from public.spaces space
+  where exists (
+    select 1 from public.space_members member
+    where member.space_id = space.id and member.user_id = p_user_id
+  );
+  delete from public.profiles where id = p_user_id;
+end;
+$$;
