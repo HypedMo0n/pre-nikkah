@@ -6,13 +6,24 @@
 // production; that is the point, since nothing in the deploy path applies
 // migrations and drift has previously gone unnoticed until a feature failed.
 //
-//   SUPABASE_DB_URL=... npm run db:drift
+// Put SUPABASE_DB_URL in an ignored .env.local, then:
+//
+//   npm run db:drift
 
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import postgres from "postgres";
 
+import { loadSecretEnvironment } from "./remote-safety.mjs";
+
 const projectRoot = path.resolve(import.meta.dirname, "..", "..");
+
+// supabase/README.md requires the connection string to live in an ignored
+// .env.local and never to appear in a command. Reading only process.env meant
+// the documented configuration could not run this check at all, and the
+// obvious workaround -- SUPABASE_DB_URL=... npm run db:drift -- writes the
+// production credential into shell history.
+loadSecretEnvironment();
 
 /** Keeps credentials out of anything printed, including thrown errors. */
 function redact(text) {
@@ -22,7 +33,8 @@ function redact(text) {
 const databaseUrl = process.env.SUPABASE_DB_URL;
 if (!databaseUrl) {
   process.stderr.write(
-    "SUPABASE_DB_URL is not set. Point it at the database you want to check.\n",
+    "SUPABASE_DB_URL is not set. Put it in an ignored .env.local rather than " +
+      "on the command line, where it would persist in shell history.\n",
   );
   process.exit(2);
 }

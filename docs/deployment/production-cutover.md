@@ -40,10 +40,12 @@ dropped, and content moved into `*_translations` tables.
 ## Detecting drift
 
 ```bash
-SUPABASE_DB_URL=... npm run db:drift
+npm run db:drift
 ```
 
-Read-only, so it is safe to point at production. Exits `0` when every repository
+It reads `SUPABASE_DB_URL` from the ignored `.env.local`, as `supabase/README.md`
+requires, so the connection string never reaches the command line or shell
+history. Read-only, so it is safe to point at production. Exits `0` when every repository
 migration is applied, `1` on drift, `2` if it cannot connect. Run it before every
 deploy that touches `supabase/`. It reports drift in both directions, because an
 applied migration that is missing from the repository means the histories have
@@ -66,14 +68,35 @@ empty, so no answer content is lost.
 Re-check those counts immediately before running. If any of them have grown,
 stop: real users have arrived since, and Plan C is no longer the right choice.
 
-### 1. Confirm the target
+### 1. Confirm the target through the connection you will actually use
 
 ```bash
 supabase projects list
 ```
 
-Confirm the ref you are about to operate on, and that it is the project you
-intend. Every later step is irreversible.
+That lists the projects your login can reach. It says nothing about
+`SUPABASE_DB_URL`, which is what steps 3 and 4 operate through — so on its own
+it cannot catch a stale or mistyped URL pointing at a different project. Check
+the connection itself, read-only, before any destructive SQL:
+
+```bash
+psql "$SUPABASE_DB_URL" -c "select current_database(), current_user"
+psql "$SUPABASE_DB_URL" -c "select count(*), min(version), max(version)
+                            from supabase_migrations.schema_migrations"
+psql "$SUPABASE_DB_URL" -c "select count(*) from public.private_accounts"
+```
+
+Expect the v2 ledger — 10 rows, `20260718000100` through `20260721000100` —
+and the account count from the inventory above. If the ledger shows the v3
+range, the migration table is empty, or `private_accounts` does not exist, this
+URL is **not** production v2 and the procedure must stop: step 3 would drop a
+schema you did not mean to drop, and step 4 would then push migrations
+somewhere else entirely.
+
+Read the URL from the ignored `.env.local` (`set -a; . ./.env.local; set +a`)
+rather than typing it inline, so the credential does not land in shell history.
+
+Every later step is irreversible.
 
 ### 2. Take a backup you have actually restored
 
@@ -191,7 +214,7 @@ actually correct.
 ### 7. Verify
 
 ```bash
-SUPABASE_DB_URL=... npm run db:drift     # expect: No drift
+npm run db:drift     # expect: No drift
 ```
 
 ```sql
