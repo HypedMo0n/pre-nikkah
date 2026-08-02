@@ -193,11 +193,27 @@ begin
   end if;
 
   if not v_has_existing then
+    -- The lookup above can only lock a row that already exists, so two
+    -- concurrent first saves for the same category both find nothing and both
+    -- arrive here. The space lock serializes them, but the loser would still
+    -- run a plain insert after the winner committed and fail the unique
+    -- constraint -- surfacing a raw database error for what is, from the
+    -- person's point of view, an ordinary save. The upsert makes the loser
+    -- behave like the edit it effectively is.
     insert into public.disclosure_attestations (
       space_id, category_id, user_id, body
     )
     values (v_space_id, p_category_id, v_user_id, v_body)
+    on conflict (space_id, category_id, user_id) do update
+      set body = excluded.body,
+          updated_at = now()
     returning id into v_id;
+
+    -- No-op on a genuine first save. In the racing case the row the winner
+    -- created has just had its body replaced, so any reveal of it is retracted
+    -- rather than left pointing at content that was never confirmed for it.
+    delete from public.disclosure_reveals where attestation_id = v_id;
+
     return v_id;
   end if;
 
