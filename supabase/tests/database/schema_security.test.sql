@@ -13,7 +13,7 @@ select is(
     where namespace.nspname = 'public'
       and class.relkind = 'r'
   ),
-  17::bigint,
+  21::bigint,
   'The public schema contains only the approved v3 tables'
 );
 
@@ -26,7 +26,7 @@ select is(
       and class.relkind = 'r'
       and class.relrowsecurity
   ),
-  17::bigint,
+  21::bigint,
   'RLS is enabled on every public table'
 );
 

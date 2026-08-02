@@ -644,8 +644,17 @@ export type Database = {
           space_id: string
         }[]
       }
+      can_read_topic_partner_state: {
+        Args: { p_space_id: string; p_topic_id: string }
+        Returns: boolean
+      }
       current_space_id: { Args: never; Returns: string }
+      current_topic_id: { Args: { p_space_id: string }; Returns: string }
       get_space_overview: { Args: never; Returns: Json }
+      is_topic_discussed: {
+        Args: { p_space_id: string; p_topic_id: string }
+        Returns: boolean
+      }
       get_topic_progress: {
         Args: { p_space_id: string; p_topic_id: string }
         Returns: {
@@ -711,7 +720,11 @@ export type Database = {
         Returns: Json
       }
       set_space_paused: { Args: { p_paused: boolean }; Returns: undefined }
-      share_answer: { Args: { p_answer_id: string }; Returns: undefined }
+      revoke_answer: { Args: { p_answer_id: string }; Returns: undefined }
+      share_answer: {
+        Args: { p_answer_id: string; p_expected_option_key: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

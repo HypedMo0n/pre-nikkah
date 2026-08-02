@@ -19,6 +19,39 @@ this document or a future one without a separate, explicit product decision:
   as they are. Any of the four items below that could be read as license to
   loosen them is scoped explicitly to avoid that reading.
 
+### Amendment: the v3 rewrite against the second invariant
+
+The v3 schema dropped all three named protections. This is the explicit
+product decision the invariant requires, taken before the cutover rather than
+discovered after it.
+
+- **Per-answer revoke is restored**, in `20260725000300_revoke_answer.sql`.
+  `revoke_answer()` deletes every share of an answer and is deliberately not
+  gated on space status or membership: granting access is refused while
+  paused, withdrawing it never is. Changing an answer retracts its shares for
+  the same reason an edited disclosure retracts its reveals — a share names an
+  answer, not the value it held when the decision to share it was made. Without this a person who shared an answer
+  about money, family or faith and then thought better of it had no way back
+  short of deleting their account, which is the part of the invariant carrying
+  real user-safety weight.
+- The same migration stops a share outliving the relationship. `close_space()`
+  ends memberships without deleting `answer_shares`, and the read predicate
+  authorized on the share row alone, so a former partner kept read access to
+  every answer ever shared with them, indefinitely. Current membership is now
+  required, matching `get_revealed_disclosures()`.
+- **`never_compare` and `sensitivity`/`comparison_mode` are superseded**, not
+  restored. v3 replaced free-text answers with fixed options per question, so
+  a comparison is a neutral bucket over a closed set rather than an inspection
+  of what someone wrote. The per-topic visibility rule in
+  `20260725000200_topic_partner_visibility.sql` withholds partner-derived
+  state outside the couple's current shared topic, and the disclosure engine
+  gives material facts a home that is never compared at all. Reinstating a
+  per-question opt-out on top of that is a product question for after alpha,
+  not a precondition of it.
+
+Restoring the two superseded flags later remains open. Nothing in v3 forecloses
+it; it would mean new columns, seed content, and comparison logic.
+
 ## 1. Current state
 
 Built and locally verified:
@@ -109,6 +142,41 @@ required disclosure category has or has not been attested to" — never a
 summary, category label, or partial content. No schema is written in this
 task; this section fixes the requirement that a future schema must satisfy.
 
+**Status: closed at the database layer, against the v3 model.**
+`20260725000100_disclosure_attestations.sql` adds `disclosure_categories`,
+`disclosure_category_translations`, `disclosure_attestations`, and
+`disclosure_reveals`, with the four fixed categories this section names:
+previous marriage, children and dependents, health relevant to marriage, and
+financial obligations.
+
+- **No comparison is possible, not merely declined.** `comparisons` keys on
+  `question_id` and an attestation has no question, so there is no path by
+  which one could be bucketed. Asserted structurally rather than by policy.
+- **A direct read is owner-only, including after a reveal.** This is stricter
+  than `answers`, where an explicit recipient may read the row itself. Revealed
+  content reaches a partner only through `get_revealed_disclosures()`.
+- **Reveal is per attestation and explicit.** It lives in its own table behind
+  `reveal_disclosure_attestation()`, which rejects the call without a
+  confirmation argument, so revealing an answer cannot reveal an attestation
+  and revealing one attestation cannot reveal another.
+
+One reading had to be fixed. "A required disclosure category has or has not
+been attested to" and "never a category label" pull in opposite directions,
+since a per-category signal necessarily names the category. The conservative
+reading was taken: `get_disclosure_overview()` returns counts only —
+`requiredTotal`, `ownAttested`, `partnerAttested` — with no category id, key,
+or title, so a partner learns that disclosures exist without learning which.
+A test asserts those are the only three keys.
+
+Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 37
+assertions. Executed against PostgreSQL 16 from a clean database — every
+migration in `supabase/migrations/`, then `supabase/seed.sql`, then all four
+suites: 118 assertions, no failures.
+
+Not included: the UI for recording and revealing an attestation, including the
+reveal confirmation screen. The database refuses an unconfirmed reveal, so the
+invariant holds regardless, but the surface a person uses is separate work.
+
 ### b) Safety/off-ramp layer
 
 **Gap.** No routing exists anywhere in the app for coercion or safety
@@ -135,6 +203,39 @@ introduce.
   carries the "do not include abuse/trauma detail" copy), the onboarding
   privacy explanation, and a persistent link from settings.
 
+**Status: closed, against the v3 model.**
+`app/[locale]/(public)/resources/page.tsx` is a static, locale-aware surface
+carrying an "if something doesn't feel safe" framing, signs worth taking
+seriously, what a person can do, and what this app does and does not do. It is
+outside `protectedPrefixes` and makes no Supabase call, so it renders with no
+session. It reads no answer, topic, or per-user state.
+
+Content is deliberately jurisdiction-agnostic: it points at local emergency
+services and local organisations rather than naming a hotline that would be
+wrong for most readers.
+
+`components/safety/quick-exit.tsx` leaves via `location.replace` so the current
+history entry is overwritten rather than stacked, and also fires on Escape. A
+browser cannot erase the entries before it, so the page says plainly that this
+does not clear browsing history and explains what to check.
+
+One deviation from the wording above. The v3 rewrite removed the sensitivity
+tiers — `20260724000100_together_in_amanah.sql` carries no `comparison_mode`
+and no sensitivity column — so "every `sensitive` and `professional_discussion` question
+screen" has no v3 equivalent. The link is therefore on **every** question
+screen, a superset of what this section asks for. The onboarding entry point is
+`/product`, since `/privacy` now redirects there. Settings carries the
+persistent link.
+
+Beyond the written requirement, opening the off-ramp recorded an analytics
+pageview. Vercel Analytics is cookieless and does not identify a visitor, but
+this surface exists for people whose activity may be watched, so
+`components/analytics/site-analytics.tsx` drops the event for `/resources`.
+
+Proven by `tests/e2e/safety-resources.spec.ts`. The signed-out cases run
+anywhere; the settings and question-screen cases follow the repository's
+existing convention of skipping without `E2E_BASE_URL`.
+
 ### c) Seed content gaps
 
 **Gap — mahr / marriage-contract.** `checklist_definitions` has a
@@ -144,21 +245,46 @@ introduce.
 seven questions cover general finances, debt, transparency, family support,
 and major purchases, but mahr and contract terms are absent entirely.
 
-**Requirement.** At least one comparison-eligible question (following the
-existing `single` or `scale` pattern already used in `finances-and-debt`)
-and, given the sensitivity, likely one `discussion_only`-tier prompt, must
-be added to `finances-and-debt` covering mahr and marriage-contract
-expectations. No content is authored in this task.
+**Requirement.** At least one comparison-eligible question covering mahr and
+marriage-contract expectations.
+
+Originally this required the question to sit in `finances-and-debt`, because
+that was the only topic the v2 seed had where contract terms could plausibly
+belong. **Revised here, explicitly, so the requirement and its status agree:**
+the v3 library added a dedicated `nikah-contract` topic, which is a better home
+for the subject than the finances topic — mahr is a contract term, not a
+budgeting question, and grouping it with debt and major purchases was a
+limitation of the old topic list rather than a decision about the content. The
+`discussion_only`-tier wording is dropped with the column that carried it (see
+the amendment at the top of this file).
 
 **Gap — intimacy.** No topic or question in the current seed addresses
 intimacy expectations at all.
 
-**Requirement.** At least one sensitive-tier intimacy-expectations question
-must exist, following the existing pattern for sensitive material in this
-schema (`sensitivity = 'sensitive'` or `'professional_discussion'`, with
-`comparison_mode` of `discussion_only` or `never_compare` depending on how
-the content is eventually authored). Topic placement (existing topic vs. a
-new one) is a content-authoring decision deferred past this scope document.
+**Requirement.** At least one intimacy-expectations question must exist.
+
+The original wording required it to carry `sensitivity = 'sensitive'` or
+`'professional_discussion'` with a `comparison_mode` of `discussion_only` or
+`never_compare`. Neither column exists in v3 (see the amendment at the top of
+this file), so that criterion could never be met by the approved schema and is
+restated here in terms the v3 model can satisfy: an active question, in a
+topic, whose options are a closed set like every other question, carrying the
+same "do not put abuse or trauma detail here" framing the dealbreakers and
+family-boundaries questions use, with the safety off-ramp from item (b)
+present on its screen as it is on every question screen.
+
+**Status: mahr closed against the revised requirement, intimacy still open.**
+The v3 seed added a `nikah-contract` topic carrying three mahr and
+marriage-contract questions ("How should the mahr be decided?", "What form
+would you want the mahr to take?", "Would you want conditions written into the
+contract?"), which closes the mahr half of this item.
+
+No question in the 12-topic, 72-question library addresses intimacy
+expectations. That half is **not** closed, and this document should not be
+read as if it were. Authoring that question is a content decision — what it
+asks, how it is framed, and which topic it belongs in — and this file
+deliberately defers content authoring, so it is recorded as outstanding rather
+than filled in here.
 
 ### d) Partner-visibility softening
 
@@ -182,6 +308,30 @@ implementation decision for the follow-up task; the fixed requirement here
 is that no topic-level partner-completion signal reaches the client for
 topics outside the couple's current shared one.
 
+**Status: closed, against the v3 model.** The second option was taken. Note
+that this section describes `features/topics/stages.ts`, which the v3 rewrite
+deleted; the same leak existed in `features/v3/progress.ts`, across a wider
+surface than v2 had:
+
+- `getVisibleTopicStage` collapses `waiting` and `ready` — both disclose
+  whether the partner has finished — to a new self-only `your_part_done` for
+  any topic that is not the current shared one, and otherwise derives the stage
+  from this user's own answers. That last part matters because the previous
+  rule returned `in_progress` when only the partner had started, revealing a
+  topic they had gone to alone. `discussed` survives, since it means both
+  people worked through the topic together.
+- `getCurrentTopicId` is the single definition of "current" behind every
+  partner-visibility decision, so the rule cannot drift between screens.
+- Four render surfaces were disclosing per-topic partner state: the topic list
+  ("together" count and stage), the topic detail page (a chip naming the
+  partner and their count for whichever topic was opened), the journey path (a
+  partner mark on every node), and the summary export, which wrote
+  `partnerAnswered` per topic into a downloadable file.
+
+Proven by `tests/unit/topic-progress-visibility.test.ts`, including a case that
+no non-current topic can emit a partner-revealing stage. The file this section
+names as the place to extend was deleted by the rewrite.
+
 ## 3. Phase 2 verification gate
 
 Restated from `README.md` as a hard gate, not a preference: Phase 2, and
@@ -203,7 +353,7 @@ only a passing runtime gate counts.
 | --- | --- | --- |
 | a) Disclosure engine | A direct read of an attestation record returns rows only to its owner, including after reveal (mirroring the existing direct-read denial proven for `answers` in `rls_and_authorization.test.sql`). No comparison bucket is ever computed for an attestation. Revealing one attestation does not reveal another. | `supabase/tests/database/disclosure_attestations.test.sql` |
 | b) Safety/off-ramp layer | The resources surface renders without an authenticated session and is reachable in at most two navigations from every `sensitive`/`professional_discussion` question screen, from onboarding privacy, and from settings. This is a reachability property of the UI, not database state, so a pgTAP file cannot prove it. | `tests/e2e/safety-resources.spec.ts` |
-| c) Seed content gaps | `finances-and-debt` contains an active question addressing mahr/marriage-contract expectations. At least one active question across all topics has `sensitivity` in (`sensitive`, `professional_discussion`) and addresses intimacy expectations. | `supabase/tests/database/seed_content_inventory.test.sql` |
+| c) Seed content gaps | The `nikah-contract` topic contains active questions addressing mahr and marriage-contract expectations — **met**, three such questions. At least one active question addresses intimacy expectations — **not met**, none exists; the original form of this criterion referenced `sensitivity`, a column v3 does not have, so it could not have been met as written either. | `supabase/tests/database/seed_content_inventory.test.sql` |
 | d) Partner-visibility softening | For any topic other than the couple's current shared topic, no response reaching the client contains a per-topic partner-completion count or a per-topic `waiting_for_partner` label. If the fix stays in the application layer, this is proven at the unit level; if it moves into a database-side safe-read function, a pgTAP file should assert the function never returns per-topic partner detail for non-current topics. | Extend `tests/unit/topic-stages.test.ts`; add `supabase/tests/database/partner_visibility.test.sql` only if the computation moves server-side |
 
 ## 5. Explicitly out of scope

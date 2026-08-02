@@ -121,6 +121,13 @@ export default async function SettingsPage({
           >
             {d.export}
           </Link>
+          {/* Persistent off-ramp: always present, never conditional on any answer. */}
+          <Link
+            className={buttonClasses({ className: "w-full", variant: "secondary" })}
+            href={localizedPath(locale, "/resources")}
+          >
+            {d.safetyLink}
+          </Link>
           {overview.status === "active" || overview.status === "paused" ? (
             <form action={setPausedAction}>
               <input name="locale" type="hidden" value={locale} />

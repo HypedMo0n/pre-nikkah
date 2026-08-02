@@ -115,9 +115,18 @@ export function createRedactor(parsed, rawValue) {
   };
 }
 
-export function requireRemoteDevelopmentDatabase() {
+// Loads the ignored env files and re-checks that they are still ignored and
+// untracked. Split out of requireRemoteDevelopmentDatabase() so a read-only
+// command can use the documented credential-safe configuration -- the URL in
+// .env.local, never on a command line -- without also demanding
+// ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS, which it has no business requiring.
+export function loadSecretEnvironment() {
   loadEnvConfig(projectRoot, true);
   assertSecretFilesAreSafe();
+}
+
+export function requireRemoteDevelopmentDatabase() {
+  loadSecretEnvironment();
 
   if (process.env.ALLOW_DESTRUCTIVE_DEV_DB_OPERATIONS !== "true") {
     throw new Error(

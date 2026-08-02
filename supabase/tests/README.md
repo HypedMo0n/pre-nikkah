@@ -6,15 +6,17 @@ Run the suite with:
 npm run db:test
 ```
 
-The two pgTAP files cover the v3 schema: table/RLS/function inventory and
-grants (`schema_security.test.sql`), and the functional privacy proof —
-un-shared answers and private notes are unreadable by a partner through any
-route, sharing is one-way and irreversible, comparisons are writable only by
-`refresh_comparison()` never a client, and progress functions return counts
-only (`rls_and_privacy.test.sql`). This suite is authored against the v3
-schema in `supabase/migrations/` and has not yet been executed against
-PostgreSQL — see `docs/product/v3-rewrite-audit.md` and the schema
-migrations' own header comments for the design decisions it proves.
+Four pgTAP files cover the v3 schema:
+
+| File | Assertions | Covers |
+| --- | --- | --- |
+| `schema_security.test.sql` | 16 | Table, RLS, function and grant inventory |
+| `privacy_and_lifecycle.test.sql` | 47 | Un-shared answers and private notes are unreadable by a partner through any route; a share is revocable by its author, is retracted when the answer changes, is refused when confirmed against a superseded answer, and does not survive the space closing; `comparisons` is writable only by `refresh_comparison()`, never by a client; progress functions return counts only |
+| `topic_partner_visibility.test.sql` | 18 | Partner state is withheld for topics the couple has not reached, through every route including the progress RPC, comparisons, events and the save return value |
+| `disclosure_attestations.test.sql` | 37 | Attestations are owner-only including after a reveal; reveal is per attestation and explicitly confirmed; the overview returns counts without category identity; every function touching an attestation and its space locks them in one order, account deletion included |
+
+The assertion counts are the `plan()` in each file. They are listed so a run
+that silently stops early is visible as a shortfall rather than passing quietly.
 
 The remote test command also runs a two-connection redemption race and requires
 exactly one successful redeemer:
@@ -25,4 +27,5 @@ npm run db:remote:test
 
 These tests are not considered passed until executed against PostgreSQL. Source
 inspection and the Vitest migration-invariant checks are supplementary and are
-not substitutes for the pgTAP run.
+not substitutes for the pgTAP run. See `docs/product/v3-rewrite-audit.md` and
+the migrations' own header comments for the design decisions the suite proves.

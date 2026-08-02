@@ -142,6 +142,12 @@ export async function saveAnswerAction(
     data && typeof data === "object" && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
+  // save_answer omits both fields outside the couple's current or already
+  // discussed topics, so their absence means "withheld", not "not ready".
+  // Collapsing that to false would state that the partner has not reached the
+  // question, which is a claim the caller is deliberately not entitled to and
+  // is not known to be true.
+  const partnerStateWithheld = !("partnerReady" in result);
   const comparisonState = ["pending", "aligned", "discuss"].includes(
     String(result.state),
   )
@@ -153,8 +159,8 @@ export async function saveAnswerAction(
   return {
     status: "saved",
     message: d.saved,
-    comparisonState,
-    partnerReady: result.partnerReady === true,
+    comparisonState: partnerStateWithheld ? undefined : comparisonState,
+    partnerReady: partnerStateWithheld ? undefined : result.partnerReady === true,
     priority:
       result.priority === "low" ||
       result.priority === "medium" ||
@@ -166,13 +172,50 @@ export async function saveAnswerAction(
   };
 }
 
-export async function shareAnswerAction(formData: FormData) {
+export async function shareAnswerAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const locale = parseLocale(formData.get("locale"));
+  const d = getV3Copy(locale);
+  const answerId = uuidSchema.safeParse(formData.get("answerId"));
+  const questionId = uuidSchema.safeParse(formData.get("questionId"));
+  const expectedOptionKey = formData.get("expectedOptionKey");
+  if (!answerId.success || !questionId.success) return errorState(locale);
+  if (typeof expectedOptionKey !== "string" || !expectedOptionKey) {
+    return errorState(locale);
+  }
+  const { supabase } = await requireAuthenticatedUser(locale);
+  // The option the confirmation screen actually showed. share_answer() raises
+  // ANSWER_CHANGED if the answer moved on since.
+  const { error } = await supabase.rpc("share_answer", {
+    p_answer_id: answerId.data,
+    p_expected_option_key: expectedOptionKey,
+  });
+  revalidatePath(
+    localizedPath(locale, `/conversations/${questionId.data}`),
+  );
+  // Reported rather than swallowed. Revalidation refreshes the option this
+  // form carries, so an ignored ANSWER_CHANGED would leave the confirmation
+  // open and silently rebound to the new value — and the dialog does not show
+  // the option, so a second click would share something never reviewed. The
+  // caller closes the dialog on this state, putting the current answer back in
+  // front of the person before they can share it.
+  if (error) {
+    return error.message?.includes("ANSWER_CHANGED")
+      ? { status: "error", message: d.shareAnswerChanged }
+      : errorState(locale);
+  }
+  return { status: "saved", message: d.shared };
+}
+
+export async function revokeAnswerAction(formData: FormData) {
   const locale = parseLocale(formData.get("locale"));
   const answerId = uuidSchema.safeParse(formData.get("answerId"));
   const questionId = uuidSchema.safeParse(formData.get("questionId"));
   if (!answerId.success || !questionId.success) return;
   const { supabase } = await requireAuthenticatedUser(locale);
-  await supabase.rpc("share_answer", { p_answer_id: answerId.data });
+  await supabase.rpc("revoke_answer", { p_answer_id: answerId.data });
   revalidatePath(
     localizedPath(locale, `/conversations/${questionId.data}`),
   );

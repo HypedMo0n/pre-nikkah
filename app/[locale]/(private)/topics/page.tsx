@@ -6,7 +6,12 @@ import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { Chip } from "@/components/ui/chip";
 import { getV3Copy } from "@/features/v3/copy";
 import { getJourneyState } from "@/features/v3/data";
-import { getTopicStage } from "@/features/v3/progress";
+import {
+  getCurrentTopicId,
+  getVisibleTopicStage,
+  toVisibleProgress,
+  type TopicStage,
+} from "@/features/v3/progress";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
 import { isLocale, localizedPath } from "@/lib/i18n/config";
 
@@ -22,6 +27,14 @@ export default async function TopicsPage({
   const d = getV3Copy(locale);
   const discussedIds = new Set(
     data.discussions.map((discussion) => discussion.question_id),
+  );
+  // Only the current shared topic may carry partner-derived state; every other
+  // row is collapsed to this user's own progress.
+  const currentTopicId = getCurrentTopicId(
+    data.content.topics,
+    data.progress,
+    data.content.questions,
+    discussedIds,
   );
 
   return (
@@ -47,11 +60,14 @@ export default async function TopicsPage({
           const questions = data.content.questions.filter(
             (question) => question.topicId === topic.id,
           );
-          const stage = getTopicStage(
+          const isCurrent = topic.id === currentTopicId;
+          const stage = getVisibleTopicStage(
             progress,
             discussedIds,
             questions.map((question) => question.id),
+            isCurrent,
           );
+          const visible = toVisibleProgress(progress, isCurrent);
           const important = data.answers.some(
             (answer) =>
               answer.userId === user.id &&
@@ -84,10 +100,13 @@ export default async function TopicsPage({
                   <p className="mt-2 text-sm leading-6 text-muted">
                     {topic.subtitle}
                   </p>
+                  {/* The "together" figure counts what the partner has also
+                      answered, so it only appears for the current topic. */}
                   <p className="mt-3 text-xs font-medium text-muted">
-                    {d.yourProgress}: {progress.own}/{progress.total}
-                    {" · "}
-                    {d.togetherProgress}: {progress.together}/{progress.total}
+                    {d.yourProgress}: {visible.own}/{visible.total}
+                    {visible.together !== null
+                      ? ` · ${d.togetherProgress}: ${visible.together}/${visible.total}`
+                      : null}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-3">
@@ -113,13 +132,11 @@ export default async function TopicsPage({
   );
 }
 
-function label(
-  stage: ReturnType<typeof getTopicStage>,
-  d: ReturnType<typeof getV3Copy>,
-) {
+function label(stage: TopicStage, d: ReturnType<typeof getV3Copy>) {
   return {
     not_started: d.unanswered,
     in_progress: d.inProgress,
+    your_part_done: d.yourPartDone,
     waiting: d.waiting,
     ready: d.ready,
     discussed: d.discussed,

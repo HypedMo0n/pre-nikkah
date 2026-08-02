@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(35);
+select plan(47);
 
 insert into auth.users (
   id,
@@ -244,8 +244,9 @@ select is((select count(*) from public.answers), 1::bigint, 'The second member s
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
 select lives_ok(
   format(
-    'select public.share_answer(%L)',
-    (select value from test_state where key = 'answer_a_id')
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
   ),
   'The owner can explicitly share an exact answer once'
 );
@@ -253,6 +254,76 @@ select lives_ok(
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
 select is((select count(*) from public.answers), 2::bigint, 'The recipient can read the explicitly shared exact answer');
 select is((select count(*) from public.private_answer_notes), 0::bigint, 'Sharing an answer never shares its private note');
+
+-- Per-answer revoke. alpha-scope.md fixes it as part of the answer-privacy
+-- model: without it, a person who shares an answer and then thinks better of
+-- it has no way back short of deleting their account.
+select throws_ok(
+  format('select public.revoke_answer(%L)', (select value from test_state where key = 'answer_a_id')),
+  'P0001',
+  'ANSWER_NOT_OWNED',
+  'A recipient cannot revoke a share of an answer that is not theirs'
+);
+
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+select lives_ok(
+  format('select public.revoke_answer(%L)', (select value from test_state where key = 'answer_a_id')),
+  'The author can revoke a share they made'
+);
+
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+select is(
+  (select count(*) from public.answers),
+  1::bigint,
+  'After a revoke the recipient reads only their own answer again'
+);
+
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+select lives_ok(
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
+  ),
+  'The author can share again after revoking'
+);
+
+-- A share names an answer, not the value it held when it was shared, so an
+-- edit would otherwise push the newly chosen option to the partner on the
+-- strength of a decision made about a different one.
+select lives_ok(
+  format(
+    'select public.save_answer(%L, %L, %L, %L, null)',
+    (select value from test_state where key = 'space_id'),
+    (select value from test_state where key = 'question_id'),
+    (select value from test_state where key = 'option_b'),
+    'medium'
+  ),
+  'The author can change a shared answer'
+);
+
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+select is(
+  (select count(*) from public.answers),
+  1::bigint,
+  'Changing a shared answer retracts the share, as editing a disclosure retracts its reveals'
+);
+
+-- A confirmation screen names one option. If the answer moved on before the
+-- request landed, sharing it would publish a value the person never saw on the
+-- confirmation they clicked.
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+select throws_ok(
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
+  ),
+  'P0001',
+  'ANSWER_CHANGED',
+  'A share confirmed against a superseded answer is refused'
+);
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
 
 select lives_ok(
   format(
@@ -319,9 +390,40 @@ select throws_ok(
   'Shared notes cannot change while the space is paused'
 );
 
+-- Granting is gated by the pause; withdrawing never is. A pause must not be
+-- able to trap a share in the partner's view.
+select lives_ok(
+  format('select public.revoke_answer(%L)', (select value from test_state where key = 'answer_a_id')),
+  'An answer can still be revoked while the space is paused'
+);
+
 select lives_ok(
   $$select public.set_space_paused(false)$$,
   'The space can be resumed without losing its private history'
+);
+
+-- close_space() ends memberships but deletes no answer_shares row, so
+-- authorizing on the share alone let a former partner keep reading every
+-- answer ever shared with them, indefinitely.
+select lives_ok(
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_b')
+  ),
+  'The author shares the answer again before the space is closed'
+);
+
+select lives_ok(
+  $$select public.close_space()$$,
+  'Either member can close the shared space'
+);
+
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
+select is(
+  (select count(*) from public.answers),
+  1::bigint,
+  'A former partner cannot read a shared answer once the space is closed'
 );
 
 reset role;
@@ -342,6 +444,23 @@ select is(
   ),
   0::bigint,
   'Deleting either account removes the shared space and all dependent private data'
+);
+
+-- share_answer() holds the answer while waiting for its space, so account
+-- deletion must take the answers before the space too rather than reaching
+-- them through the cascade. Both are checked against the stored source, so a
+-- reordering fails here instead of surfacing as an intermittent deadlock.
+select is_empty(
+  $$
+    select procedure.proname
+    from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    where namespace.nspname = 'public'
+      and procedure.proname in ('share_answer', 'prepare_account_deletion')
+      and position('public.answers' in procedure.prosrc)
+          > position('public.spaces' in procedure.prosrc)
+  $$,
+  'Both functions locking an answer and its space take the answer first'
 );
 
 select * from finish();

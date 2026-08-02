@@ -5,9 +5,7 @@ import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ShareAnswerSheet } from "@/components/v3/share-answer-sheet";
 import { SharedNoteForm } from "@/components/v3/shared-note-form";
-import {
-  markDiscussedAction,
-} from "@/features/v3/actions";
+import { markDiscussedAction, revokeAnswerAction } from "@/features/v3/actions";
 import { getV3Copy } from "@/features/v3/copy";
 import { getJourneyState } from "@/features/v3/data";
 import { requireAuthenticatedUser } from "@/lib/auth/require-user";
@@ -111,14 +109,32 @@ export default async function ConversationPage({
       {ownAnswer && !shared ? (
         <ShareAnswerSheet
           answerId={ownAnswer.id}
+          expectedOptionKey={ownAnswer.optionKey}
           locale={locale}
           questionId={questionId}
         />
-      ) : shared ? (
-        <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-green">
-          <CheckCircle2 aria-hidden="true" size={17} />
-          {d.shared}
-        </p>
+      ) : shared && ownAnswer ? (
+        <>
+          <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-green">
+            <CheckCircle2 aria-hidden="true" size={17} />
+            {d.shared}
+          </p>
+          {/* Sharing is the author's decision, so taking it back has to be too.
+              Unlike sharing this needs no confirmation sheet: it only ever
+              removes access, and a pause or a closed space does not block it. */}
+          <form action={revokeAnswerAction} className="mt-3">
+            <input name="locale" type="hidden" value={locale} />
+            <input name="answerId" type="hidden" value={ownAnswer.id} />
+            <input name="questionId" type="hidden" value={questionId} />
+            <SubmitButton
+              className="w-full"
+              pendingLabel={d.saving}
+              variant="ghost"
+            >
+              {d.revokeAnswer}
+            </SubmitButton>
+          </form>
+        </>
       ) : null}
 
       <section className="mt-9 rounded-card border border-green/20 bg-green-soft p-5">
