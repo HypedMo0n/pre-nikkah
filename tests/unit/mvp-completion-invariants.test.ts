@@ -13,10 +13,17 @@ describe("v3 endpoint invariants", () => {
     expect(actions).not.toContain('.from("comparisons").');
   });
 
-  it("shares exact answers only through the irreversible endpoint", () => {
+  it("shares and revokes exact answers only through the server RPCs", () => {
     const actions = source("features", "v3", "actions.ts");
     expect(actions).toContain('supabase.rpc("share_answer"');
-    expect(actions).not.toMatch(/delete\(\).*answer_shares|revoke.*answer/i);
+    // Revoke is required by the answer-privacy model; see the amendment in
+    // docs/product/alpha-scope.md. This assertion previously read the other
+    // way round, requiring that no revoke path existed at all.
+    expect(actions).toContain('supabase.rpc("revoke_answer"');
+    // The point that still holds: neither direction touches answer_shares
+    // from the client, so the membership and ownership checks cannot be
+    // bypassed.
+    expect(actions).not.toMatch(/from\("answer_shares"\)/);
   });
 
   it("derives both participants progress through the protected count RPC", () => {

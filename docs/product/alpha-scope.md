@@ -19,6 +19,37 @@ this document or a future one without a separate, explicit product decision:
   as they are. Any of the four items below that could be read as license to
   loosen them is scoped explicitly to avoid that reading.
 
+### Amendment: the v3 rewrite against the second invariant
+
+The v3 schema dropped all three named protections. This is the explicit
+product decision the invariant requires, taken before the cutover rather than
+discovered after it.
+
+- **Per-answer revoke is restored**, in `20260725000300_revoke_answer.sql`.
+  `revoke_answer()` deletes every share of an answer and is deliberately not
+  gated on space status or membership: granting access is refused while
+  paused, withdrawing it never is. Without this a person who shared an answer
+  about money, family or faith and then thought better of it had no way back
+  short of deleting their account, which is the part of the invariant carrying
+  real user-safety weight.
+- The same migration stops a share outliving the relationship. `close_space()`
+  ends memberships without deleting `answer_shares`, and the read predicate
+  authorized on the share row alone, so a former partner kept read access to
+  every answer ever shared with them, indefinitely. Current membership is now
+  required, matching `get_revealed_disclosures()`.
+- **`never_compare` and `sensitivity`/`comparison_mode` are superseded**, not
+  restored. v3 replaced free-text answers with fixed options per question, so
+  a comparison is a neutral bucket over a closed set rather than an inspection
+  of what someone wrote. The per-topic visibility rule in
+  `20260725000200_topic_partner_visibility.sql` withholds partner-derived
+  state outside the couple's current shared topic, and the disclosure engine
+  gives material facts a home that is never compared at all. Reinstating a
+  per-question opt-out on top of that is a product question for after alpha,
+  not a precondition of it.
+
+Restoring the two superseded flags later remains open. Nothing in v3 forecloses
+it; it would mean new columns, seed content, and comparison logic.
+
 ## 1. Current state
 
 Built and locally verified:
@@ -138,7 +169,7 @@ A test asserts those are the only three keys.
 Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 37
 assertions. Executed against PostgreSQL 16 from a clean database — every
 migration in `supabase/migrations/`, then `supabase/seed.sql`, then all four
-suites: 106 assertions, no failures.
+suites: 114 assertions, no failures.
 
 Not included: the UI for recording and revealing an attestation, including the
 reveal confirmation screen. The database refuses an unconfirmed reveal, so the

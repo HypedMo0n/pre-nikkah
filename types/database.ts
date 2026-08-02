@@ -720,6 +720,7 @@ export type Database = {
         Returns: Json
       }
       set_space_paused: { Args: { p_paused: boolean }; Returns: undefined }
+      revoke_answer: { Args: { p_answer_id: string }; Returns: undefined }
       share_answer: { Args: { p_answer_id: string }; Returns: undefined }
     }
     Enums: {

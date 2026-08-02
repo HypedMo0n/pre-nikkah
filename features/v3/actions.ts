@@ -184,6 +184,18 @@ export async function shareAnswerAction(formData: FormData) {
   );
 }
 
+export async function revokeAnswerAction(formData: FormData) {
+  const locale = parseLocale(formData.get("locale"));
+  const answerId = uuidSchema.safeParse(formData.get("answerId"));
+  const questionId = uuidSchema.safeParse(formData.get("questionId"));
+  if (!answerId.success || !questionId.success) return;
+  const { supabase } = await requireAuthenticatedUser(locale);
+  await supabase.rpc("revoke_answer", { p_answer_id: answerId.data });
+  revalidatePath(
+    localizedPath(locale, `/conversations/${questionId.data}`),
+  );
+}
+
 export async function saveSharedNoteAction(
   _previous: ActionState,
   formData: FormData,

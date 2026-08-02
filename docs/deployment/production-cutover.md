@@ -13,7 +13,7 @@ The drift is now total rather than partial. As of the last check:
 | | |
 | --- | --- |
 | Applied to production | 10 migrations, `20260718000100` → `20260721000100` (v2) |
-| In `supabase/migrations/` | 5 migrations, `20260724000100` → `20260725000200` (v3) |
+| In `supabase/migrations/` | 6 migrations, `20260724000100` → `20260725000300` (v3) |
 | Overlap | none |
 
 Both counts move as migrations are added, so re-derive them rather than trust

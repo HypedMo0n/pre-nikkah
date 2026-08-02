@@ -131,6 +131,7 @@ const copy = {
     notShared: "Not shared",
     shareAnswer: "Share my exact answer",
     shared: "Shared",
+    revokeAnswer: "Stop sharing this answer",
     shareWarning:
       "Sharing is one-way and permanent for this space. Your private note is never shared.",
     shareConfirmTitle: "Share this exact answer?",
@@ -368,6 +369,7 @@ const copy = {
     notShared: "Non partagée",
     shareAnswer: "Partager ma réponse exacte",
     shared: "Partagée",
+    revokeAnswer: "Ne plus partager cette réponse",
     shareWarning:
       "Le partage est à sens unique et permanent dans cet espace. Votre note privée n’est jamais partagée.",
     shareConfirmTitle: "Partager cette réponse exacte ?",

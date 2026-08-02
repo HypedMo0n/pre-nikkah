@@ -89,6 +89,7 @@ async function verifySchemaAndSeed() {
       "redeem_space_invite",
       "regenerate_space_invite",
       "require_ready_comparison",
+      "revoke_answer",
       "reveal_disclosure_attestation",
       "save_answer",
       "save_disclosure_attestation",
