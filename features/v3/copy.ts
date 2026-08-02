@@ -136,7 +136,7 @@ const copy = {
       "Your partner sees this option until you stop sharing it. Your private note is never shared.",
     shareConfirmTitle: "Share this exact answer?",
     shareConfirmBody:
-      "Your partner will be able to read this option. You can stop sharing it at any time, and editing your answer stops sharing it too. Your private note stays private.",
+      "Your partner will be able to read this option. You can stop sharing it at any time, and editing your answer stops sharing it too — but stopping cannot undo what your partner has already seen. Your private note stays private.",
     shareConfirm: "Yes, share my answer",
     cancel: "Cancel",
     starter: "A gentle place to start",
@@ -374,7 +374,7 @@ const copy = {
       "Votre partenaire voit cette option jusqu’à ce que vous cessiez de la partager. Votre note privée n’est jamais partagée.",
     shareConfirmTitle: "Partager cette réponse exacte ?",
     shareConfirmBody:
-      "Votre partenaire pourra lire cette option. Vous pouvez cesser de la partager à tout moment, et modifier votre réponse y met également fin. Votre note privée reste privée.",
+      "Votre partenaire pourra lire cette option. Vous pouvez cesser de la partager à tout moment, et modifier votre réponse y met également fin — mais cela n’efface pas ce que votre partenaire a déjà vu. Votre note privée reste privée.",
     shareConfirm: "Oui, partager ma réponse",
     cancel: "Annuler",
     starter: "Un point de départ en douceur",

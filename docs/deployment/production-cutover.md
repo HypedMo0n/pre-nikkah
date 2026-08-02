@@ -65,9 +65,37 @@ diverged rather than merely fallen behind.
   data. It exists for a disposable verification project only.
 - `supabase db reset` — same reason.
 
+## Prerequisite: the runtime gate, which has not been satisfied
+
+`docs/product/alpha-scope.md` makes this a hard gate, not a preference: private
+alpha is not done until an **isolated, disposable** Supabase project passes
+**two clean** runs of
+
+```bash
+npm run db:remote:verify
+```
+
+covering migration replay, seed, lint, authorization, concurrency, comparison,
+reveal, and deletion-cascade behaviour. That document also states its own rule
+that no item may be represented as verified on source inspection alone.
+
+**As of this writing the gate has not run.** No disposable project has been
+provided, so the suites have executed only against a local PostgreSQL harness.
+That is a real signal — 118 assertions from a clean replay — but it is not the
+gate, because it does not exercise Supabase's own roles, PostgREST, or auth.
+
+Step 7 below checks table counts and one happy path. That is nowhere near the
+same thing. Running the cutover before the gate passes replaces the production
+schema with authorization, concurrency, and deletion paths that have never been
+verified on the platform they will run on.
+
+`npm run db:remote:verify` performs **two full resets** and must never be
+pointed at production. It exists for the disposable project only.
+
 ## Plan C: rebuild production on v3
 
-The approved cutover. It **destroys the existing production data**. At the time
+The approved cutover, to be run **after** the gate above passes. It
+**destroys the existing production data**. At the time
 of writing that is 3 `private_accounts`, 3 `couples`, 3 `couple_memberships`,
 3 `journey_policy_acceptances`, and 3 `couple_invites`. `answers`,
 `topic_progress`, `guided_discussions`, and `answer_reveal_events` are all

@@ -16,6 +16,12 @@
 # The original literal patterns still run afterwards as a backstop, so nothing
 # that used to be blocked can become allowed by a parsing mistake here.
 
+# Globbing off for the whole script. Word-splitting an argument list is
+# unavoidable here, and with globbing on a bare `*` operand expands against the
+# working directory before it can be compared -- so `git restore "*"`, which
+# reaches git as a pathspec matching every tracked file, was never matched.
+set -f
+
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
@@ -130,7 +136,16 @@ while [ "$index" -lt "$count" ]; do
         { has_flag -f || has_flag --force; } &&
         block "branch --delete --force" ;;
     checkout|restore)
-      has_operand "." && block "$subcommand ." ;;
+      # `.` is only one spelling of "the whole tree". Git's magic root
+      # pathspec `:/` restores every tracked file from the repository root,
+      # from any subdirectory, and a bare `*` matches everything too. Matching
+      # the literal dot alone left those discarding the working tree unblocked.
+      for operand in $operands; do
+        case "$operand" in
+          .|./|'*'|:/|:/.|:/'*'|':(top)'|':(top).')
+            block "$subcommand over the whole tree ($operand)" ;;
+        esac
+      done ;;
   esac
 done
 
