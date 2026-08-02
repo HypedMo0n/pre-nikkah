@@ -10,7 +10,7 @@
 //
 //   npm run db:drift
 
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import postgres from "postgres";
 
@@ -23,14 +23,61 @@ const projectRoot = path.resolve(import.meta.dirname, "..", "..");
 // the documented configuration could not run this check at all, and the
 // obvious workaround -- SUPABASE_DB_URL=... npm run db:drift -- writes the
 // production credential into shell history.
+//
+// Captured before loading, so an explicitly exported value still wins in CI.
+const exportedUrl = process.env.SUPABASE_DB_URL?.trim() ?? "";
+
+// Loaded for its side effect only: it re-asserts that the env files are
+// ignored and untracked. Its resolution of SUPABASE_DB_URL is deliberately
+// not used -- see below.
 loadSecretEnvironment();
+
+/**
+ * Reads one key straight out of .env.local.
+ *
+ * @next/env loads .env.development.local *before* .env.local and never
+ * overwrites a key already set, so .env.development.local wins:
+ *
+ *   load order: .env.development.local then .env.local
+ *   winner host: dev-host
+ *
+ * That file is where the disposable verification database lives. This check
+ * gates production deploys, so resolving it that way could report "No drift"
+ * about the wrong database entirely. Read the file the runbook names.
+ */
+async function readEnvLocal(key) {
+  let contents;
+  try {
+    contents = await readFile(path.join(projectRoot, ".env.local"), "utf8");
+  } catch {
+    return "";
+  }
+  let found = "";
+  for (const line of contents.split("\n")) {
+    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+    if (!match || match[1] !== key) continue;
+    let value = match[2].trim();
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+    found = value.trim();
+  }
+  return found;
+}
 
 /** Keeps credentials out of anything printed, including thrown errors. */
 function redact(text) {
   return String(text).replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, "[connection masked]");
 }
 
-const databaseUrl = process.env.SUPABASE_DB_URL;
+const databaseUrl = exportedUrl || (await readEnvLocal("SUPABASE_DB_URL"));
+process.stdout.write(
+  `source: ${exportedUrl ? "exported SUPABASE_DB_URL" : ".env.local"}\n`,
+);
 if (!databaseUrl) {
   process.stderr.write(
     "SUPABASE_DB_URL is not set. Put it in an ignored .env.local rather than " +

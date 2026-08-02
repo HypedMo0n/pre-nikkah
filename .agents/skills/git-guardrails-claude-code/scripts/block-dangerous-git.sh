@@ -39,6 +39,20 @@ takes_value() {
 normalized=$(printf '%s' "$COMMAND" | tr '\n;|&' '    ')
 read -r -a tokens <<< "$normalized"
 
+# The shell removes quotes before git sees an argument, so `git checkout "."`
+# reaches git as the same whole-tree pathspec as `git checkout .`. Comparing
+# against the raw token left the quoted spellings unmatched and allowed.
+for index in "${!tokens[@]}"; do
+  token=${tokens[$index]}
+  if [ ${#token} -ge 2 ]; then
+    case "$token" in
+      \"*\") token=${token:1:${#token}-2} ;;
+      \'*\') token=${token:1:${#token}-2} ;;
+    esac
+  fi
+  tokens[$index]=$token
+done
+
 count=${#tokens[@]}
 index=0
 while [ "$index" -lt "$count" ]; do
