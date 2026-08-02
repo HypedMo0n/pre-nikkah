@@ -44,13 +44,40 @@ begin
   end if;
 
   delete from public.answer_shares where answer_id = p_answer_id;
+
+  -- share_answer() suppresses a duplicate answer_shared event for the same
+  -- question. Left in place, that suppression would outlive the share itself:
+  -- a later re-share would raise no new activity, and a partner who had
+  -- already read the original event would get no signal that an answer became
+  -- readable again. Retracting the event with the share keeps the log
+  -- describing what is actually shared. event_reads cascades from it.
+  delete from public.space_events event
+  where event.space_id = v_answer.space_id
+    and event.kind = 'answer_shared'
+    and event.actor_id = v_user_id
+    and event.payload_json ->> 'question_id' = v_answer.question_id::text;
 end;
 $$;
 
 -- share_answer() takes the same lock, so the two order against each other
 -- rather than interleaving. Answer first, then space, matching every other
 -- function that touches both.
-create or replace function public.share_answer(p_answer_id uuid)
+--
+-- It also now requires the caller to name the option they are consenting to
+-- share. The confirmation screen shows a specific answer; between rendering
+-- that screen and the request arriving, the answer can change -- from another
+-- tab, or from an edit that commits while this call waits for the lock. The
+-- share would then publish an option the person never saw on the confirmation
+-- they clicked. Serializing the two does not help: it fixes the order, not
+-- which value was agreed to. The signature changes rather than defaulting,
+-- because a caller that omits the value is exactly the caller that has not
+-- checked.
+drop function if exists public.share_answer(uuid);
+
+create or replace function public.share_answer(
+  p_answer_id uuid,
+  p_expected_option_key text
+)
 returns void
 language plpgsql
 security definer
@@ -68,6 +95,9 @@ begin
   for update;
   if not found then
     raise exception using errcode = 'P0001', message = 'ANSWER_NOT_OWNED';
+  end if;
+  if v_answer.option_key is distinct from p_expected_option_key then
+    raise exception using errcode = 'P0001', message = 'ANSWER_CHANGED';
   end if;
 
   -- Locked, not merely read: set_space_paused() updates this row, so an
@@ -151,8 +181,10 @@ as $$
   );
 $$;
 
-revoke all on function public.revoke_answer(uuid) from public, anon, authenticated;
-grant execute on function public.revoke_answer(uuid) to authenticated;
+revoke all on function public.revoke_answer(uuid), public.share_answer(uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.revoke_answer(uuid), public.share_answer(uuid, text)
+  to authenticated;
 
 -- 3. Account deletion has to take these locks in the same order as everything
 -- else. It previously deleted the space first and let the cascade reach

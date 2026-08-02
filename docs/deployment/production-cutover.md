@@ -75,11 +75,27 @@ supabase projects list
 Confirm the ref you are about to operate on, and that it is the project you
 intend. Every later step is irreversible.
 
-### 2. Take a backup you have actually verified
+### 2. Take a backup you have actually restored
 
-Take a database backup from the Supabase dashboard and **download it**. A
-backup you have not downloaded is not a backup. This is the only thing standing
-between a mistake and permanent loss.
+Take a database backup from the Supabase dashboard and download it. Then
+**restore it into a disposable database and look at what came back**:
+
+```bash
+createdb cutover_backup_check
+psql cutover_backup_check < <the-downloaded-dump>
+
+psql cutover_backup_check -c "select count(*) from public.private_accounts"
+psql cutover_backup_check -c "select count(*) from public.couples"
+psql cutover_backup_check -c "select count(*) from public.couple_invites"
+psql cutover_backup_check -c "select count(*) from auth.users"
+```
+
+Those counts must match what production reports right now. Step 3 drops the
+schema and clears the ledger, so a dump that is truncated, partial, or missing
+`auth.users` is discovered *after* the data it was protecting is gone —
+downloading a file proves only that a file exists. A backup you have not
+restored is not a backup. This is the only thing standing between a mistake
+and permanent loss.
 
 ### 3. Remove the v2 schema and its ledger
 

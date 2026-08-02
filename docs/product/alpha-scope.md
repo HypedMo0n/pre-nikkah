@@ -171,7 +171,7 @@ A test asserts those are the only three keys.
 Proven by `supabase/tests/database/disclosure_attestations.test.sql`, 37
 assertions. Executed against PostgreSQL 16 from a clean database — every
 migration in `supabase/migrations/`, then `supabase/seed.sql`, then all four
-suites: 117 assertions, no failures.
+suites: 118 assertions, no failures.
 
 Not included: the UI for recording and revealing an attestation, including the
 reveal confirmation screen. The database refuses an unconfirmed reveal, so the

@@ -176,9 +176,18 @@ export async function shareAnswerAction(formData: FormData) {
   const locale = parseLocale(formData.get("locale"));
   const answerId = uuidSchema.safeParse(formData.get("answerId"));
   const questionId = uuidSchema.safeParse(formData.get("questionId"));
+  const expectedOptionKey = formData.get("expectedOptionKey");
   if (!answerId.success || !questionId.success) return;
+  if (typeof expectedOptionKey !== "string" || !expectedOptionKey) return;
   const { supabase } = await requireAuthenticatedUser(locale);
-  await supabase.rpc("share_answer", { p_answer_id: answerId.data });
+  // The option the confirmation screen actually showed. share_answer() raises
+  // ANSWER_CHANGED if the answer moved on since, so a stale confirmation
+  // cannot publish a value the person never agreed to. Revalidating on the
+  // error path re-renders the screen with the current answer, still unshared.
+  await supabase.rpc("share_answer", {
+    p_answer_id: answerId.data,
+    p_expected_option_key: expectedOptionKey,
+  });
   revalidatePath(
     localizedPath(locale, `/conversations/${questionId.data}`),
   );

@@ -721,7 +721,10 @@ export type Database = {
       }
       set_space_paused: { Args: { p_paused: boolean }; Returns: undefined }
       revoke_answer: { Args: { p_answer_id: string }; Returns: undefined }
-      share_answer: { Args: { p_answer_id: string }; Returns: undefined }
+      share_answer: {
+        Args: { p_answer_id: string; p_expected_option_key: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

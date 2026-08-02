@@ -109,6 +109,7 @@ export default async function ConversationPage({
       {ownAnswer && !shared ? (
         <ShareAnswerSheet
           answerId={ownAnswer.id}
+          expectedOptionKey={ownAnswer.optionKey}
           locale={locale}
           questionId={questionId}
         />

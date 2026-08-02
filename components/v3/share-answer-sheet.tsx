@@ -11,10 +11,12 @@ import type { Locale } from "@/lib/i18n/config";
 
 export function ShareAnswerSheet({
   answerId,
+  expectedOptionKey,
   locale,
   questionId,
 }: {
   answerId: string;
+  expectedOptionKey: string;
   locale: Locale;
   questionId: string;
 }) {
@@ -64,6 +66,11 @@ export function ShareAnswerSheet({
               <input name="locale" type="hidden" value={locale} />
               <input name="answerId" type="hidden" value={answerId} />
               <input name="questionId" type="hidden" value={questionId} />
+              <input
+                name="expectedOptionKey"
+                type="hidden"
+                value={expectedOptionKey}
+              />
               <SubmitButton className="w-full" pendingLabel={d.saving}>
                 {d.shareConfirm}
               </SubmitButton>

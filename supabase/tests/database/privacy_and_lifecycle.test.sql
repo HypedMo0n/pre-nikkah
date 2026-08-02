@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(46);
+select plan(47);
 
 insert into auth.users (
   id,
@@ -244,8 +244,9 @@ select is((select count(*) from public.answers), 1::bigint, 'The second member s
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
 select lives_ok(
   format(
-    'select public.share_answer(%L)',
-    (select value from test_state where key = 'answer_a_id')
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
   ),
   'The owner can explicitly share an exact answer once'
 );
@@ -279,7 +280,11 @@ select is(
 
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
 select lives_ok(
-  format('select public.share_answer(%L)', (select value from test_state where key = 'answer_a_id')),
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
+  ),
   'The author can share again after revoking'
 );
 
@@ -303,6 +308,22 @@ select is(
   1::bigint,
   'Changing a shared answer retracts the share, as editing a disclosure retracts its reveals'
 );
+
+-- A confirmation screen names one option. If the answer moved on before the
+-- request landed, sharing it would publish a value the person never saw on the
+-- confirmation they clicked.
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', true);
+select throws_ok(
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_a')
+  ),
+  'P0001',
+  'ANSWER_CHANGED',
+  'A share confirmed against a superseded answer is refused'
+);
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', true);
 
 select lives_ok(
   format(
@@ -385,7 +406,11 @@ select lives_ok(
 -- authorizing on the share alone let a former partner keep reading every
 -- answer ever shared with them, indefinitely.
 select lives_ok(
-  format('select public.share_answer(%L)', (select value from test_state where key = 'answer_a_id')),
+  format(
+    'select public.share_answer(%L, %L)',
+    (select value from test_state where key = 'answer_a_id'),
+    (select value from test_state where key = 'option_b')
+  ),
   'The author shares the answer again before the space is closed'
 );
 
