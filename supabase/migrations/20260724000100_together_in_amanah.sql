@@ -178,21 +178,6 @@ create table public.event_reads (
   primary key (space_event_id, user_id)
 );
 
--- Every place that accepts free text from a person normalizes it through here.
--- trim() defaults to trimming ordinary spaces only, so a textarea submitting
--- just tabs or newlines survived it: the value stayed non-empty, satisfied the
--- char_length constraints, and counted as real content. `\s` covers the whole
--- whitespace class. One definition, because the failure mode is precisely the
--- rule being applied inconsistently across call sites.
-create or replace function public.normalize_body(p_text text)
-returns text
-language sql
-immutable
-set search_path = public, pg_temp
-as $$
-  select regexp_replace(coalesce(p_text, ''), '^\s+|\s+$', '', 'g');
-$$;
-
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -204,7 +189,7 @@ begin
   values (
     new.id,
     coalesce(
-      nullif(left(public.normalize_body(new.raw_user_meta_data ->> 'display_name'), 80), ''),
+      nullif(left(trim(new.raw_user_meta_data ->> 'display_name'), 80), ''),
       nullif(left(split_part(coalesce(new.email, ''), '@', 1), 80), ''),
       'Member'
     ),
@@ -661,12 +646,12 @@ begin
     updated_at = excluded.updated_at
   returning id into v_answer_id;
 
-  if nullif(public.normalize_body(p_private_note), '') is null then
+  if nullif(trim(coalesce(p_private_note, '')), '') is null then
     delete from public.private_answer_notes
     where answer_id = v_answer_id and user_id = v_user_id;
   else
     insert into public.private_answer_notes (answer_id, user_id, body, updated_at)
-    values (v_answer_id, v_user_id, public.normalize_body(p_private_note), now())
+    values (v_answer_id, v_user_id, trim(p_private_note), now())
     on conflict (answer_id) do update set
       body = excluded.body,
       updated_at = excluded.updated_at;
@@ -878,12 +863,12 @@ begin
   ) then
     raise exception using errcode = 'P0001', message = 'COMPARISON_NOT_READY';
   end if;
-  if char_length(public.normalize_body(p_body)) not between 1 and 5000 then
+  if char_length(trim(coalesce(p_body, ''))) not between 1 and 5000 then
     raise exception using errcode = 'P0001', message = 'SHARED_NOTE_INVALID';
   end if;
 
   insert into public.shared_notes (space_id, question_id, author_id, body)
-  values (p_space_id, p_question_id, auth.uid(), public.normalize_body(p_body))
+  values (p_space_id, p_question_id, auth.uid(), trim(p_body))
   returning id into v_note_id;
 
   insert into public.space_events (space_id, actor_id, kind, payload_json)

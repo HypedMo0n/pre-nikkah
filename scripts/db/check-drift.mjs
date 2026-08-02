@@ -142,7 +142,18 @@ process.stdout.write(
 );
 
 if (pending.length === 0 && unknown.length === 0) {
-  process.stdout.write("No drift: every repo migration is applied.\n");
+  // Deliberately narrower than "no drift". This compares the version list on
+  // both sides and nothing else, so it cannot see an applied migration whose
+  // file was edited in place: the version is unchanged, the sets match, and
+  // `supabase db push` will not re-run it either, because it pushes versions
+  // absent from the remote history rather than reconciling content. Treat
+  // applied migrations as immutable and add a new one instead; the helper in
+  // 20260724000400 exists because that rule was broken.
+  process.stdout.write(
+    "Every repository migration version is applied.\n" +
+      "Note: versions only. An applied migration edited in place is invisible " +
+      "here and to `supabase db push` — add a new migration instead.\n",
+  );
   process.exit(0);
 }
 

@@ -13,7 +13,7 @@ The drift is now total rather than partial. As of the last check:
 | | |
 | --- | --- |
 | Applied to production | 10 migrations, `20260718000100` → `20260721000100` (v2) |
-| In `supabase/migrations/` | 6 migrations, `20260724000100` → `20260725000300` (v3) |
+| In `supabase/migrations/` | 7 migrations, `20260724000100` → `20260725000300` (v3) |
 | Overlap | none |
 
 Both counts move as migrations are added, so re-derive them rather than trust
@@ -45,7 +45,15 @@ npm run db:drift
 
 It reads `SUPABASE_DB_URL` from the ignored `.env.local`, as `supabase/README.md`
 requires, so the connection string never reaches the command line or shell
-history. Read-only, so it is safe to point at production. Exits `0` when every repository
+history. Read-only, so it is safe to point at production.
+
+It compares migration **versions** on both sides, and nothing else. An applied
+migration edited in place keeps its version, so this check cannot see the
+change and neither can `supabase db push`, which pushes versions missing from
+the remote history rather than reconciling content. **Applied migrations are
+immutable**: to change something already shipped, add a new migration. That is
+why `20260724000400_normalize_free_text.sql` exists as its own file rather than
+as an edit to `20260724000100`. Exits `0` when every repository
 migration is applied, `1` on drift, `2` if it cannot connect. Run it before every
 deploy that touches `supabase/`. It reports drift in both directions, because an
 applied migration that is missing from the repository means the histories have
