@@ -227,6 +227,18 @@ begin
     raise exception using errcode = 'P0001', message = 'ANSWER_OPTION_INVALID';
   end if;
 
+  -- Serializes concurrent first saves of this answer, for the same reason the
+  -- disclosure path takes one: the row does not exist yet, so no row lock can
+  -- order them, and the ON CONFLICT branch below would otherwise take the
+  -- answer lock after the space lock and invert the order share_answer() and
+  -- revoke_answer() depend on.
+  perform pg_advisory_xact_lock(
+    hashtextextended(
+      p_space_id::text || ':' || p_question_id::text || ':' || v_user_id::text,
+      0
+    )
+  );
+
   -- Read before the upsert overwrites it. A share names an answer, not the
   -- value it held when it was shared, so editing a shared answer would push
   -- the newly chosen option to the partner on the strength of a decision made

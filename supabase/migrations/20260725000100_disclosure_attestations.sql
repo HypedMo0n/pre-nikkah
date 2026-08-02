@@ -159,6 +159,21 @@ begin
     raise exception using errcode = 'P0001', message = 'CATEGORY_NOT_FOUND';
   end if;
 
+  -- Serializes concurrent first saves of this exact key. A row lock cannot do
+  -- it, because the row does not exist yet -- which is precisely what lets two
+  -- first saves both reach the insert. Taken before either row lock, so it
+  -- cannot invert the attestation-then-space order: with it held, the loser's
+  -- lookup below finds the winner's committed row and takes the ordinary edit
+  -- path, whose lock on that row is acquired before the space lock like every
+  -- other path. Each transaction takes one advisory lock, its own, so they
+  -- cannot cycle against each other.
+  perform pg_advisory_xact_lock(
+    hashtextextended(
+      v_space_id::text || ':' || p_category_id::text || ':' || v_user_id::text,
+      0
+    )
+  );
+
   -- Locked because reveal_disclosure_attestation() locks the same row. Without
   -- it, a reveal could read the pre-edit row, this edit could then update the
   -- body and delete the reveals, and the reveal could still insert afterwards,
@@ -193,13 +208,12 @@ begin
   end if;
 
   if not v_has_existing then
-    -- The lookup above can only lock a row that already exists, so two
-    -- concurrent first saves for the same category both find nothing and both
-    -- arrive here. The space lock serializes them, but the loser would still
-    -- run a plain insert after the winner committed and fail the unique
-    -- constraint -- surfacing a raw database error for what is, from the
-    -- person's point of view, an ordinary save. The upsert makes the loser
-    -- behave like the edit it effectively is.
+    -- Unreachable under contention now that the advisory lock above
+    -- serializes first saves, and kept as the backstop for the case it was
+    -- written for: without it, a loser that somehow reaches this point runs a
+    -- plain insert after the winner committed and fails the unique
+    -- constraint, surfacing a raw database error for what is, from the
+    -- person's point of view, an ordinary save of their own disclosure.
     insert into public.disclosure_attestations (
       space_id, category_id, user_id, body
     )
